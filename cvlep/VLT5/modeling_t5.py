@@ -13,7 +13,7 @@ from torch.nn import CrossEntropyLoss
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import copy
 
-from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
+from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions,BaseModelOutputWithPoolingAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers import BeamScorer, BeamSearchScorer
@@ -182,7 +182,7 @@ class JointEncoder(T5Stack):
         past_key_values=None,
         use_cache=None,
         output_attentions=None,
-        output_hidden_states=None,
+        output_hidden_states=None, 
         return_dict=None,
     ):
 
@@ -308,6 +308,9 @@ class JointEncoder(T5Stack):
         if output_hidden_states:
             all_hidden_states = all_hidden_states + (hidden_states,)
 
+        # pooled the last layer to have an embedding
+        pooled_output = hidden_states[torch.arange(hidden_states.shape[0]), inputs_embeds.argmax(dim=-1)]
+
         if not return_dict:
             return tuple(
                 v
@@ -326,6 +329,13 @@ class JointEncoder(T5Stack):
             hidden_states=all_hidden_states,
             attentions=all_attentions,
             cross_attentions=all_cross_attentions,
+        )
+        return BaseModelOutputWithPoolingAndCrossAttentions(
+            last_hidden_state=hidden_states,
+            past_key_values=present_key_value_states,
+            attentions=all_attentions,
+            cross_attentions=all_cross_attentions,
+            pooler_output=pooled_output
         )
 
 

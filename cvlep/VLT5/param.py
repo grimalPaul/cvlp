@@ -97,6 +97,10 @@ def parse_args(parse=True, **optional_kwargs):
     parser.add_argument('--max_n_boxes', type=int, default=36)
     parser.add_argument('--max_text_length', type=int, default=20)
 
+    # JointEncoder config
+    parser.add_argument('--config_encoder', type=str , default='')
+    parser.add_argument('--share_parameters', default=False,type=str2bool)
+
     # Training
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--valid_batch_size', type=int, default=None)
@@ -139,24 +143,6 @@ def parse_args(parse=True, **optional_kwargs):
     parser.add_argument('--ground_weight', type=int, default=1)
     parser.add_argument('--itm_cocoonly', default=True, type=str2bool)
     parser.add_argument('--single_vqa_prefix', action='store_true')
-
-    # COCO Caption
-    parser.add_argument('--no_prefix', action='store_true')
-
-    # VQA
-    parser.add_argument("--raw_label", action='store_true')
-    parser.add_argument("--answer_normalize", action='store_true')
-    parser.add_argument("--classifier", action='store_true')
-    parser.add_argument("--test_answerable", action='store_true')
-
-    # RefCOCOg
-    parser.add_argument('--RefCOCO_GT', action='store_true')
-    parser.add_argument('--RefCOCO_BUTD', action='store_true')
-    parser.add_argument("--shuffle_boxes", action='store_true')
-
-    # Multitask
-    parser.add_argument("--multitask_sampling", type=str, default='roundrobin')
-    parser.add_argument("--tasks", type=str, default='')
 
     # Etc.
     parser.add_argument('--comment', type=str, default='')

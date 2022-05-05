@@ -1,0 +1,12 @@
+{
+    "model": {
+        "backbone": "bart",
+        "pretrain": false,
+        "pretrained_model_name_or_path": "data/jointEncoder/bart_without_pretrain"
+    },
+    "tokenizer": {
+        "backbone": "bart",
+        "use_vision": false,
+        "pretrained_model_name_or_path": "data/bart_pretrained"
+    }
+}

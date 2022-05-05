@@ -1,5 +1,11 @@
 # TODO et mise en place
 
+1. mettre en place pooling sur encoder pour pouvoir faire embedding. Faire quelque chose de reproductible
+2. essayer de faire elasticsearch
+
+3. considérer que l'on peut charger sauvergader nos joint encoder car on ne touchera pas à l'architecture global (les différents poids). Que ca n'a pas d'impact sur le modèle.
+Si on touche à l'architecture on aura besoin de recharger tous notre modèle et c'est ce que l'on fera dans un second temps
+
 Ne pas oublier comment fonctionne l'entrainement
 Si aux boxes je ne dis pas à quoi ca correspond on va avoir un problème pour l'entrainement
 Il faudrait plutot pouvoir donner 'tous l'embedding' de l'image avec clip directement
@@ -7,29 +13,27 @@ Pour  l'instant on commence comme cela et on pourra jouer sur lorsuqe l'on insta
 
 ### pour charger joint encoder
 
-créer un trainer pour juste charger le joint encoder en ajoutants les clés à ignorer
-instantier le joint encoder à partir du checkpoint
-le sauvegarder
-et essayer de le recharger depuis le dictionnaire
+On a sauvegardé en utilisant pretrain model
+On peut le recharger depuis T5 sans rien d'autres.
+On pourra donc le modifier commen on veut et changer visual embedding etc normalement mais il faudra surmeent modifié la config des encoders pour recharger les modèles avec une nouvelle config.
 
-Voir comment je peux faire pour charger un modèle directement depuis un modèle avec un ajout d'une fonction pour charger depuis. Je pense que c'est + logique avec le trainer que je veux mettre en place
-
+Commment faire pour le modèle principale sachant qu'il y a plusieurs type d'encoder ?
+Voir dans Clip comment s'est géré
 
 ## TODO
 
-- [ ] charger Joint encoder uniquement Je pense qu'il faut ajouter les clés à ignorer puis sauvegarder à nouveau le modèle comme voulu
-- [ ] Réussir à précharger le modèle avec T5
-- [ ] Réussir à charger le modèle avec VL T5
-- [] monter en compétence hugging face et architecture
-  - [ ] hidden states, custom architecture
-  - [ ] faire le learning
-  - [ ] regarder github VL adaer comment mis en place pour construire architecture de mon model
-  - [ ] réfléchir à la loss
-  - [ ] comment on nourrit le model la question et image et des bons et mauvais exemple. Voir entrainement du DPR qui peut aider
-- bien penser au vocab par rapport à mon dataset s'il y a des subtilités même si pour l'instant j'utilise le modèle tout fait
-- [ ] réfléchir poru ajouter la projection a la fin, comment freeze plus haut, et changer encoder image
+- [ ] charger Joint encoder
+- [ ] faire l'embedding
+- [ ] savoir le faire avec T5
+- [ ] savoir avec VL T5
+- [ ] réfléchir à la loss
+- [ ] comment on nourrit le model la question et image et des bons et mauvais exemple. Voir entrainement du DPR qui peut aider
+- [ ] réfléchir pour ajouter la projection a la fin
+- [ ] comment freeze le modèle
+- [ ] partager les paramètres entre les duex encoders
 - [ ] torch topk
-- [ ] voir comment faire pour charger une classe
+- [ ] etre sur que les indices minés et les article2passage.json soit bon pour pouvoir comparer de manière legit
+- [ ] faire le DataLoader
 
 ## DONE
 
@@ -48,8 +52,6 @@ au final on va vouloir essayer CLIP
 
 VL BERT ?
 
-VL adapter.
-
 Comme pour VL T5 je dois pouvoir récupérer un pretrain du modèle pour essayer la version faster cnn et la version clip.
 Pas mal de changement entre VL T5 et VL adapter. mais je dois pouvoir globalement récupérer les codes pour clip
 
@@ -57,15 +59,15 @@ On va partir de VLT5 quoi qu
 
 contrastive pretraining
 
-On sait que clip connait les concepts
-
 pas d'intérêt à fine tuner le model de vision. + faster cnn pas stable a l'entrainement de cette facon la : source article => Ils en parlent dans VL adapter mais recup la source pour l'insérer.
 
-Il faut que la recherche entre les vecteurs soient de la même facon que la cosine similarité entre modèle
+Il faut que la recherche entre les vecteurs soient de la même facon que la cosine similarité entre modèle. Mettre en place elasticsearch
 
 De cette facon si on récup les même choses on peut imaginer essayer notre modèle avec d'autres types d'encoder
 
 On peut facilement utiliser VL Bart aussi donc le faire aussi
+
+On n'utilise pas les préfixes mais c'est qqch que l'on pourrait faire car le modèle est entrainé la dessus. Via Instruction NER. Ajouter au moins question : et passage :
 
 ### recup
 
@@ -73,6 +75,8 @@ on voit comment faire une architecture compatible clip et faster cnn
 on récupère truc pour preprocess image avec clip
 on voit si on utilise le meilleur modèle de VL T5 avec CLIP comme ca on pourra utiliser les deux en baseline.
 Il y a des infos dans le trainer.py de VL adapter pour freeze le modèle
+
+vl T5 est grandement copié sur le code pour modèliser t5
 
 ## ressource
 

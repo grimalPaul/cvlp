@@ -1,0 +1,34 @@
+{
+    "encoder_question":{
+        "model": {
+            "backbone": "t5",
+            "pretrain": true,
+            "pretrained_model_name_or_path": "data/jointEncoder/VLT5epoch30"
+        },
+        "tokenizer": {
+            "backbone": "t5",
+            "use_vision": true,
+            "pretrained_model_name_or_path": "data/t5_pretrained",
+            "max_length":100,
+            "do_lower_case":true
+        }
+    },
+    "encoder_passage":{
+        "model": {
+            "backbone": "t5",
+            "pretrain": true,
+            "pretrained_model_name_or_path": "data/jointEncoder/VLT5epoch30"
+        },
+        "tokenizer": {
+            "backbone": "t5",
+            "use_vision": true,
+            "pretrained_model_name_or_path": "data/t5_pretrained",
+            "max_length":100,
+            "do_lower_case":true
+        }
+    },
+    "cvlep":
+    {
+        "use_projection" : false
+    }
+}

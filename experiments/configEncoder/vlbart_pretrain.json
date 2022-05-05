@@ -1,0 +1,12 @@
+{
+    "model": {
+        "backbone": "bart",
+        "pretrain": true,
+        "pretrained_model_name_or_path": "data/jointEncoder/Bartepoch30"
+    },
+    "tokenizer": {
+        "backbone": "bart",
+        "use_vision": false,
+        "pretrained_model_name_or_path": "data/bart_pretrained"
+    }
+}

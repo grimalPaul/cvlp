@@ -2,32 +2,35 @@
 
 from dataclasses import dataclass
 import torch
-from torch import logit, nn
+from torch import nn
+from transformers import T5Config
 from transformers.modeling_outputs import ModelOutput, BaseModelOutputWithPooling
-from cvlep.VLT5.modeling_t5 import JointEncoder
+from cvlep.VLT5.modeling_t5 import JointEncoder as encoderT5
+from cvlep.VLT5.modeling_bart import JointEncoder as encoderBart
 from typing import Optional, Tuple, Any
 
 
 class CVLEP(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, image_question_encoder, image_passage_encoder ):
 
         super().__init__(config)
         self.config = config
-        self.image_question_encoder = JointEncoder()
-        self.image_passage_encoder = JointEncoder()
+
+        self.image_question_encoder = image_question_encoder
+        self.image_passage_encoder = image_passage_encoder
 
         # according to the config we add or not a projection
         # We beginn with a simple linear projection
-        # We can maybe after create a Projection Head like here
+        # We can maybe after create a Projection Head like here 
+        # https://towardsdatascience.com/simple-implementation-of-openai-clip-model-a-tutorial-ace6ff01d9f2
         if config.use_projection:
-            self.image_question_projection = nn.Linear()
-            self.image_passage_projection = nn.Linear()
+            self.image_question_projection = nn.Linear(config.embedding_dim_question, config.projection_dim_question)
+            self.image_passage_projection = nn.Linear(config.embedding_dim_passage, config.projection_dim_passage)
         else:
             self.image_question_projection = None
             self.image_passage_projection = None
 
         # we want to be able to freeze or not the model with the config
-
         # a voir pour ca comment ca se passe pour charger le modèle
         self.init_weights()
 
@@ -65,10 +68,22 @@ class CVLEP(nn.Module):
 
 
 
+
+    # Mettre dans le trainer ?
+    @torch.no_grad()
+    def embed_image_passage(self):
+        raise NotImplementedError
+
+    @torch.no_grad()
+    def embed_image_question(self):
+        raise NotImplementedError()
+
+
 def contrastive_loss(logits: torch.Tensor) -> torch.Tensor:
     # https://github.com/huggingface/transformers/blob/bdd690a74da5283cbc893dfd79e1c7c72ec1bcfa/src/transformers/models/clip/modeling_clip.py#L65
 
     return nn.functionnal.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
+
 
 def clip_loss(similarity: torch.Tensor) -> torch.Tensor:
     # https://github.com/huggingface/transformers/blob/bdd690a74da5283cbc893dfd79e1c7c72ec1bcfa/src/transformers/models/clip/modeling_clip.py#L69
@@ -77,10 +92,9 @@ def clip_loss(similarity: torch.Tensor) -> torch.Tensor:
     return (image_question_loss, image_passage_loss)
 
 
-
 # Think about that and define
 @dataclass
-class CVLEP(ModelOutput):
+class CVLEP_output(ModelOutput):
     """
     Args:
         loss (`torch.FloatTensor` of shape `(1,)`, *optional*, returned when `return_loss` is `True`):

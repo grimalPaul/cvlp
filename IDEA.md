@@ -5,6 +5,8 @@ CLIP avec deux encoder pour essayer de faire matcher question+image et passage +
 pour entrainement on pourrait utiliser TRIVIAQA pour avoir une plus grosse base d'entrainement ou quelquechose comme cela
 Puis fine tuning sur le train pour enfin avoir les résultats.
 
+Miner beaucoup de question réponse et passage pour faire un pretrained model que l'on finetuned après sur nos données. Peut être une bonne solution
+
 2. Bonne representation texte et image
 
 Utiliser T5 avec INSTRUCTION NER, faire un meilleur prompting
@@ -15,8 +17,8 @@ on pourrait juste essayer de projeter image et question dans le même espace mai
 
 Il faut réussir à trouver une bonne représentation avec du transformers.
 
-
-
 VLMo ressemble un peu mais pas le même objectif
 
 Lire la survey sur Embedding je peux apprendre des choses je pense
+
+
