@@ -6,6 +6,7 @@ import torch
 
 import pprint
 import yaml
+import json
 
 
 def str2bool(v):
@@ -98,7 +99,7 @@ def parse_args(parse=True, **optional_kwargs):
     parser.add_argument('--max_text_length', type=int, default=20)
 
     # JointEncoder config
-    parser.add_argument('--config_encoder', type=str , default='')
+    parser.add_argument('--config_encoder', type=str , default='experiments/model_cvlep/encodersT5.json')
     parser.add_argument('--share_parameters', default=False,type=str2bool)
 
     # Training
@@ -177,7 +178,10 @@ class Config(object):
     def __init__(self, **kwargs):
         """Configuration Class: set kwargs as class attributes with setattr"""
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            if isinstance(v, dict):
+                setattr(self, k, Attribut(**v))
+            else:
+                setattr(self, k, v)
 
     @property
     def config_str(self):
@@ -199,6 +203,26 @@ class Config(object):
             kwargs = yaml.load(f)
 
         return Config(**kwargs)
+
+    @classmethod
+    def load_json(cls, path):
+        with open(path,'r') as f:
+            kwargs = json.load(f)
+        return Config(**kwargs)
+
+class Attribut(object):
+    def __init__(self, **kwargs):
+        """Configuration Class: set kwargs as class attributes with setattr"""
+        for k, v in kwargs.items():
+            if isinstance(v, dict):
+                setattr(self, k, Attribut(**v))
+            else:
+                setattr(self, k, v)
+
+    @property
+    def config_str(self):
+        return pprint.pformat(self.__dict__)
+
 
 
 if __name__ == '__main__':

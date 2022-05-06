@@ -6,7 +6,11 @@
 3. considérer que l'on peut charger sauvergader nos joint encoder car on ne touchera pas à l'architecture global (les différents poids). Que ca n'a pas d'impact sur le modèle.
 Si on touche à l'architecture on aura besoin de recharger tous notre modèle et c'est ce que l'on fera dans un second temps
 
-Ne pas oublier comment fonctionne l'entrainement
+3. Essayer d'autres visual embedding, autres positions embedding
+
+
+Clip utiliser la projection pour la sortie :
+
 Si aux boxes je ne dis pas à quoi ca correspond on va avoir un problème pour l'entrainement
 Il faudrait plutot pouvoir donner 'tous l'embedding' de l'image avec clip directement
 Pour  l'instant on commence comme cela et on pourra jouer sur lorsuqe l'on instancie le joint encoder pour changer cela
@@ -21,6 +25,9 @@ Commment faire pour le modèle principale sachant qu'il y a plusieurs type d'enc
 Voir dans Clip comment s'est géré
 
 ## TODO
+
+- [ ] faire embedding et faire la recherche de performance. Dans notre cas on aura pas besoin du article2index car on fera dirextement la recherche dans les passages.
+
 
 - [ ] charger Joint encoder
 - [ ] faire l'embedding

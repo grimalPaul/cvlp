@@ -8,8 +8,8 @@
         "tokenizer": {
             "backbone": "t5",
             "use_vision": true,
-            "pretrained_model_name_or_path": "data/t5_pretrained",
-            "max_length":100,
+            "pretrained_model_name_or_path": "data/tokenizer/t5-base",
+            "max_length":150,
             "do_lower_case":true
         }
     },
@@ -22,13 +22,15 @@
         "tokenizer": {
             "backbone": "t5",
             "use_vision": true,
-            "pretrained_model_name_or_path": "data/t5_pretrained",
-            "max_length":100,
+            "pretrained_model_name_or_path": "data/tokenizer/t5-base",
+            "max_length":150,
             "do_lower_case":true
         }
     },
     "cvlep":
     {
         "use_projection" : false
-    }
+    },
+    "distributed":false,
+    "verbose":false
 }

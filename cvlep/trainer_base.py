@@ -10,6 +10,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from cvlep.VLT5.modeling_t5 import JointEncoder as VLt5Encoder
 from cvlep.VLT5.modeling_bart import JointEncoder as VLBartEncoder
+from cvlep.VLT5.param import Config
 
 from cvlep.modeling_cvlep import CVLEP
 _use_native_amp = False
@@ -28,8 +29,7 @@ else:
 
 def get_encoder(config: dict):
     if config.model.backbone == 't5':
-        encoder = VLt5Encoder.from_pretrained(
-            config.model.pretrained_model_name_or_path)
+        encoder = VLt5Encoder.from_pretrained(config.model.pretrained_model_name_or_path)
     elif config.model.backbone == 'bart':
         encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
     else:
@@ -37,7 +37,7 @@ def get_encoder(config: dict):
     return encoder
 
 
-def get_tokenizer(config: dict):
+def get_tokenizer(config: dict, **kwargs):
     from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
     from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
     if config.tokenizer.backbone == 't5':
@@ -61,46 +61,42 @@ def get_tokenizer(config: dict):
     return tokenizer
 
 class Trainer(object):
-    def __init__(self, args, train_loader=None, val_loader=None, test_loader=None, train=True):
-        self.args = args
+    def __init__(self, config_path, train_loader=None, val_loader=None, test_loader=None, train=True):
+        
+        config = Config.load_json(config_path)
+
+        self.args = config
 
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
 
-        self.verbose = True
         if self.args.distributed:
             if self.args.gpu != 0:
-                self.verbose = False
+                self.args.verbose = False
 
-        if self.args.tokenizer is None:
-            self.args.tokenizer = self.args.backbone
-
-        if not self.verbose:
+        if not self.args.verbose:
             set_global_logging_level(logging.ERROR, ["transformers"])
-
-        from cvlep.modeling_cvlep import CVLEP
 
         # on va passer la config de l'encoder en argument
 
         # de base on a un modèle complet mais on veut juste joint encoder
         # si je peux charger encoder depuis pretrained ca peut me permettre de charger directement ce dont j'ai besoin et ne pas passer par les configs compliqués
 
-        config = get_config(args.config_encoder)
-
         self.model = self.create_model(config)
         self.tokenizer_question, self.tokenizer_passage = self.create_tokenizer(
             config)
+        # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra 
+        # etre amené à devoir les changer
+        """if config.encoder_passage.tokenizer.backbone == 't5':
+            self.model.encoder_passage.resize_token_embeddings(self.tokenizer_question.vocab_size)
+        elif config.encoder_passage.tokenizer.backbone == 'bart':
+            self.model.encoder_passage.resize_token_embeddings(
+                self.model.encoder_passage.model.shared.num_embeddings + num_added_toks)"""
 
-        model_kwargs = {}
-        if 't5' in args.backbone:
-            model_class =
-        elif 'bart' in args.backbone:
-            model_class = VLBartPretraining
-
-        config = self.create_config()
-        self.tokenizer = self.create_tokenizer()
-        if 'bart' in self.args.tokenizer:
+        
+        # Normalement déjà dans la confiq des encoders que l'on a enregistré
+        """if 'bart' in self.args.tokenizer:
             num_added_toks = 0
             if config.use_vis_order_embedding:
                 additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
@@ -111,25 +107,19 @@ class Trainer(object):
                     special_tokens_dict)
 
                 config.default_obj_order_ids = self.tokenizer.convert_tokens_to_ids(
-                    [f'<vis_extra_id_{i}>' for i in range(100)])
+                    [f'<vis_extra_id_{i}>' for i in range(100)])"""
 
-        self.model = self.create_model(model_class, config, **model_kwargs)
 
-        if 't5' in self.args.tokenizer:
-            self.model.resize_token_embeddings(self.tokenizer.vocab_size)
-        elif 'bart' in self.args.tokenizer:
-            self.model.resize_token_embeddings(
-                self.model.model.shared.num_embeddings + num_added_toks)
-
-        self.model.tokenizer = self.tokenizer
-
+        """useless for now
         # Load Checkpoint
+        # useless for now
         self.start_epoch = None
         if args.load is not None:
             ckpt_path = args.load + '.pth'
             self.load_checkpoint(ckpt_path)
             self.start_epoch = int(args.load.split('Epoch')[-1])
 
+        # useless for now
         if self.args.from_scratch:
             self.init_weights()
 
@@ -156,17 +146,16 @@ class Trainer(object):
                                  find_unused_parameters=True
                                  )
         if self.verbose:
-            print(f'It took {time() - start:.1f}s')
+            print(f'It took {time() - start:.1f}s')"""
 
     def create_model(self, config=None, **kwargs):
 
         question_encoder = get_encoder(config.encoder_question)
         passage_encoder = get_encoder(config.encoder_passage)
 
-        config_model = dict()
-        config_model.update(use_projection = config.cvlep.use_projection)
+        config_model = config.cvlep
         model = CVLEP(
-            config,
+            config_model,
             image_question_encoder=question_encoder,
             image_passage_encoder=passage_encoder
         )

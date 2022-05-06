@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Any
 class CVLEP(nn.Module):
     def __init__(self, config, image_question_encoder, image_passage_encoder ):
 
-        super().__init__(config)
+        super().__init__()
         self.config = config
 
         self.image_question_encoder = image_question_encoder
@@ -31,8 +31,9 @@ class CVLEP(nn.Module):
             self.image_passage_projection = None
 
         # we want to be able to freeze or not the model with the config
-        # a voir pour ca comment ca se passe pour charger le modèle
-        self.init_weights()
+        
+        # init projection weights
+        self.apply(self._init_weights)
 
     def forward(
         self
@@ -66,8 +67,9 @@ class CVLEP(nn.Module):
     def test_step(self, batch):
         raise NotImplementedError()
 
-
-
+    @torch.no_grad()
+    def _init_weights(self,module):
+        raise NotImplementedError()
 
     # Mettre dans le trainer ?
     @torch.no_grad()
