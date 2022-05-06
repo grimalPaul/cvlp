@@ -4,16 +4,19 @@
 
 Strategies at the end of the encoder :
 
-- pooling last hidden states
-- concat hidden states
-- sum some hidden states
+- concat n hidden states
+or
+- sum n hidden states
+then average
 
-récup dernier hidden states ou
-faire une sorte de moyenne des hidden states (pooling, ...) ou somme
-Voir ce qui est fait sur d'autres modèles comme Bert pour tester différentes choses. Suivant ce que je vais mettre en place comme traitement sur hidden states on aura des résultats différents. Peut être une autre chise à tester stratégiquement. [blog stratégies pour Bert](https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/#3-extracting-embeddings).
+dans clip vision utilise le hidden states correspondant au premier token [ici](https://huggingface.co/docs/transformers/model_doc/clip#transformers.CLIPVisionModel)
+dans cliptext model pareil retourne last hidden states du premier tokens [doc](https://huggingface.co/docs/transformers/model_doc/clip#transformers.CLIPTextModel)
 
-Dans CLIP la stratégie est la suivante : pooled output
-`pooled_output = last_hidden_state[torch.arange(last_hidden_state.shape[0]), input_ids.argmax(dim=-1)]`
+ [blog stratégies pour Bert](https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/#3-extracting-embeddings).
+
+Chercher ou essayer différentes façon et ainsi trouver la meilleure.
+
+Dans CLIPText
 
 Mais on pourrait travailler sur la somme, de certains layers ou la concaténation.
 
@@ -43,7 +46,7 @@ Dans l'encoder de text ils utilisent des causals Mask je ne connais pas leur uti
 
 [Section 3.4 attention is all you need](https://arxiv.org/pdf/1706.03762.pdf)
 
-dans VLT5 encoder et decoder partage même embedding
+dans VLT5 encoder et decoder partage même embedding = Normal
 
 ## A propos des tokenizer
 
@@ -59,3 +62,13 @@ dans VLT5 encoder et decoder partage même embedding
 Voir `test.ipynb:` on a pu encoder des entités nommées donc on peut considérer que les entités nommées sont dans le vocabulaire.
 
 padding =  true permet de pouvoir faire du batch
+
+## accéder aux images
+
+on enregistre le nom de l'image dans le dataset passage dans le cas ou on veut faire les embeddings des images à chaque fois
+
+dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddings de la kb. Et trouver un moyen de transférer les embeddings avec le passage index
+
+## similarity search dense vector
+
+[Faiss](https://github.com/facebookresearch/faiss)

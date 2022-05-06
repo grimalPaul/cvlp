@@ -3,7 +3,7 @@ import torch
 from cvlep.VLT5.utils import load_state_dict
 from pprint import pprint
 import os
-from cvlep.utils import set_global_logging_level, get_config
+from cvlep.utils import set_global_logging_level
 import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -54,8 +54,8 @@ def get_tokenizer(config: dict, **kwargs):
         raise NotImplementedError('This type of tokenizer is not implemented')
     tokenizer = tokenizer_class.from_pretrained(
         config.tokenizer.pretrained_model_name_or_path,
-        max_length=config.max_text_length,
-        do_lower_case=config.args.do_lower_case,
+        max_length=config.tokenizer.max_text_length,
+        do_lower_case=config.tokenizer.do_lower_case,
         **kwargs
     )
     return tokenizer
@@ -275,6 +275,12 @@ class Trainer(object):
         if self.verbose:
             print('Model loaded from ', path)
             pprint(results)
+
+    def embedding_passage(self, **kwargs):
+        return self.model.embed_image_passage(**kwargs)
+
+    def embedding_question(self, **kwargs):
+        return self.model.embed_image_question(**kwargs)
 
 
 """

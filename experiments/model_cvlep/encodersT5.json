@@ -9,7 +9,7 @@
             "backbone": "t5",
             "use_vision": true,
             "pretrained_model_name_or_path": "data/tokenizer/t5-base",
-            "max_length":150,
+            "max_text_length":150,
             "do_lower_case":true
         }
     },
@@ -23,7 +23,7 @@
             "backbone": "t5",
             "use_vision": true,
             "pretrained_model_name_or_path": "data/tokenizer/t5-base",
-            "max_length":150,
+            "max_text_length":150,
             "do_lower_case":true
         }
     },

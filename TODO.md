@@ -2,10 +2,6 @@
 
 1. mettre en place pooling sur encoder pour pouvoir faire embedding. Faire quelque chose de reproductible
 2. essayer de faire elasticsearch
-
-3. considérer que l'on peut charger sauvergader nos joint encoder car on ne touchera pas à l'architecture global (les différents poids). Que ca n'a pas d'impact sur le modèle.
-Si on touche à l'architecture on aura besoin de recharger tous notre modèle et c'est ce que l'on fera dans un second temps
-
 3. Essayer d'autres visual embedding, autres positions embedding
 
 
@@ -28,11 +24,9 @@ Voir dans Clip comment s'est géré
 
 - [ ] faire embedding et faire la recherche de performance. Dans notre cas on aura pas besoin du article2index car on fera dirextement la recherche dans les passages.
 
+[ ] modifer le joint encoder de Bart
 
-- [ ] charger Joint encoder
 - [ ] faire l'embedding
-- [ ] savoir le faire avec T5
-- [ ] savoir avec VL T5
 - [ ] réfléchir à la loss
 - [ ] comment on nourrit le model la question et image et des bons et mauvais exemple. Voir entrainement du DPR qui peut aider
 - [ ] réfléchir pour ajouter la projection a la fin

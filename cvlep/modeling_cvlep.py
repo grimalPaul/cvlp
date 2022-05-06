@@ -33,7 +33,7 @@ class CVLEP(nn.Module):
         # we want to be able to freeze or not the model with the config
         
         # init projection weights
-        self.apply(self._init_weights)
+        #self.apply(self._init_weights)
 
     def forward(
         self
@@ -71,14 +71,13 @@ class CVLEP(nn.Module):
     def _init_weights(self,module):
         raise NotImplementedError()
 
-    # Mettre dans le trainer ?
     @torch.no_grad()
-    def embed_image_passage(self):
-        raise NotImplementedError
+    def embed_image_passage(self, **kwargs):
+        return self.image_passage_encoder(**kwargs)
 
     @torch.no_grad()
-    def embed_image_question(self):
-        raise NotImplementedError()
+    def embed_image_question(self, **kwargs):
+        return self.image_passage_encoder(**kwargs)
 
 
 def contrastive_loss(logits: torch.Tensor) -> torch.Tensor:

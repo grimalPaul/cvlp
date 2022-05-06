@@ -13,7 +13,7 @@ from torch.nn import CrossEntropyLoss
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import copy
 
-from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions,BaseModelOutputWithPoolingAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
+from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPoolingAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers import BeamScorer, BeamSearchScorer
@@ -37,20 +37,25 @@ class VisualEmbedding(nn.Module):
             # Object feature encoding
             feat_embedding = [nn.Linear(feat_dim, config.d_model)]
             if self.config.use_vis_layer_norm:
-                feat_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
+                feat_embedding.append(T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon))
             self.feat_embedding = nn.Sequential(*feat_embedding)
 
             # self.relative_vis_pos_embedding = nn.Linear(pos_dim + 1, config.num_heads)
-            absolute_vis_pos_embedding = [nn.Linear(pos_dim + 1, config.d_model)]
+            absolute_vis_pos_embedding = [
+                nn.Linear(pos_dim + 1, config.d_model)]
             if self.config.use_vis_layer_norm:
-                absolute_vis_pos_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
-            self.absolute_vis_pos_embedding = nn.Sequential(*absolute_vis_pos_embedding)
+                absolute_vis_pos_embedding.append(T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon))
+            self.absolute_vis_pos_embedding = nn.Sequential(
+                *absolute_vis_pos_embedding)
             # self.absolute_vis_pos_layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
 
             if self.config.use_vis_order_embedding:
                 # self.obj_order_embedding = nn.Embedding(n_objs, config.d_model)
                 self.obj_order_embedding = obj_order_embedding
-                self.img_order_embedding = nn.Embedding(n_images, config.d_model)
+                self.img_order_embedding = nn.Embedding(
+                    n_images, config.d_model)
 
         else:
             # Object feature encoding
@@ -60,19 +65,23 @@ class VisualEmbedding(nn.Module):
             self.feat_embedding = nn.Sequential(*feat_embedding)
 
             # self.relative_vis_pos_embedding = nn.Linear(pos_dim + 1, config.num_heads)
-            absolute_vis_pos_embedding = [nn.Linear(pos_dim + 1, config.d_model)]
+            absolute_vis_pos_embedding = [
+                nn.Linear(pos_dim + 1, config.d_model)]
             # if self.config.use_vis_layer_norm:
             #     absolute_vis_pos_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
-            self.absolute_vis_pos_embedding = nn.Sequential(*absolute_vis_pos_embedding)
+            self.absolute_vis_pos_embedding = nn.Sequential(
+                *absolute_vis_pos_embedding)
             # self.absolute_vis_pos_layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
 
             if self.config.use_vis_order_embedding:
                 # self.obj_order_embedding = nn.Embedding(n_objs, config.d_model)
                 self.obj_order_embedding = obj_order_embedding
-                self.img_order_embedding = nn.Embedding(n_images, config.d_model)
+                self.img_order_embedding = nn.Embedding(
+                    n_images, config.d_model)
 
             if self.config.use_vis_layer_norm:
-                self.layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
+                self.layer_norm = T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon)
 
     def get_area(self, pos):
         """
@@ -87,7 +96,6 @@ class VisualEmbedding(nn.Module):
         width = pos[:, :, 1] - pos[:, :, 0]
         area = height * width
         return area
-
 
     def forward(self, feats, pos, img_order_ids=None, obj_order_ids=None):
         """
@@ -108,23 +116,23 @@ class VisualEmbedding(nn.Module):
         device = feats.device
         dtype = feats.dtype
 
-        area = self.get_area(pos).unsqueeze(2) # [B, N, 1]
-        pos = torch.cat([pos, area], dim=2) # [B, N, 5]
+        area = self.get_area(pos).unsqueeze(2)  # [B, N, 1]
+        pos = torch.cat([pos, area], dim=2)  # [B, N, 5]
 
         # [B, N, d_model]
         absolute_vis_pos_embedding = self.absolute_vis_pos_embedding(pos)
         # absolute_vis_pos_embedding = self.absolute_vis_pos_layer_norm(absolute_vis_pos_embedding)
 
-
         if self.config.use_vis_order_embedding:
             if img_order_ids is None:
                 img_order_ids = torch.zeros(N, dtype=torch.long, device=device)
-                img_order_ids = img_order_ids.unsqueeze(0) #.expand(B, -1)
+                img_order_ids = img_order_ids.unsqueeze(0)  # .expand(B, -1)
             img_order_embedding = self.img_order_embedding(img_order_ids)
 
             if obj_order_ids is None:
-                obj_order_ids = torch.arange(N, dtype=torch.long, device=device)
-                obj_order_ids = obj_order_ids.unsqueeze(0) #.expand(B,-1)
+                obj_order_ids = torch.arange(
+                    N, dtype=torch.long, device=device)
+                obj_order_ids = obj_order_ids.unsqueeze(0)  # .expand(B,-1)
             # assert obj_order_ids.max().item() < 32200, obj_order_ids
             obj_order_ids = self.obj_order_embedding.num_embeddings - obj_order_ids - 1
             obj_order_embedding = self.obj_order_embedding(obj_order_ids)
@@ -182,8 +190,9 @@ class JointEncoder(T5Stack):
         past_key_values=None,
         use_cache=None,
         output_attentions=None,
-        output_hidden_states=None, 
+        output_hidden_states=None,
         return_dict=None,
+        return_pooled_output=False
     ):
 
         if inputs_embeds is None:
@@ -209,7 +218,8 @@ class JointEncoder(T5Stack):
         inputs_embeds = torch.cat([inputs_embeds, vis_embeds], dim=1)
 
         if attention_mask is None:
-            attention_mask = input_ids.ne(self.config.pad_token_id).to(dtype=inputs_embeds.dtype, device=inputs_embeds.device)
+            attention_mask = input_ids.ne(self.config.pad_token_id).to(
+                dtype=inputs_embeds.dtype, device=inputs_embeds.device)
 
         if vis_attention_mask is None:
             vis_attention_mask = attention_mask.new_ones(B, V_L)
@@ -308,35 +318,36 @@ class JointEncoder(T5Stack):
         if output_hidden_states:
             all_hidden_states = all_hidden_states + (hidden_states,)
 
-        # pooled the last layer to have an embedding
-        pooled_output = hidden_states[torch.arange(hidden_states.shape[0]), inputs_embeds.argmax(dim=-1)]
-
-        if not return_dict:
-            return tuple(
-                v
-                for v in [
-                    hidden_states,
-                    present_key_value_states,
-                    all_hidden_states,
-                    all_attentions,
-                    all_cross_attentions,
-                ]
-                if v is not None
+        # get the last layer of the first token. Clip strategies in transformers
+        if return_pooled_output:
+            pooled_output = hidden_states[:, 0, :]
+            return BaseModelOutputWithPoolingAndCrossAttentions(
+                last_hidden_state=hidden_states,
+                past_key_values=present_key_value_states,
+                attentions=all_attentions,
+                cross_attentions=all_cross_attentions,
+                pooler_output=pooled_output
             )
-        return BaseModelOutputWithPastAndCrossAttentions(
-            last_hidden_state=hidden_states,
-            past_key_values=present_key_value_states,
-            hidden_states=all_hidden_states,
-            attentions=all_attentions,
-            cross_attentions=all_cross_attentions,
-        )
-        return BaseModelOutputWithPoolingAndCrossAttentions(
-            last_hidden_state=hidden_states,
-            past_key_values=present_key_value_states,
-            attentions=all_attentions,
-            cross_attentions=all_cross_attentions,
-            pooler_output=pooled_output
-        )
+        else:
+            if not return_dict:
+                return tuple(
+                    v
+                    for v in [
+                        hidden_states,
+                        present_key_value_states,
+                        all_hidden_states,
+                        all_attentions,
+                        all_cross_attentions,
+                    ]
+                    if v is not None
+                )
+            return BaseModelOutputWithPastAndCrossAttentions(
+                last_hidden_state=hidden_states,
+                past_key_values=present_key_value_states,
+                hidden_states=all_hidden_states,
+                attentions=all_attentions,
+                cross_attentions=all_cross_attentions,
+            )
 
 
 class VLT5(T5ForConditionalGeneration):
@@ -413,9 +424,9 @@ class VLT5(T5ForConditionalGeneration):
         self.vis_encoder.config.vocab_size = vocab_size
         self.decoder.config.vocab_size = vocab_size
 
-
     # @add_start_docstrings_to_callable(T5_INPUTS_DOCSTRING)
     # @replace_return_docstrings(output_type=Seq2SeqLMOutput, config_class=_CONFIG_FOR_DOC)
+
     def forward(
         self,
         input_ids=None,
@@ -486,12 +497,14 @@ class VLT5(T5ForConditionalGeneration):
                 decoder_inputs_embeds = decoder_inputs_embeds[:, -1:]
 
         if attention_mask is None:
-            attention_mask = input_ids.ne(self.config.pad_token_id).to(dtype=hidden_states.dtype, device=hidden_states.device)
+            attention_mask = input_ids.ne(self.config.pad_token_id).to(
+                dtype=hidden_states.dtype, device=hidden_states.device)
         if vis_attention_mask is None:
             B, L = attention_mask.size()
             V_L = encoder_outputs[0].size(1) - L
             vis_attention_mask = attention_mask.new_ones(B, V_L)
-        encoder_attention_mask = torch.cat([attention_mask, vis_attention_mask], dim=1)
+        encoder_attention_mask = torch.cat(
+            [attention_mask, vis_attention_mask], dim=1)
 
         # Decode
         decoder_outputs = self.decoder(
@@ -536,7 +549,8 @@ class VLT5(T5ForConditionalGeneration):
             if reduce_loss:
                 loss_fct = CrossEntropyLoss(ignore_index=-100)
             else:
-                loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
+                loss_fct = CrossEntropyLoss(
+                    ignore_index=-100, reduction='none')
             loss = loss_fct(
                 lm_logits.view(-1, lm_logits.size(-1)),
                 labels.view(-1))
@@ -565,9 +579,9 @@ class VLT5(T5ForConditionalGeneration):
         )
 
     def prepare_inputs_for_generation(
-        self, input_ids, past=None, attention_mask=None, use_cache=None,
-        encoder_outputs=None,
-        **kwargs):
+            self, input_ids, past=None, attention_mask=None, use_cache=None,
+            encoder_outputs=None,
+            **kwargs):
 
         # cut decoder_input_ids if past is used
         if past is not None:
