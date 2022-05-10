@@ -13,19 +13,7 @@ from cvlep.VLT5.modeling_bart import JointEncoder as VLBartEncoder
 from cvlep.VLT5.param import Config
 
 from cvlep.modeling_cvlep import CVLEP
-_use_native_amp = False
-_use_apex = False
-
-# Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
-if version.parse(torch.__version__) < version.parse("1.6"):
-    from transformers.file_utils import is_apex_available
-    if is_apex_available():
-        from apex import amp
-    _use_apex = True
-else:
-    _use_native_amp = True
-    from torch.cuda.amp import autocast
-
+from cvlep.utils import device
 
 def get_encoder(config: dict):
     if config.model.backbone == 't5':
@@ -86,6 +74,8 @@ class Trainer(object):
         self.model = self.create_model(config)
         self.tokenizer_question, self.tokenizer_passage = self.create_tokenizer(
             config)
+
+        self.model.to(device)
         # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra 
         # etre amené à devoir les changer
         """if config.encoder_passage.tokenizer.backbone == 't5':

@@ -7,7 +7,7 @@ CVLEP = Constrastive Visual Language Embedding Pre-Training
 I suggest to create a virtual environnement and pip install the `requirements.txt`.
 install elasticsearch. I worked with this version : [elasticsearch-7.17](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/targz.html)
 
-## Download tokenizer
+### Download tokenizer and model
 
 ```py
 from transformers import BartTokenizer, T5Tokenizer
@@ -18,6 +18,14 @@ bart_tokenizer.save_pretrained('data/tokenizer/bart-base')
 t5_tokenizer = T5Tokenizer.from_pretrained('t5-base')
 t5_tokenizer.save_pretrained('data/tokenizer/t5-base')
 ```
+
+### Download visual model
+
+`TODO`
+
+### Download pretrained encoder
+
+`TODO`
 
 ## Aknowledgments
 

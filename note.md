@@ -30,7 +30,7 @@ hidden states = sorties des différentes couches
 
 Quel layer fait quel hidden state
 
-Dans VLT5
+On pourrait imaginer pouvoir choisir l'embedding voulu quand on appelle encoder
 
 ### VLT5
 
@@ -72,3 +72,11 @@ dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddin
 ## similarity search dense vector
 
 [Faiss](https://github.com/facebookresearch/faiss)
+
+[Exemples faciles ici](https://programmer.ink/think/faiss-dense-vector-retrieval-framework.html)
+
+[Hugging face Faiss Index on dataset](https://huggingface.co/docs/datasets/faiss_es)
+
+## Visual embedding de T5
+
+Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
