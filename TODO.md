@@ -26,6 +26,7 @@ Voir dans Clip comment s'est géré
 
 [ ] modifer le joint encoder de Bart
 
+- [ ] faisabilité pour avoit un énorme dataset avec passages et images pour pretrain le modèle
 - [ ] faire l'embedding
 - [ ] réfléchir à la loss
 - [ ] comment on nourrit le model la question et image et des bons et mauvais exemple. Voir entrainement du DPR qui peut aider
@@ -38,25 +39,16 @@ Voir dans Clip comment s'est géré
 
 ## DONE
 
-faire un semblant de la structure de la classe
-
 ## mise en place et choix
 
-subtilité ici c'est qu'on veut le joint encoder. On s'en fout du reste mais on va le garder pour l'instant. Et on va voir pour ne charger que joint encoder et pas le reste
-Partir du VLT5 de base
+on a télécharger les joint encoder den les chargeant puis enregistré
+Pour ele modèle de base on n'est pas obligé de charger depuis encoder. On peut juste charger depuis T5 et BART initialisation se fera toute seul.
 
-Passé par les Blocks etc pour construire mon modèle :
 
-Traitement sur les images, on utilise ceux utiliser avec les modèles d'images donnés
 
-au final on va vouloir essayer CLIP
+Traitement sur les images, on utilise ceux utiliser avec les modèles d'images donnés.
 
-VL BERT ?
-
-Comme pour VL T5 je dois pouvoir récupérer un pretrain du modèle pour essayer la version faster cnn et la version clip.
-Pas mal de changement entre VL T5 et VL adapter. mais je dois pouvoir globalement récupérer les codes pour clip
-
-On va partir de VLT5 quoi qu
+Dans VL adapter on pourra trouver celui pour clip
 
 contrastive pretraining
 
@@ -69,6 +61,28 @@ De cette facon si on récup les même choses on peut imaginer essayer notre mod�
 On peut facilement utiliser VL Bart aussi donc le faire aussi
 
 On n'utilise pas les préfixes mais c'est qqch que l'on pourrait faire car le modèle est entrainé la dessus. Via Instruction NER. Ajouter au moins question : et passage :
+
+Faire un pretrain avec beaucoup de données : 
+
+    - avoir besoin de récup les questions ambigue
+    - faire matcher des passages
+    - faire les embeddings
+    - faire notre entrainement
+    => en somme créer un dataset qui ne sera pas parfait du tout mais peut permettre d'entrainer 
+
+Je peux d'abord faire un entrainement seulement sur la partie language puis dans un second temps ajouter les tâches de vision. voir même avoir deux facon de training.
+
+faire un dataset de question et passage un peu beateau pour faire le pretraining. Scrapper des choses ?
+
+Ou comment faire le pretraining ? : voir comment ils ont fait avec InstructionER pour ajouter un nouveau préfix et fait du few shot
+
+Il faudra faire attention à overfitting au vue de la taille de nos données (courbe de validation nous aidera dans ce cas là par exmple). Palier à l'absence de données.
+
+Clip on n'a pas de modèle disponible. Comment faire en sorte de réaliser entrainement ?
+
+Peut etre aussi travailler sur DPR context et question encoder en ajoutant une partie par rapport à l'image.
+
+Pour l'instant on choisit que si l'on choisit un type d'encoder on le met dans les deux cas
 
 ### recup
 

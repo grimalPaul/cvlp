@@ -11,6 +11,11 @@
             "pretrained_model_name_or_path": "data/tokenizer/t5-base",
             "max_text_length":150,
             "do_lower_case":true
+        },
+        "embedding": {
+            "path": "data/embedding/VLT5epoch30",
+            "num_embeddings": 32200,
+            "embedding_dim": 768
         }
     },
     "encoder_passage":{
@@ -25,11 +30,19 @@
             "pretrained_model_name_or_path": "data/tokenizer/t5-base",
             "max_text_length":150,
             "do_lower_case":true
+        },
+        "embedding": {
+            "path": "data/embedding/VLT5epoch30",
+            "num_embeddings": 32200,
+            "embedding_dim": 768
         }
     },
     "cvlep":
     {
-        "use_projection" : false
+        "use_projection" : false,
+        "shared_embedding":true,
+        "num_embeddings":32200,
+        "embedding_dim":768
     },
     "distributed":false,
     "verbose":false

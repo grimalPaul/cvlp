@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Any
 
 
 class CVLEP(nn.Module):
-    def __init__(self, config, image_question_encoder, image_passage_encoder ):
+    def __init__(self, config, image_question_encoder: encoderBart | encoderT5, image_passage_encoder: encoderBart | encoderT5, embedding_question=None, embedding_passage=None):
 
         super().__init__()
         self.config = config
@@ -19,21 +19,56 @@ class CVLEP(nn.Module):
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
 
+        if config.shared_embedding:
+            if embedding_passage is None and embedding_question is None:
+                # check if when we train it will shared the same embedding
+                # and not independant copy
+                self.embedding_encoder_question = nn.Embedding(
+                    config.num_embeddings, config.embedding_dim)
+                # we want they share the same parameters chack if it is
+                self.embedding_encoder_passage = self.embedding_encoder_question
+            elif embedding_passage is None:
+                self.embedding_encoder_question = embedding_question
+                # we want they share the same parameters chack if it is
+                self.embedding_encoder_passage = self.embedding_encoder_question
+            else:
+                self.embedding_encoder_passage = embedding_passage
+                # we want they share the same parameters chack if it is
+                self.embedding_encoder_question = self.embedding_encoder_passage
+        else:
+            if embedding_passage is None and embedding_question is None:
+                self.embedding_encoder_question = nn.Embedding(
+                    config.num_embeddings, config.embedding_dim)
+                self.embedding_encoder_passage = nn.Embedding(
+                    config.num_embeddings, config.embedding_dim)
+            elif embedding_passage is None:
+                self.embedding_encoder_question = embedding_question
+                self.embedding_encoder_passage = nn.Embedding(
+                    config.num_embeddings, config.embedding_dim)
+            else:
+                self.embedding_encoder_passage = embedding_passage
+                self.embedding_encoder_question = embedding_question
+        self.image_passage_encoder.set_input_embeddings(
+            self.embedding_encoder_passage)
+        self.image_question_encoder.set_input_embeddings(
+            self.embedding_encoder_question)
         # according to the config we add or not a projection
         # We beginn with a simple linear projection
-        # We can maybe after create a Projection Head like here 
+        # We can maybe after create a Projection Head like here
         # https://towardsdatascience.com/simple-implementation-of-openai-clip-model-a-tutorial-ace6ff01d9f2
         if config.use_projection:
-            self.image_question_projection = nn.Linear(config.embedding_dim_question, config.projection_dim_question)
-            self.image_passage_projection = nn.Linear(config.embedding_dim_passage, config.projection_dim_passage)
+            self.image_question_projection = nn.Linear(
+                config.embedding_dim_question, config.projection_dim_question)
+            self.image_passage_projection = nn.Linear(
+                config.embedding_dim_passage, config.projection_dim_passage)
         else:
             self.image_question_projection = None
             self.image_passage_projection = None
 
         # we want to be able to freeze or not the model with the config
-        
+
         # init projection weights
-        #self.apply(self._init_weights)
+        # self.apply(self._init_weights)
 
     def forward(
         self
@@ -68,7 +103,7 @@ class CVLEP(nn.Module):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def _init_weights(self,module):
+    def _init_weights(self, module):
         raise NotImplementedError()
 
     @torch.no_grad()

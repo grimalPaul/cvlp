@@ -12,10 +12,10 @@ from cvlep.VLT5.modeling_t5 import JointEncoder as VLt5Encoder
 from cvlep.VLT5.modeling_bart import JointEncoder as VLBartEncoder
 from cvlep.VLT5.param import Config
 
-from cvlep.modeling_cvlep import CVLEP
+from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import device
 
-def get_encoder(config: dict):
+def get_encoder(config):
     if config.model.backbone == 't5':
         encoder = VLt5Encoder.from_pretrained(config.model.pretrained_model_name_or_path)
     elif config.model.backbone == 'bart':
@@ -25,7 +25,7 @@ def get_encoder(config: dict):
     return encoder
 
 
-def get_tokenizer(config: dict, **kwargs):
+def get_tokenizer(config, **kwargs):
     from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
     from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
     if config.tokenizer.backbone == 't5':
@@ -48,6 +48,14 @@ def get_tokenizer(config: dict, **kwargs):
     )
     return tokenizer
 
+def get_embedding(config):
+    if config.embedding.path == "":
+        return None
+    else:
+        embedding = nn.Embedding(config.embedding.num_embeddings,config.embedding.embedding_dim)
+        embedding.load_state_dict(torch.load(config.embedding.path,map_location=device))
+    return embedding
+        
 class Trainer(object):
     def __init__(self, config_path, train_loader=None, val_loader=None, test_loader=None, train=True):
         
@@ -142,12 +150,15 @@ class Trainer(object):
 
         question_encoder = get_encoder(config.encoder_question)
         passage_encoder = get_encoder(config.encoder_passage)
-
+        embedding_question = get_embedding(config.encoder_question) 
+        embedding_passage = get_embedding(config.encoder_passage)
         config_model = config.cvlep
         model = CVLEP(
             config_model,
             image_question_encoder=question_encoder,
-            image_passage_encoder=passage_encoder
+            image_passage_encoder=passage_encoder,
+            embedding_question = embedding_question,
+            embedding_passage = embedding_passage
         )
         return model
 

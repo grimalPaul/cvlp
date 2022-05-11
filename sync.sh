@@ -1,5 +1,5 @@
 #!/bin/bash
 
-rsync -az --exclude 'data1' --exclude 'sync.sh' --exclude 'test.ipynb' --exclude 'README.md' --exclude 'factory_sync.sh' --exclude 'EXPERIMENTS.md' --exclude 'LICENCE' --exclude 'ANNOTATION.md' . bergamote:/home/pgrimal/ViQuAE
+rsync -az -v --exclude 'sync.sh' --exclude 'test.ipynb' --exclude '__pycache__' --exclude 'data/' --exclude 'IDEA.md'--exclude 'test.ipynb' --exclude 'README.md' --exclude 'factory_sync.sh' --exclude 'note.md' --exclude 'old_note.md' --exclude 'TODO.md' . bergamote:/home/pgrimal/CVLEP
 
 echo "Done!"

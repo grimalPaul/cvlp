@@ -155,6 +155,8 @@ class JointEncoder(T5Stack):
         super(T5Stack, self).__init__(config)
         self.config = config
 
+        # enregistrer embedding lorsque j'e,registre le modèle
+        # comment gérer embeddings
         self.embed_tokens = embed_tokens
         self.is_decoder = self.config.is_decoder
         assert self.config.is_decoder is False

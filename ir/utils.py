@@ -1,7 +1,13 @@
 # coding: utf-8
 
 import hashlib
+import argparse
 
+def create_kwargs(arg: argparse.Namespace) -> dict:
+    kwargs = dict()
+    for var, value in arg._get_kwargs():
+        kwargs[var] = value
+    return kwargs
 
 def md5(string: str) -> str:
     """Utility function. Uses hashlib to compute the md5 sum of a string.

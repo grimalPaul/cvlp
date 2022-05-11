@@ -40,6 +40,8 @@ En comparant on voit que le code de VLT5 est complètement basé la dessus [ici]
 
 Dans l'encoder de text ils utilisent des causals Mask je ne connais pas leur utilité mais à garder en tête
 
+est ce que dans clip embedding image et test est partagé ? dans le cas ou ca ne l'es pas on ne devrait pas mettre un embedding commun entre les deux encoders même si on peut quand même le faire.
+
 ## Explication shared  Embed
 
 [Tying the output and input embeddding](https://arxiv.org/pdf/1608.05859.pdf)
@@ -47,6 +49,18 @@ Dans l'encoder de text ils utilisent des causals Mask je ne connais pas leur uti
 [Section 3.4 attention is all you need](https://arxiv.org/pdf/1706.03762.pdf)
 
 dans VLT5 encoder et decoder partage même embedding = Normal
+
+dans VLT5 visual et text embedding on le même embedding
+
+Brt Without pretrain
+Embedding dim 50465 768
+Bart epoch 30
+Embedding dim 50465 768
+T5 without pretrain
+Embedding dim 32200 768
+T5 epoch 30
+Embedding
+32200 768
 
 ## A propos des tokenizer
 

@@ -1,6 +1,6 @@
-# CVLEP
+# CVLP
 
-CVLEP = Constrastive Visual Language Embedding Pre-Training
+CVLP = Constrastive Visual Language Pre-Training
 
 ## Installation
 
