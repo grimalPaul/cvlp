@@ -277,7 +277,6 @@ class JointEncoder(T5Stack):
             position_bias = position_bias + extended_attention_mask
 
             for i, (layer_module, past_key_value) in enumerate(zip(self.block, past_key_values)):
-
                 # if output_hidden_states:
                 #     all_hidden_states = all_hidden_states + (hidden_states,)
 

@@ -75,7 +75,10 @@ Embedding
 
 Voir `test.ipynb:` on a pu encoder des entités nommées donc on peut considérer que les entités nommées sont dans le vocabulaire.
 
-padding =  true permet de pouvoir faire du batch
+padding =  true, il y aura la même taille pout tous les éléments passés en paramêtre
+padding='max_lenght' => prend la taille max du modèle.
+attention mask met des 1 ou il y a des mots et 0 sinon.
+Dans notres cas les masks sont gérés automatiquement on ne passe que les séquences de tokens.
 
 ## accéder aux images
 
