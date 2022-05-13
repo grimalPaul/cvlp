@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embedding
+#SBATCH -J embedding_image
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
 #SBATCH --mem=24G

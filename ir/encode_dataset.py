@@ -35,7 +35,7 @@ def tokenize_dataset(model_config_path, which_tokenizer, dataset_path, **kwargs)
     else:
         raise NotImplementedError()
     kwargs.update(tokenizer=tokenizer)
-    dataset = dataset.map(add_tokenize, batched = False,fn_kwargs=kwargs)
+    dataset = dataset.map(add_tokenize,fn_kwargs=kwargs)
     dataset.save_to_disk(dataset_path)
 
 # load Fastercnn

@@ -11,7 +11,7 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m ir.embedding_dataset \
-    --dataset_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/wikidata_id/vlt5/vlt5_viquae_dataset \
+    --dataset_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/wikidata_id/vlt5/miniviquae_passages \
     --type=question \
     --model_config_path=experiments/model_cvlep/bergamote/encodersT5.json \
     --key_boxes=vlt5_normalized_boxes \
