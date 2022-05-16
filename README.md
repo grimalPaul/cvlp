@@ -35,6 +35,8 @@ Place the downloaded files in `data/frcnn_model/`.
 
 ### Download and preprocess data
 
+#### Download dataset and knowledge base
+
 You can get the viquae_dataset and the knowldege base from Hugging face with
 
 ```py
@@ -73,6 +75,36 @@ humans_without_faces = humans_without_faces.map(lambda x: {"type":"humans_withou
 new_kb = concatenate_datasets([humans_with_faces,non_humans, humans_without_faces])
 new_kb.save_to_disk(PATH_TO_SAVE_KB)
 ```
+
+#### Preprocess data
+
+From [ViQuAE project](https://github.com/PaulLerner/ViQuAE)
+
+Splitting articles in passages
+
+```bash
+python -m meerqat.data.loading passages path/to/kb path/to/save/passages experiments/passages/config.json
+```
+
+Then you can extract some columns from the dataset to allow quick (and string) indexing:
+
+```bash
+python -m meerqat.data.loading map path/to/kb wikipedia_title path/to/save/title2index.json --inverse
+
+python -m meerqat.data.loading map path/to/kb passage_index path/to/save/article2passage.json
+```
+
+Find relevant passages in the linked wikipedia article
+
+```bash
+python -m meerqat.ir.metrics relevant path/to/viquae_dataset path/to/passages viquae_passages path/to/title2index.json path/to/article2passage.json
+```
+
+### search relevant and irrelevant passages
+
+Before running any of the commands below you should launch the [Elastic Search server](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/targz.html)
+
+faire le search sur tout le dataset
 
 ## Aknowledgments
 

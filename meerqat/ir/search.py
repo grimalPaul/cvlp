@@ -1,11 +1,10 @@
 """Both dense and sparse information retrieval is done via HF-Datasets, using FAISS and ElasticSearch, respectively
 
 Usage:
-search.py <dataset> <config> [--k=<k> --disable_caching --metrics=<path>]
+search.py <dataset> <config> [--k=<k> --metrics=<path>]
 
 Options:
 --k=<k>                 Hyperparameter to search for the k nearest neighbors [default: 100].
---disable_caching       Disables Dataset caching (useless when using save_to_disk), see datasets.set_caching_enabled()
 --metrics=<path>        Path to the directory to save the results of the run and evaluation
 """
 from fileinput import hook_compressed
@@ -22,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 from elasticsearch import Elasticsearch
-from datasets import load_from_disk, set_caching_enabled
+from datasets import load_from_disk, disable_caching
 from datasets.search import ElasticSearchIndex, FaissIndex
 import ranx
 
@@ -500,7 +499,7 @@ if __name__ == '__main__':
     args = docopt(__doc__)
     dataset_path = args['<dataset>']
     dataset = load_from_disk(dataset_path)
-    set_caching_enabled(not args['--disable_caching'])
+    disable_caching()
     config_path = args['<config>']
     with open(config_path, 'r') as file:
         config = json.load(file)

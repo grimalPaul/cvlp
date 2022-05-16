@@ -1,6 +1,6 @@
 """
 Usage:
-metrics.py relevant <dataset> <passages> <title2index> <article2passage> [--disable_caching]
+metrics.py relevant <dataset> <passages> <title2index> <article2passage>
 metrics.py qrels <qrels>... --output=<path>
 metrics.py ranx <run>... --qrels=<path> [--output=<path> --filter=<path> --kwargs=<path>]
 """
@@ -12,7 +12,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 import numpy as np
-from datasets import load_from_disk
+from datasets import load_from_disk, disable_caching
 import ranx
 
 from meerqat.data.loading import answer_preprocess
@@ -154,6 +154,7 @@ def compare(qrels_path, runs_paths, output_path=None, filter_q_ids=[], **kwargs)
 
 if __name__ == '__main__':
     args = docopt(__doc__)
+    disable_caching()
     if args['relevant']:
         passages = load_from_disk(args['<passages>'])
         with open(args['<title2index>'], 'r') as file:

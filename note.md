@@ -97,3 +97,31 @@ dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddin
 ## Visual embedding de T5
 
 Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
+
+## Training
+
+on peut faire une première partie avec entrainement uniquement sur du text comme dpr encoder puis ajouter les images.
+
+Ou faire un mix constant de ça
+
+## datset
+
+quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
+
+## Text retrieval
+
+TF-IDF algorithm compute similarity score between 2 pieces of text. TF refers to how many words in the query are found in the context. IDF is the inverse of the fraction of documents containing this word. BM25 is a variation of the TF-IDF.
+
+DPR (Dense Retrieval Passage) use two BERT encoder models, one encode passage the other the question. The model is trained to minimized the cross-entropy between the similarity of the passage and the question.
+
+### BM25
+
+tune
+
+on cherche meilleur paramètre pour bm25
+
+puis on lance le search
+
+on génère irrelevant
+
+on pourra utiliser cela comme pour entrainer DPR mais à voir.

@@ -11,7 +11,7 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m ir.encode_dataset \
-    --dataset_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/wikidata_id/vlt5/vlt5_viquae_dataset \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
     --type=embedding_image \
     --model_config_path=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/config.yaml \
     --model=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/pytorch_model.bin \

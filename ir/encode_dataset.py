@@ -35,6 +35,7 @@ def tokenize_dataset(model_config_path, which_tokenizer, dataset_path, **kwargs)
     else:
         raise NotImplementedError()
     kwargs.update(tokenizer=tokenizer)
+    #TODO:add input columns, improve speed
     dataset = dataset.map(add_tokenize,fn_kwargs=kwargs)
     dataset.save_to_disk(dataset_path)
 
@@ -90,6 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_path', type=str, required=False)
     arg = parser.parse_args()
     kwargs = create_kwargs(arg)
+    kwargs.pop('type')
     if arg.type == 'tokenize_text':
         tokenize_dataset(**kwargs)
     elif arg.type == 'embedding_image':

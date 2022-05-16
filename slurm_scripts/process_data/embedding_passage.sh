@@ -11,12 +11,13 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m ir.embedding_dataset \
-    --dataset_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/wikidata_id/vlt5/miniviquae_passages \
-    --type=question \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages \
+    --type=passage \
     --model_config_path=experiments/model_cvlep/bergamote/encodersT5.json \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
     --key_token=vlt5_input_ids \
-    --key_embedding=vlt5_embedding
+    --key_embedding=vlt5_embedding \
+    --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb
 
 echo "DONE"

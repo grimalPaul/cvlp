@@ -6,6 +6,7 @@ python -m embedding_dataset --dataset_path=<path> --type=<question or passage> -
     --key_boxes=<key_boxes> --key_vision_features --key_token=<key_token> --key_embedding=<key_embedding>
 """
 
+from numpy import require
 from cvlep.trainer_base import Trainer
 from datasets import load_from_disk, disable_caching
 import argparse
@@ -34,47 +35,50 @@ disable_caching()
 # surement refactor quand on utilisera clip
 
 
-def map_embed_question(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer, **kwargs):
-    vision_features=torch.Tensor(item[key_vision_features]).to(device)
+def map_embed_question(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer):
+    vision_features = torch.Tensor(item[key_vision_features]).to(device)
     boxes = torch.Tensor(item[key_boxes]).to(device)
-    inputs_ids=torch.LongTensor(item[key_token]).to(device)
+    inputs_ids = torch.LongTensor(item[key_token]).to(device)
     item[key_embedding] = trainer.embedding_question(
-        vis_inputs=(vision_features,boxes),
+        vis_inputs=(vision_features, boxes),
         input_ids=inputs_ids,
         return_pooled_output=True
-        ).pooler_output
+    ).pooler_output
     return item
 
-# We could merge with function above but i think that we will need a separate function
-# to deal with kb and passage
-def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer, **kwargs):
-    param = dict()
-    param.update(
-        vis_inputs=(item[key_boxes], item[key_vision_features]),
-        input_ids=torch.unsqueeze(item[key_token], dim = 0),
+
+def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer, kb):
+    kb_index = item['index']
+    # get vision embedding from the kb
+    vision_features = torch.Tensor(
+        kb[kb_index][key_vision_features]).to(device)
+    boxes = torch.Tensor(kb[kb_index][key_boxes]).to(device)
+    inputs_ids = torch.LongTensor(item[key_token]).to(device)
+    item[key_embedding] = trainer.embedding_question(
+        vis_inputs=(vision_features, boxes),
+        input_ids=inputs_ids,
         return_pooled_output=True
-    )
-    item[key_embedding] = trainer.embedding_passage(**param)
+    ).pooler_output
     return item
 
 
-def dataset_embed(type:str, dataset_path :str, model_config_path:str, key_boxes: str, key_vision_features: str, key_token,**kwargs):
+def dataset_embed_question(dataset_path: str, model_config_path: str, **kwargs):
     dataset = load_from_disk(dataset_path)
     trainer = Trainer(model_config_path)
-    kwargs.update(
-        trainer=trainer,
-        key_token = key_token,
-        key_boxes = key_boxes,
-        key_vision_features=key_vision_features
-        )
-    if type == 'question':
-        dataset = dataset.map(map_embed_question, batched=False, fn_kwargs=kwargs)
-    elif type == 'passage':
-        dataset = dataset.map(map_embed_passage, batched=False,fn_kwargs=kwargs)
-    else:
-        raise NotImplementedError()
+    kwargs.update(trainer=trainer)
+    dataset = dataset.map(map_embed_question,
+                          batched=False, fn_kwargs=kwargs)
     dataset.save_to_disk(dataset_path)
 
+
+def dataset_embed_passage(dataset_path: str,  model_config_path: str, kb_path: str, **kwargs):
+    dataset = load_from_disk(dataset_path)
+    kb = load_from_disk(kb_path)
+    trainer = Trainer(model_config_path)
+    kwargs.update(trainer=trainer, kb=kb)
+    dataset = dataset.map(map_embed_passage,
+                          batched=False, fn_kwargs=kwargs)
+    dataset.save_to_disk(dataset_path)
 
 
 if __name__ == '__main__':
@@ -87,9 +91,13 @@ if __name__ == '__main__':
     parser.add_argument('--key_boxes', type=str, required=True)
     parser.add_argument('--key_token', type=str, required=True)
     parser.add_argument('--key_embedding', type=str, required=True)
+    parser.add_argument('--kb_path', type=str, required=False)
     arg = parser.parse_args()
     kwargs = create_kwargs(arg)
-    if arg.type not in ['question', 'passage']:
-        raise NotImplementedError()
+    kwargs.pop('type')
+    if arg.type == 'question':
+        dataset_embed_question(**kwargs)
+    elif arg.type == 'passage':
+        dataset_embed_passage(**kwargs)
     else:
-        dataset_embed(**kwargs)
+        raise NotImplementedError()

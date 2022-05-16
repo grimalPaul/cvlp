@@ -283,13 +283,8 @@ def make_passage_dataset(input_path, output_path, sentencizer=False, **kwargs):
 
 def load_pretrained_in_kwargs(kwargs):
     """Recursively loads pre-trained models/tokenizer in kwargs using get_pretrained"""
-    print('-----kwargs-----\n', kwargs)
     for k, v in kwargs.items():
-        # base case: load pre-trained model
-        if k == 'pretrained_model_name_or_path':
-            return get_pretrained(**kwargs)
-        # recursively look in the child arguments
-        elif isinstance(v, dict):
+        if isinstance(v, dict):
             kwargs[k] = load_pretrained_in_kwargs(v)
         # else keep as is
     return kwargs
