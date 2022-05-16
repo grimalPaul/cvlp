@@ -125,7 +125,11 @@ Dans une seconde phase juste sur les photos. contrastive learning sue les photos
 
 Utiliser irrelevant BM25 pour avoir des mauvaise exemple quand on fait du contrastive learning pour le text.
 
-Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25_irrelevant
+Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25_irrelevant.
+
+VL adapter, ils ne mettent à jour qu'une petite quantité pour le finetuning.
+Trouver grosses facon de pretrain.
+Puis faire du finetuning avec vl adapter si cela est possible.
 
 ## dataset
 
