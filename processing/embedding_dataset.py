@@ -14,11 +14,11 @@ from cvlep.trainer_base import Trainer
 from datasets import load_from_disk, disable_caching
 import argparse
 import torch
-from ir.utils import create_kwargs
+from processing.utils import create_kwargs
 from cvlep.utils import device
 disable_caching()
 
-# surement refactto
+# TODO:refactor for clip use
 
 
 def map_embed_question(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer):

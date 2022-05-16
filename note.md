@@ -94,17 +94,40 @@ dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddin
 
 [Hugging face Faiss Index on dataset](https://huggingface.co/docs/datasets/faiss_es)
 
+How generate qrels and runs.
+
+Dans le code de Paul on génére avec le searcher
+
+es : false => dans Knowledge Base on va utiliser add_or_load_faiss_index
+C'est ce qu'on fait pour DPR et pour les images
+
+voir le code e Paul + regarder la bibliothèque [pyserini](https://github.com/castorini/pyserini).
+
+Il y a beaucoup de chose à mettre en place pour automatiser gérer faiss index. Pas besoin de elastic search pour dense retrieval, unniquement avec faiss index. Donc à ettre en place.
+
 ## Visual embedding de T5
 
 Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
 
-## Training
+## Piste de Training
 
 on peut faire une première partie avec entrainement uniquement sur du text comme dpr encoder puis ajouter les images.
 
 Ou faire un mix constant de ça
 
-## datset
+Dans viquae, DPR d'abord pretrain sur toutes les questions de triviaqa et de la base de données kilt_wikipedia.
+
+Puis fine tuning sur dataset.
+
+On pourrait dans une première phase faire cela.
+
+Dans une seconde phase juste sur les photos. contrastive learning sue les photos (il faudrait trouver des bons et des mauvais exemples). On pourrait faire tirage aléatoire mais prendre au moins des mauvais exemple du même type.
+
+Utiliser irrelevant BM25 pour avoir des mauvaise exemple quand on fait du contrastive learning pour le text.
+
+Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25_irrelevant
+
+## dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
 
@@ -127,3 +150,21 @@ puis on lance le search pour avoir ces indices partout
 on génère irrelevant pour avoir irrelevant.
 
 on pourra utiliser cela comme pour entrainer DPR mais à voir.
+
+### Ranx
+
+[Ranx](https://github.com/AmenRa/ranx)
+
+[Ranx documentation](https://amenra.github.io/ranx/qrels_and_run/)
+
+Library to evaluate information retrieval
+
+ranx use qrels to compute information
+
+Qrels =  query relevances, lists the relevance judgements for each query, stores the ground truth for conducting evaluations.
+
+Runs = stores the relevance scores estimated by the model under evaluation.
+
+on fait une comparaison par rapport à ce qu'on est censé trouver.
+
+Le search défini par paul permet de créer les qurels et le run.
