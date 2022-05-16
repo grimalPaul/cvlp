@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embedding
+#SBATCH -J embedding_question
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
 #SBATCH --mem=10G
@@ -18,5 +18,5 @@ python -m ir.embedding_dataset \
     --key_vision_features=vlt5_features \
     --key_token=vlt5_input_ids \
     --key_embedding=vlt5_embedding
-    
+
 echo "DONE"

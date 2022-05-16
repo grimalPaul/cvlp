@@ -120,8 +120,10 @@ tune
 
 on cherche meilleur paramètre pour bm25
 
-puis on lance le search
+normalement aura généré des indices pour des parties du dataset
 
-on génère irrelevant
+puis on lance le search pour avoir ces indices partout
+
+on génère irrelevant pour avoir irrelevant.
 
 on pourra utiliser cela comme pour entrainer DPR mais à voir.

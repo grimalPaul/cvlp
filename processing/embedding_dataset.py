@@ -2,8 +2,11 @@
 
 Usage:
 
-python -m embedding_dataset --dataset_path=<path> --type=<question or passage> --model_config_path=<path_to_config_model> \
+python -m embedding_dataset --dataset_path=<path> --type=question --model_config_path=<path_to_config_model> \
     --key_boxes=<key_boxes> --key_vision_features --key_token=<key_token> --key_embedding=<key_embedding>
+
+python -m embedding_dataset --dataset_path=<path> --type=<question or passage> --model_config_path=<path_to_config_model> \
+    --key_boxes=<key_boxes> --key_vision_features --key_token=<key_token> --key_embedding=<key_embedding> --kb_path=<kb_path>
 """
 
 from numpy import require
@@ -15,24 +18,7 @@ from ir.utils import create_kwargs
 from cvlep.utils import device
 disable_caching()
 
-# input
-""" self,
-        input_ids=None,
-        attention_mask=None,
-
-        vis_inputs=None,
-        vis_attention_mask=None,
-
-        inputs_embeds=None,
-        head_mask=None,
-        past_key_values=None,
-        use_cache=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
-        return_pooled_output=False"""
-
-# surement refactor quand on utilisera clip
+# surement refactto
 
 
 def map_embed_question(item, key_boxes: str, key_vision_features: str, key_token: str, key_embedding: str, trainer: Trainer):
