@@ -15,11 +15,9 @@ from cvlep.VLT5.inference.utils import Config
 from cvlep.trainer_base import Trainer
 from datasets import load_from_disk, disable_caching
 import argparse
-import torch
-from ir.utils import create_kwargs
+from processing.utils import create_kwargs
 
 disable_caching()
-
 
 def add_tokenize(item, key_token, tokenizer, key_text, **kwargs):
     item[key_token] = tokenizer(
@@ -43,16 +41,12 @@ def tokenize_dataset(model_config_path, which_tokenizer, dataset_path, **kwargs)
     dataset.save_to_disk(dataset_path)
 
 # load Fastercnn
-
-
 def load_frcnn(config_path, model_path):
     frcnn_cfg = Config.from_pretrained(config_path)
     frcnn = GeneralizedRCNN.from_pretrained(model_path, config=frcnn_cfg)
     return frcnn, frcnn_cfg
 
 # load preprocessor image
-
-
 def load_img_preprocessor(frcnn_cfg):
     return Preprocess(frcnn_cfg)
 

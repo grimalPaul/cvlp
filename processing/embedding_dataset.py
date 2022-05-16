@@ -9,7 +9,6 @@ python -m embedding_dataset --dataset_path=<path> --type=<question or passage> -
     --key_boxes=<key_boxes> --key_vision_features --key_token=<key_token> --key_embedding=<key_embedding> --kb_path=<kb_path>
 """
 
-from numpy import require
 from cvlep.trainer_base import Trainer
 from datasets import load_from_disk, disable_caching
 import argparse
