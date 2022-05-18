@@ -121,10 +121,6 @@ class KnowledgeBase:
         """Pre-process queries according to index before computing self.dataset.search_batch"""
         index = self.indexes[index_name]
         # N. B. should be equivalent to isinstance(self.dataset._indexes[index_name], FaissIndex)
-        print('Erreur inhomogeneous index : ',self.indexes,'index name', index_name)
-        #print('dataset inh : ', self.dataset)
-        #print('queries :',type(queries))
-        #print("--->",queries)
         if not index.es:
             queries = np.array(queries, dtype=np.float32)
             if index.do_L2norm:

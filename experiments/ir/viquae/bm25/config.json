@@ -8,20 +8,20 @@
                     "es": true,
                     "kind_str": "TEXT",
                     "key": "input",
-                    "load": false,
+                    "load": true,
                     "normalization": {
                         "method": "normalize",
                         "mean": 20.1111,
                         "std": 5.85003
                     },
-                    "interpolation_weight": 0.3,
-                    "es_index_name": "bm25_vlt5",
+                    "interpolation_weight": null,
+                    "es_index_name": "bm25_vlt5_test",
                     "es_index_config": {
                         "settings": {
                             "similarity": {
                                 "viquae_bm25": {
-                                    "b": 0.1,
-                                    "k1": 0.3,
+                                    "b": 0.2,
+                                    "k1": 0.4,
                                     "type":"BM25"
                                 }
                             }

@@ -125,7 +125,7 @@ Dans une seconde phase juste sur les photos. contrastive learning sue les photos
 
 Utiliser irrelevant BM25 pour avoir des mauvaise exemple quand on fait du contrastive learning pour le text.
 
-Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25_irrelevant.
+Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25_irrelevant. Et aussi faire une recherche uniquement avec modèle image, on cherche image article les plus proches, et on fais le même traitement pour avoir les irrelevants et avoir des mauvais exemples pertinents.
 
 VL adapter, ils ne mettent à jour qu'une petite quantité pour le finetuning.
 Trouver grosses facon de pretrain.
@@ -172,3 +172,13 @@ Runs = stores the relevance scores estimated by the model under evaluation.
 on fait une comparaison par rapport à ce qu'on est censé trouver.
 
 Le search défini par paul permet de créer les qurels et le run.
+
+signification
+
+les lettres en puissance à coté des performances :
+Indiquer que meilleur que tel ou tel ligne de manière significative.
+
+### Relevant passages
+
+On recherche dans viquae dataset les titres de l'article
+puis on cherche dans les passages de cette article lesquels contiennent la réponse ou une réponse alternative

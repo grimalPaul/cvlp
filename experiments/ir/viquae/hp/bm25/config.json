@@ -16,14 +16,14 @@
                         "mean": 20.1111,
                         "std": 5.85003
                     },
-                    "interpolation_weight": 0.3,
+                    "interpolation_weight": null,
                     "es_index_name": "bm25_vlt5_test",
                     "es_index_config": {
                         "settings": {
                             "similarity": {
                                 "karpukhin": {
-                                    "b": 0.1,
-                                    "k1": 0.3,
+                                    "b": 0.2,
+                                    "k1": 0.4,
                                     "type":"BM25"
                                 }
                             }

@@ -100,11 +100,44 @@ Find relevant passages in the linked wikipedia article
 python -m meerqat.ir.metrics relevant path/to/viquae_dataset path/to/passages viquae_passages path/to/title2index.json path/to/article2passage.json
 ```
 
-### search relevant and irrelevant passages
+### Search relevant and irrelevant passages with BM25
 
 Before running any of the commands below you should launch the [Elastic Search server](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/targz.html)
 
-faire le search sur tout le dataset
+Tune hyperparameters with the command :
+
+```bash
+python -m meerqat.ir.hp bm25 path/to/datasets/validation \
+    experiments/ir/viquae/hp/bm25/config.json --k=100 \
+    --test=path/to/dataset/test \
+    --metrics=experiments/ir/viquae/hp/bm25/metrics
+```
+
+You will obtains some metrics obtains on the test after optimize bm25 on the split `validation`. Then apply this command to apply BM25 indices on the whole dataset (with the last command, you just generated `BM25_indices` for test, but we will need this indices in the whole dataset for futur training)
+
+Thus, apply them on the whole dataset with :
+
+```bash
+python -m meerqat.ir.search \
+    /scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset \
+    experiments/ir/viquae/bm25/config.json --k=100 \
+    --metrics=experiments/ir/viquae/bm25/metrics
+```
+
+You will have now `BM25_indices`. Be careful, do not use the generated metrics. They have been computed on `train`, `validation` and `test`, not just on `test`.
+
+Then generate irrelevant passages.
+
+```bash
+python -m processing.irrelevant \
+    --indice=BM25 \
+    --passages_path= path/to/passages \
+    --dataset_path=path/to/dataset
+```
+
+### Search relevant and irrelevant passages with DPR
+
+TODO: do the same things than before with DPR zero shot
 
 ## Aknowledgments
 
