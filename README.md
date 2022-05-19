@@ -14,6 +14,19 @@ pip install -r requirements.txt
 
 Install elasticsearch. I worked with this version : [elasticsearch-7.17](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/targz.html)
 
+Install Faiss
+
+```bash
+# CPU-only version
+conda install -c pytorch faiss-cpu
+
+# GPU(+CPU) version
+conda install -c pytorch faiss-gpu
+
+# or for a specific CUDA version
+conda install -c pytorch faiss-gpu cudatoolkit=10.2 # for CUDA 10.2
+```
+
 ### Download tokenizer and model
 
 use `python download_models` to download and save models T5, Bart in `data/`

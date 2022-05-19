@@ -121,7 +121,7 @@ Puis fine tuning sur dataset.
 
 On pourrait dans une première phase faire cela.
 
-Dans une seconde phase juste sur les photos. contrastive learning sue les photos (il faudrait trouver des bons et des mauvais exemples). On pourrait faire tirage aléatoire mais prendre au moins des mauvais exemple du même type.
+Dans une seconde phase juste sur les photos. contrastive learning sue les photos (il faudrait trouver des bons et des mauvais exemples). On pourrait faire tirage aléatoire mais prendre au moins des mauvais exemple du même type. Générer des irrelevant passages en minant des indices uniquement avec encoder des images pour avoir des bons et des mauvais exemples. On pourra mixer avec ou sans.
 
 Utiliser irrelevant BM25 pour avoir des mauvaise exemple quand on fait du contrastive learning pour le text.
 
@@ -130,6 +130,8 @@ Et pour avoir des mauvais exemples généraux soit aléatoire soit utilisé BM25
 VL adapter, ils ne mettent à jour qu'une petite quantité pour le finetuning.
 Trouver grosses facon de pretrain.
 Puis faire du finetuning avec vl adapter si cela est possible.
+
+On pourrait utiliser DPR indices pour générer des irrelevants. On pourrait utiliser le modèle non préentrainés ca pourrait être intérressant dans un second temps. Facile à faire car on l'a déjà fait et on utilisera un modèle tel quel donc pourra etre considéré comme zero shot.
 
 ## dataset
 
@@ -177,6 +179,7 @@ signification
 
 les lettres en puissance à coté des performances :
 Indiquer que meilleur que tel ou tel ligne de manière significative.
+superscript denote sgnificant differences in Fisher's randomizaton test with p <= 0.01
 
 ### Relevant passages
 
