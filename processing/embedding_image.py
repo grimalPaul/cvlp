@@ -1,10 +1,6 @@
 """embed dataset
 
 Usage:
-
-python -m ir.encode_dataset --type=tokenize_text --dataset_path=<path> --model_config_path=<path_to_config_model> \
-    --key_text=<key_text> --key_token=<key_token> --which_tokenizer=<tokenizer used>
-
 python -m ir.encode_dataset --type=encode_image --dataset_path=<path> --model_config_path=<path_to_config_model> \
     --key_image=<key_text> --key_image_embedding=<key_token> --image_path=<image_path> --model=<pytorch_model.bin>
 """
@@ -12,33 +8,11 @@ python -m ir.encode_dataset --type=encode_image --dataset_path=<path> --model_co
 from cvlep.VLT5.inference.modeling_frcnn import GeneralizedRCNN
 from cvlep.VLT5.inference.processing_image import Preprocess
 from cvlep.VLT5.inference.utils import Config
-from cvlep.trainer_base import Trainer
 from datasets import load_from_disk, disable_caching
 import argparse
 from processing.utils import create_kwargs
 
 disable_caching()
-
-def add_tokenize(item, key_token, tokenizer, key_text, **kwargs):
-    item[key_token] = tokenizer(
-        item[key_text], return_tensors='pt', truncation=True).input_ids
-    return item
-
-
-def tokenize_dataset(model_config_path, which_tokenizer, dataset_path, **kwargs):
-    # on tokenize le text dans le dataset
-    dataset = load_from_disk(dataset_path)
-    trainer = Trainer(model_config_path)
-    if which_tokenizer == 'question':
-        tokenizer = trainer.tokenizer_question
-    elif which_tokenizer == 'passage':
-        tokenizer = trainer.tokenizer_question
-    else:
-        raise NotImplementedError()
-    kwargs.update(tokenizer=tokenizer)
-    # TODO:add input columns, improve speed
-    dataset = dataset.map(add_tokenize, fn_kwargs=kwargs)
-    dataset.save_to_disk(dataset_path)
 
 # load Fastercnn
 def load_frcnn(config_path, model_path):
@@ -86,10 +60,6 @@ if __name__ == '__main__':
     parser.add_argument('--type', type=str, required=True)
     parser.add_argument('--model_config_path', type=str, required=True)
 
-    parser.add_argument('--which_tokenizer', type=str, required=False)
-    parser.add_argument('--key_text', type=str, required=False)
-    parser.add_argument('--key_token', type=str, required=False)
-
     parser.add_argument('--model', type=str, required=False)
     parser.add_argument('--key_image', type=str, required=False)
     parser.add_argument('--key_image_embedding', type=str, required=False)
@@ -97,9 +67,7 @@ if __name__ == '__main__':
     arg = parser.parse_args()
     kwargs = create_kwargs(arg)
     kwargs.pop('type')
-    if arg.type == 'tokenize_text':
-        tokenize_dataset(**kwargs)
-    elif arg.type == 'embedding_image':
+    if arg.type == 'embedding_image':
         embed_image_dataset(**kwargs)
     else:
         raise NotImplementedError()
