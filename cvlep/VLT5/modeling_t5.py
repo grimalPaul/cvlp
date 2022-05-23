@@ -107,7 +107,6 @@ class VisualEmbedding(nn.Module):
             relative_vis_pos_embedding: [B, N, N, n_heads]
             absolute_vis_pos_embedding: # [B, N, d_model]
         """
-
         B, N, _ = feats.size()
         assert pos.size() == (B, N, 4)
 

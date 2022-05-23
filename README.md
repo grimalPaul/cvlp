@@ -17,6 +17,8 @@ Install elasticsearch. I worked with this version : [elasticsearch-7.17](https:/
 Install Faiss
 
 ```bash
+
+pip install faiss-gpu
 # CPU-only version
 conda install -c pytorch faiss-cpu
 

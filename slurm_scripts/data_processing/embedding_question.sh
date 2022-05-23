@@ -10,13 +10,14 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
-python -m ir.embedding_dataset \
+python -m processing.embedding_dataset \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset \
     --type=question \
     --model_config_path=experiments/model_cvlep/bergamote/encodersT5.json \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
-    --key_token=vlt5_input_ids \
-    --key_embedding=vlt5_embedding
+    --key_text=input \
+    --key_embedding=vlt5_embedding \
+    --batch_size=256
 
 echo "DONE"

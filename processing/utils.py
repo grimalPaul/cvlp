@@ -2,6 +2,9 @@
 
 import hashlib
 import argparse
+import torch
+from cvlep.utils import device
+from transformers.tokenization_utils_base import BatchEncoding
 
 def create_kwargs(arg: argparse.Namespace) -> dict:
     kwargs = dict()

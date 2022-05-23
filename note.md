@@ -98,18 +98,41 @@ How generate qrels and runs.
 
 Dans le code de Paul on génére avec le searcher
 
-es : false => dans Knowledge Base on va utiliser add_or_load_faiss_index
-C'est ce qu'on fait pour DPR et pour les images
+Lorsque que l'on créé les index on peut indiquer des traitements comme :
+
+- `Flat` pour indiquer `the vectors are stored as is, without any encoding`.
+- `L2norm`pour indiquer `L2-normalizes the input vectors`.
+
+Innerproduct on normalized data = cosine similarity.
+
+[GPU vs CPU](https://github.com/facebookresearch/faiss/wiki/Comparing-GPU-vs-CPU)
+
+Paul a eu un problème pour faire L2norm avec GPU
+
+[list metric](https://github.com/facebookresearch/faiss/wiki/The-index-factory)
 
 voir le code e Paul + regarder la bibliothèque [pyserini](https://github.com/castorini/pyserini).
 
 Il y a beaucoup de chose à mettre en place pour automatiser gérer faiss index. Pas besoin de elastic search pour dense retrieval, unniquement avec faiss index. Donc à ettre en place.
+
+Il charge ou non sur le GPU en passant en indice le device.
+
+Paul normalize le score avec normalize.
+
+il me faut mes vecteurs au format numpy. Donc essayer d'enregistrer les embeddings en numpy.
+
+ou juste numpy selon si j'utilise gpu ou non
+tensor_array.cpu().detach().numpy()
+ou juste utiliser.numpy()
 
 ## Visual embedding de T5
 
 Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
 
 ## Piste de Training
+
+Déjà juste ajouter un préfix pour notre modèle et pour cette tâche.
+`extract`.
 
 on peut faire une première partie avec entrainement uniquement sur du text comme dpr encoder puis ajouter les images.
 
@@ -179,7 +202,7 @@ signification
 
 les lettres en puissance à coté des performances :
 Indiquer que meilleur que tel ou tel ligne de manière significative.
-superscript denote sgnificant differences in Fisher's randomizaton test with p <= 0.01
+superscript denote sgnificant differences in Fisher's randomizaton test with p <= 0.01.
 
 ### Relevant passages
 
