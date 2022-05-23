@@ -156,7 +156,7 @@ Puis faire du finetuning avec vl adapter si cela est possible.
 
 On pourrait utiliser DPR indices pour générer des irrelevants. On pourrait utiliser le modèle non préentrainés ca pourrait être intérressant dans un second temps. Facile à faire car on l'a déjà fait et on utilisera un modèle tel quel donc pourra etre considéré comme zero shot.
 
-## dataset
+## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
 
@@ -208,3 +208,11 @@ superscript denote sgnificant differences in Fisher's randomizaton test with p <
 
 On recherche dans viquae dataset les titres de l'article
 puis on cherche dans les passages de cette article lesquels contiennent la réponse ou une réponse alternative
+
+## Embedding
+
+Ajouter du padding sur le text pour pouvoir faire du batch
+
+## VL Adapter
+
+Appliquer Adapter to simply the training, [github](https://github.com/ylsung/VL_adapter) [paper](https://arxiv.org/pdf/2112.06825.pdf)

@@ -1,0 +1,18 @@
+{
+    "kb_kwargs": {
+        "experiment_1": {
+            "kb_path": "path_kb",
+            "key_kb": "vlt5_embedding",
+            "index_load": false,
+            "index_path ": "ou je sauvegarde",
+            "index_name":"nom de mon index",
+            "key_queries":null
+        },
+        "experiment_2": {
+            "kb_path": "path_kb",
+            "key_kb": "vlt5_embedding",
+            "index_load": true,
+            "index_path ": "d'ou je recharge"
+        }
+    }
+}

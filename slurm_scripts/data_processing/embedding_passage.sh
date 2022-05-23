@@ -20,5 +20,5 @@ python -m processing.embedding_dataset \
     --key_text=passage \
     --key_embedding=vlt5_embedding \
     --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
-    --batch_size=256
+    --batch_size=64
 echo "DONE"
