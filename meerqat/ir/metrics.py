@@ -36,7 +36,6 @@ def find_relevant(retrieved, original_answer, alternative_answers, kb, reference
     original_relevant, relevant: List[int]
         Included in retrieved
     """
-    #print(f"retrived : {retrieved}, original answ : {original_answer}, alt answ : {alternative_answers}, kb : {kb}, ref key : {reference_key}")
     original_relevant, relevant = [], []
     for i in retrieved:
         i = int(i)

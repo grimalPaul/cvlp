@@ -5,8 +5,7 @@ import argparse
 disable_caching()
 
 def keep_relevant_search_wrt_original_in_priority(item, passages, key = "BM25"):
-    # this contains the latest result of the fusion
-    # to reproduce the results of the paper, use DPR+Image as IR
+
     indices = item[f'{key}_indices']
     relevant_indices, _ = find_relevant(indices, item['output']['original_answer'], [], passages)
     if relevant_indices:

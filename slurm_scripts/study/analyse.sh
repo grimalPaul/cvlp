@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J search
+#SBATCH -J irrelevant_BM25
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
 #SBATCH --mem=20G
@@ -10,11 +10,11 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
-python -m search \
+python -m processing.analyse_result \
+    --key=vlt5_test1 \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset/test \
-    --config=experiments/ir/VL/zero_shot.json \
-    --metrics_path=experiments/ir/VL \
-    --k=100 \
-    --batch_size=64
+    --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
+    --passages_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages \
+    --k=5 
 
 echo "DONE"

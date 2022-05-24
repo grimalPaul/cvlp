@@ -1,6 +1,6 @@
 # Write config for a search
 
-How the config work:
+How the config works:
 
 ```json
 {

@@ -1,13 +1,36 @@
+"""
+
+Usage :
+python -m search --dataset=path_dataset --config=path/config.json \
+    --metrics_path=path/to/save/metrics --k=<k nearest neighbors> \
+    --batch_size=<batch size>
+"""
+
+
+import json
 from datasets import load_from_disk, disable_caching
 import ranx
 import numpy as np
-from cvlep.utils import device
+import argparse
+import torch
+import re
+from pathlib import Path
 
 disable_caching()
 
-def normalize():
-    # map embedding to numpy
-    pass
+
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    else:
+        return None
+
+
+def L2norm(queries):
+    """Normalize each query to have a unit-norm. Expects a batch of vectors of the same dimension"""
+    norms = np.linalg.norm(queries, axis=1, keepdims=True)
+    return queries/norms
+
 
 def format_run_indices(indices_batch, scores_batch):
     """Identifiers in ranx should be str, not int. Also, list cannot be empty because of Numba"""
@@ -35,41 +58,69 @@ def format_qrels_indices(indices_batch):
             non_empty_scores.append([0])
     return str_indices_batch, non_empty_scores
 
+
 class KnowledgeBase:
     """A KB can be indexed by several indexes."""
-    def __init__(self, kb_path=None, **index_kwargs):
+
+    def __init__(self, kb_path=None, index_kwargs={},  device=None):
         # index kwargs = index_load = False, index_name = None,
         # index_path=None, key_kb = None, string_factory = None
-        
         self.dataset = load_from_disk(kb_path)
-
-        # to save multiple index of this dataset      
-        self.index_names = {}
-        for index_name, index_kwarg in index_kwargs.items():
-            self.add_or_load_index(index_name=index_name,**index_kwarg)
-    
-    def search_batch(self, queries, k):
-        # queries must be np.float32
-        return self.dataset.search_batch(self.index_name, queries, k=k)
-
-    def add_or_load_index(self, index_name = None, index_load = False, index_path=None, key_kb = None, string_factory = None):
-        if index_load:
-            self.dataset.load_faiss_index(index_name=index_name, file=index_path, device=device)
+        if device == "cpu":
+            device = None
         else:
-            self.dataset.add_faiss_index(column=key_kb,string_factory=string_factory,device=device,index_name=index_name)
-            self.dataset.save_faiss_index(index_name=index_name,file=index_path)
-        self.index_names[index_name] =  key_kb
+            device = get_device()
+        # to save multiple index of this dataset
+        self.index_names = {}
+        self.index_doL2norm = {}
+        for index_name, index_kwarg in index_kwargs.items():
+            do_L2norm = self.add_or_load_index(index_name=index_name,
+                                   device=device, **index_kwarg)
+            self.index_doL2norm[index_name] = do_L2norm
+
+    def search_batch(self, index_name, queries, k):
+        # queries must be np.float32
+        queries = np.array(queries, dtype=np.float32)
+        if self.index_doL2norm[index_name]:
+            queries = L2norm(queries)
+        return self.dataset.search_batch(index_name, queries, k=k)
+
+    def add_or_load_index(self, device=None, index_name=None, index_load=False, index_path=None, key_kb=None, string_factory=None):
+        if string_factory is not None and 'L2norm' in string_factory:
+            do_L2norm = True
+        else:
+            do_L2norm = False
+        if index_load:
+            self.dataset.load_faiss_index(
+                index_name=index_name, file=index_path, device=device)
+        else:
+            # HACK: fix L2-normalisation on GPU https://github.com/facebookresearch/faiss/issues/2010
+            if do_L2norm and device is not None:
+                # normalize the vectors
+                self.dataset = self.dataset.map(
+                    lambda batch: {key_kb: L2norm(batch[key_kb])}, batched=True)
+                # remove "L2norm" from string_factory
+                string_factory = re.sub(
+                    r"(,L2norm|L2norm[,]?)", "", string_factory)
+                if not string_factory:
+                    string_factory = None
+            self.dataset.add_faiss_index(
+                column=key_kb, string_factory=string_factory, device=device, index_name=index_name)
+            if index_path is not None:
+                self.dataset.save_faiss_index(
+                    index_name=index_name, file=f'{index_path}/{index_name}.faiss')
+        self.index_names[index_name] = key_kb
+        return do_L2norm
+
 
 class Searcher:
-    # je veux pouvoir avoir plusieurs résultats en une fois
-    # meme tableau avoir vlt5, clip t5, etc
 
-    def __init__(self, k, **kb_kwargs) -> None:
+    def __init__(self, k=100, kb_kwargs={}) -> None:
         self.qrels = ranx.Qrels()
         self.runs = {}
         self.k = k
         self.kbs = {}
-        for kb_path, kwargs in kb_kwargs:
+        for kb_path, kwargs in kb_kwargs.items():
             kb = KnowledgeBase(kb_path, **kwargs)
             # on a une kb indexés par plusieurs indexes
             # on doit enregistrés tout les runs possibles
@@ -81,7 +132,8 @@ class Searcher:
                 self.runs[index_name] = run
         # metrics used for ranx
         ks = [1, 5, 10, 20, 100]
-        default_metrics_kwargs = dict(metrics=[f"{m}@{k}" for m in ["mrr", "precision", "hit_rate"] for k in ks])
+        default_metrics_kwargs = dict(
+            metrics=[f"{m}@{k}" for m in ["mrr", "precision", "hit_rate"] for k in ks])
         self.metrics_kwargs = default_metrics_kwargs
 
     def __call__(self, batch):
@@ -89,15 +141,17 @@ class Searcher:
         for kb in self.kbs.values():
             for index_name, key_kb in kb.index_names.items():
                 queries = batch[key_kb]
-    
-                scores_batch, indices_batch = self.kb.search_batch(index_name, queries, k=self.k)
-                
+
+                scores_batch, indices_batch = kb.search_batch(
+                    index_name, queries, k=self.k)
+
                 # store result in the dataset
                 batch[f'{index_name}_scores'] = scores_batch
                 batch[f'{index_name}_indices'] = indices_batch
 
                 # store results in the run
-                str_indices_batch, non_empty_scores = format_run_indices(indices_batch, scores_batch)
+                str_indices_batch, non_empty_scores = format_run_indices(
+                    indices_batch, scores_batch)
                 self.runs[index_name].add_multi(
                     q_ids=batch['id'],
                     doc_ids=str_indices_batch,
@@ -105,7 +159,8 @@ class Searcher:
                 )
 
         # add Qrels scores depending on the documents retrieved by the systems
-        str_indices_batch, non_empty_scores = format_qrels_indices(batch['provenance_indices'])
+        str_indices_batch, non_empty_scores = format_qrels_indices(
+            batch['provenance_indices'])
         self.qrels.add_multi(
             q_ids=batch['id'],
             doc_ids=str_indices_batch,
@@ -115,16 +170,14 @@ class Searcher:
         return batch
 
 
-def dataset_search(dataset, k=100, metric_save_path=None, map_kwargs={}, **kwargs):
+def dataset_search(dataset, k=100, metric_save_path=None, batch_size = 1000,**kwargs):
     searcher = Searcher(k=k, **kwargs)
-
     # search expects a batch as input
-    dataset = dataset.map(searcher, batched=True, **map_kwargs)
+    dataset = dataset.map(searcher, batched=True, batch_size = batch_size)
 
     # compute metrics
     report = ranx.compare(
         searcher.qrels,
-        # on peut passer plusieurx runs, c'est ce qu'on veut
         runs=searcher.runs.values(),
         **searcher.metrics_kwargs
     )
@@ -139,97 +192,24 @@ def dataset_search(dataset, k=100, metric_save_path=None, map_kwargs={}, **kwarg
             file.write(report.to_latex())
         for index_name, run in searcher.runs.items():
             run.save(metric_save_path/f"{index_name}.trec", kind='trec')
+    return dataset
 
-    return dataset    
-
-dataset = load_from_disk('')
-# doc : https://huggingface.co/docs/datasets/v1.0.1/faiss_and_ea.html
-
-# add embedding to the column
-dataset.add_faiss_index(column='embedding', index_name=None, device=None; string_factory=None)
-dataset.save_faiss_index(index_name=None,file=None)
-
-
-# si load = True on peut recharger index depuis sauvegarde :
-dataset.load_faiss_index(index_name=None,file=None,device=None)
-
-#  batch version to retrieve the scores and the ids of the examples
-# batch version
-# k number of example to retriev by queries
-# output :
-# total_scores (List[List[float]): The retrieval scores of the retrieved examples per query. 
-# total_indices (List[List[int]]): The indices of the retrieved examples per query.
-dataset.search_batch(index_name = '', queries = [], k='')
-# scores_batch
-# indices_batch
-
-qrels = ranx.Qrels()
-runs = {}
-reference_kb_path='passages'
-kb_path
-
-# pourquoi on normalize dans notre cas ??
-dataset.map(lambda batch: {column : normalize(batch[column])}, batched = True)
-
-# convert to numpy
-passages = passages.map(lambda example : {'vlt5_embedding':np.array(example)},input_columns = 'vlt5_embedding')
-
-"""
-Mes besoins :
-pouvoir faire mes tests sur plusieurs indices 
-"vlt5 embedding, vlt5_embedding2, etc"
-
-"""
-
-
-"""
-KnowledgeBase indexing only with faiss index 
-index KB
-
-est ce que je devrais faire une L2 norm
-voir dans le code de Paul porur voir des versions pour le faire batcher
-batcher et sur le gpu
-
-utilise ce qu'il récupère de scores_batch, indices_batch
-
-sauvegarde scores et indices dans le dataset line 357
-
-map indices : je ne crois pas en avoir besoin, je crois que c'est utilisé
-pour faire le mapping de la KB à passage. Donc ne pas se soucier de cela.
-
-pour les runs ça:
-format_run_indices : Identifiers in ranx should be str, not int. 
-Also, list cannot be empty because of Numba
-transforme indices batch en string
-
-
-pour les qrels :
-on donne les provenances indices
-puis mets des confiances à 1 pour chaques indices de provenance
-
-puis faire add run et qrels
-
-Pour moi je peux direct compute les résultats vu que pas de notion de model différents
-
-Voir si on peut ne rien récup et commment c'est géré dans le cas où cela peut arriver
-
-Pas besoin de la classe search
-En effet je ne vais pas avoir (enfin pour l'instant de méthodes différentes à utiliser)
-Mais je serai surement amené à fuse des résultats
-
-sauvegarde ou non des faiss index
-
-on peut save index avec
-save_faiss_index()
-
-load_faiss_index('nom colonnes', 'nom de l'index')
-
-Plusieurs types d'index possibles
-https://github.com/facebookresearch/faiss/wiki/Faiss-indexes
-
-je dois convertir mes listes pour numpy
-
-
-On va commencer sans faire de normalization juste numpy 
-
-"""
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset_path', type=str, required=True)
+    parser.add_argument('--config', type=str, required=True)
+    parser.add_argument('--metrics_path', type=str, required=True)
+    parser.add_argument('--k', type=int, required=True)
+    parser.add_argument('--batch_size', type=int, required=False, default=1000)
+    arg = parser.parse_args()
+    with open(arg.config, 'r') as file:
+        config = json.load(file)
+    dataset = load_from_disk(arg.dataset_path)
+    dataset = dataset_search(
+        dataset=dataset,
+        k=arg.k,
+        metric_save_path=Path(arg.metrics_path),
+        batch_size = arg.batch_size, 
+        **config
+    )
+    dataset.save_to_disk(arg.dataset_path)
