@@ -18,7 +18,7 @@ from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_an
 from transformers.utils import logging
 from transformers import BeamScorer, BeamSearchScorer
 
-# from utils import *
+from cvlep.VLT5.utils import get_pool
 
 logger = logging.get_logger(__name__)
 
@@ -193,7 +193,8 @@ class JointEncoder(T5Stack):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        return_pooled_output=False
+        return_pooled_output=False,
+        pool_strategy = None
     ):
 
         if inputs_embeds is None:
@@ -320,7 +321,7 @@ class JointEncoder(T5Stack):
 
         # get the last layer of the first token. Clip strategies in transformers
         if return_pooled_output:
-            pooled_output = hidden_states[:, 0, :]
+            pooled_output = get_pool(pool_strategy, hidden_states)
             return BaseModelOutputWithPoolingAndCrossAttentions(
                 last_hidden_state=hidden_states,
                 past_key_values=present_key_value_states,

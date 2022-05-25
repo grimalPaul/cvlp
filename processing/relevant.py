@@ -6,13 +6,13 @@ from sqlalchemy import false
 disable_caching()
 
 
-def compare_relevant(item, key="BM25"):
+def compare_relevant(item, key="vlt5"):
+    # compare retrieve passage and passages containing answer
     indices = np.array(item[f'{key}_indices'], dtype=np.int64)
     relevant_indices = np.array(item['provenance_indices'], dtype=np.int64)
     item[f'{key}_relevant_indices'] = np.intersect1d(indices, relevant_indices)
     item[f'{key}_irrelevant_indices'] = np.setdiff1d(indices,relevant_indices)
     return item
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

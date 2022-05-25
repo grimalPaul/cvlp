@@ -20,7 +20,7 @@ import torch.nn.functional as F
 disable_caching()
 
 
-def map_embed_question(item, key_boxes: str, key_vision_features: str, key_text: str, key_embedding: str, method, tokenizer):
+def map_embed_question(item, key_boxes: str, key_vision_features: str, key_text: str, key_embedding: str, method, tokenizer, pool_strategy = None):
     vision_features = torch.Tensor(item[key_vision_features]).to(device)
     boxes = torch.Tensor(item[key_boxes]).to(device)
     vision_features = torch.squeeze(vision_features, dim=1)
@@ -30,12 +30,13 @@ def map_embed_question(item, key_boxes: str, key_vision_features: str, key_text:
     item[key_embedding] = method(
         vis_inputs=(vision_features, boxes),
         input_ids=input_ids,
-        return_pooled_output=True
+        return_pooled_output=True,
+        pool_strategy = pool_strategy
     ).pooler_output.cpu().numpy()
     return item
 
 
-def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_text: str, key_embedding: str, method, kb, tokenizer):
+def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_text: str, key_embedding: str, method, kb, tokenizer, pool_strategy=None):
     kb_index = item['index']
     # get vision embedding from the kb
     vision_features = torch.Tensor(
@@ -48,7 +49,8 @@ def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_text: 
     item[key_embedding] = method(
         vis_inputs=(vision_features, boxes),
         input_ids=input_ids,
-        return_pooled_output=True
+        return_pooled_output=True,
+        pool_strategy = pool_strategy
     ).pooler_output.cpu().numpy()
     return item
 
@@ -86,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--key_text', type=str, required=True)
     parser.add_argument('--kb_path', type=str, required=False)
     parser.add_argument('--batch_size', type=int, required=False, default=128)
+    parser.add_argument('--pool_strategy', type=str, required=False)
     arg = parser.parse_args()
     kwargs = create_kwargs(arg)
     kwargs.pop('type')

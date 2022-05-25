@@ -15,6 +15,7 @@ python -m processing.analyse_result \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset/test \
     --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
     --passages_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages \
-    --k=5 
+    --k=3 \
+    --save_path=/home/pgrimal/CVLEP/results
 
 echo "DONE"

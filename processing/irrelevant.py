@@ -5,7 +5,7 @@ import argparse
 disable_caching()
 
 def keep_relevant_search_wrt_original_in_priority(item, passages, key = "BM25"):
-
+    # used to train DPR or context question encoder
     indices = item[f'{key}_indices']
     relevant_indices, _ = find_relevant(indices, item['output']['original_answer'], [], passages)
     if relevant_indices:

@@ -80,13 +80,26 @@ padding='max_lenght' => prend la taille max du modèle.
 attention mask met des 1 ou il y a des mots et 0 sinon.
 Dans notres cas les masks sont gérés automatiquement on ne passe que les séquences de tokens.
 
+Il faudra ajouter lors des entrainements la gestion du séparateur [SEP] ou le changer dans le dataset. Pour DPR le tokenizer est celui de BERT et SEP est un mot dans son vocabulaire.
+
+Le sep bart est `</s>`
+Le sep pour T5 est `?`. Il parle d'un sep_token
+
+### Tokenizer T5
+
+[doc hugging face](https://huggingface.co/docs/transformers/model_doc/t5#transformers.T5Tokenizer)
+
+### Tokenizer Bart
+
+[doc hugging face](https://huggingface.co/docs/transformers/model_doc/bart#transformers.BartTokenizer)
+
 ## accéder aux images
 
 on enregistre le nom de l'image dans le dataset passage dans le cas ou on veut faire les embeddings des images à chaque fois
 
 dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddings de la kb. Et trouver un moyen de transférer les embeddings avec le passage index
 
-## similarity search dense vector
+## similarity search dense vector FAISS
 
 [Faiss](https://github.com/facebookresearch/faiss)
 
@@ -128,6 +141,12 @@ ou juste utiliser.numpy()
 ## Visual embedding de T5
 
 Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
+
+embedding partagé pour visual et pour les tokens
+
+Voir VL adapter cr me sera très utile je pense pour train mon modèle et faire du finetuning.
+
+Réussir mes premières expés.
 
 ## Piste de Training
 
@@ -215,4 +234,38 @@ Ajouter du padding sur le text pour pouvoir faire du batch
 
 ## VL Adapter
 
-Appliquer Adapter to simply the training, [github](https://github.com/ylsung/VL_adapter) [paper](https://arxiv.org/pdf/2112.06825.pdf)
+Appliquer Adapter to simplify the training, [github](https://github.com/ylsung/VL_adapter) [paper](https://arxiv.org/pdf/2112.06825.pdf)
+
+Je ne comprends pas s'ils font quand même un pretrain ? (au moins apprendre visual embedding ? ou la aussi adapter ?)
+
+Mais si aussi bien que ca en a l'air est une très bonne piste pour ce que je veux faire
+
+Je pense que je peux aussi essayer d'optimiser mon prompting dans mon cas
+
+## Prefix disponible
+
+interessant :
+
+- "image text match:"
+- "vqa:"
+
+Ne nous intéresse pas :
+
+- "span prediction:"
+- "ground caption:"
+- "caption region:"
+- "visual grounding:"
+
+## Code
+
+nomModel_technique_prefix_pooling
+
+vlt5_zero_vqa_1token
+vlt5_zero_vqa_avg
+vlt5_zero_imt_1token
+vlt5_zero_imt_avg
+
+vlbart_zero_vqa_1token
+vlbart_zero_vqa_avg
+vlbart_zero_imt_1token
+vlbart_zero_imt_avg

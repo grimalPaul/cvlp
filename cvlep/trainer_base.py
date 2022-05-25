@@ -15,11 +15,16 @@ from cvlep.VLT5.param import Config
 from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import device
 
+from transformers import BartConfig
+
 def get_encoder(config):
     if config.model.backbone == 't5':
         encoder = VLt5Encoder.from_pretrained(config.model.pretrained_model_name_or_path)
     elif config.model.backbone == 'bart':
-        encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
+        temp = BartConfig.from_pretrained(config.model.pretrained_model_name_or_path)
+        print(config.model.pretrained_model_name_or_path)
+        encoder = VLBartEncoder(temp)
+        # encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
     else:
         raise NotImplementedError('This type of encoder is not implemented')
     return encoder
@@ -166,7 +171,7 @@ class Trainer(object):
         
         tokenizer_question = get_tokenizer(config.encoder_question)
         tokenizer_passage = get_tokenizer(config.encoder_passage)
-
+        #
         return tokenizer_question,tokenizer_passage
 
     def create_optimizer_and_scheduler(self):

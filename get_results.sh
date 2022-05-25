@@ -1,0 +1,1 @@
+rsync -az -v bergamote:/home/pgrimal/CVLEP/results/ /home/pgrimal/Documents/Projects/visual_language_representation/results/

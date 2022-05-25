@@ -3,17 +3,17 @@
         "model": {
             "backbone": "t5",
             "pretrain": true,
-            "pretrained_model_name_or_path": "data/jointEncoder/VLT5epoch30"
+            "pretrained_model_name_or_path": "data_model/jointEncoder/VLT5epoch30"
         },
         "tokenizer": {
             "backbone": "t5",
             "use_vision": true,
-            "pretrained_model_name_or_path": "data/tokenizer/t5-base",
+            "pretrained_model_name_or_path": "data_model/tokenizer/t5-base",
             "max_text_length":150,
             "do_lower_case":true
         },
         "embedding": {
-            "path": "data/embedding/VLT5epoch30",
+            "path": "data_model/embedding/VLT5epoch30",
             "num_embeddings": 32200,
             "embedding_dim": 768
         }
@@ -22,17 +22,17 @@
         "model": {
             "backbone": "t5",
             "pretrain": true,
-            "pretrained_model_name_or_path": "data/jointEncoder/VLT5epoch30"
+            "pretrained_model_name_or_path": "data_model/jointEncoder/VLT5epoch30"
         },
         "tokenizer": {
             "backbone": "t5",
             "use_vision": true,
-            "pretrained_model_name_or_path": "data/tokenizer/t5-base",
+            "pretrained_model_name_or_path": "data_model/tokenizer/t5-base",
             "max_text_length":150,
             "do_lower_case":true
         },
         "embedding": {
-            "path": "data/embedding/VLT5epoch30",
+            "path": "data_model/embedding/VLT5epoch30",
             "num_embeddings": 32200,
             "embedding_dim": 768
         }

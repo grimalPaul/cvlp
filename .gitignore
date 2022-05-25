@@ -9,6 +9,8 @@ __pycache__/
 # Data
 /data_model
 test.py
+/process_data
+/results
 
 # Distribution / packaging
 .Python

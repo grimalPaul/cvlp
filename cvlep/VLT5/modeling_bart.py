@@ -1,4 +1,5 @@
 
+import imp
 import math
 import random
 from dataclasses import dataclass
@@ -19,10 +20,12 @@ from torch.nn import CrossEntropyLoss
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import copy
 
-from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
+from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPoolingAndCrossAttentions, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers import BeamScorer, BeamSearchScorer
+
+from cvlep.VLT5.utils import get_pool
 
 logger = logging.get_logger(__name__)
 
@@ -156,6 +159,10 @@ class JointEncoder(BartEncoder):
 
         self.init_weights()
 
+    def set_input_embeddings(self, new_embeddings):
+        self.embed_tokens = new_embeddings
+        self.visual_embedding.obj_order_embedding = new_embeddings
+
     def forward(
         self,
         input_ids=None,
@@ -168,6 +175,8 @@ class JointEncoder(BartEncoder):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        return_pooled_output=False,
+        pool_strategy = None
     ):
 
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
@@ -274,11 +283,22 @@ class JointEncoder(BartEncoder):
         if output_hidden_states:
             encoder_states = encoder_states + (hidden_states,)
 
-        if not return_dict:
-            return tuple(v for v in [hidden_states, encoder_states, all_attentions] if v is not None)
-        return BaseModelOutput(
-            last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions
-        )
+        if return_pooled_output:
+            
+            pooled_output = get_pool(pool_strategy,hidden_states)
+            return BaseModelOutputWithPoolingAndCrossAttentions(
+                last_hidden_state=hidden_states,
+                past_key_values=None,
+                attentions=all_attentions,
+                cross_attentions=None,
+                pooler_output=pooled_output
+            )
+        else:
+            if not return_dict:
+                return tuple(v for v in [hidden_states, encoder_states, all_attentions] if v is not None)
+            return BaseModelOutput(
+                last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions
+            )
 
 
 
@@ -322,7 +342,7 @@ class VLBartModel(BartModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-
+        
         **kwargs,
     ):
 

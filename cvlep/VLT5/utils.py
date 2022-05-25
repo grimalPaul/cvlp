@@ -5,6 +5,13 @@ import torch.distributed as dist
 import collections
 import logging
 
+
+def get_pool(strategy, hidden_states):
+    if strategy =="1token":
+        return hidden_states[:, 0, :]
+    elif strategy =="avg":
+        return np.mean(hidden_states, axis=1)
+
 def get_area(pos):
     """
     Args
@@ -19,6 +26,7 @@ def get_area(pos):
     width = pos[:, :, 1] - pos[:, :, 0]
     area = height * width
     return area
+
 
 def get_relative_distance(pos):
     """
