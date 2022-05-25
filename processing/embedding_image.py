@@ -1,7 +1,7 @@
-"""embed dataset
+"""embed image
 
 Usage:
-python -m ir.encode_dataset --type=encode_image --dataset_path=<path> --model_config_path=<path_to_config_model> \
+python -m ir.embedding_image --type=encode_image --dataset_path=<path> --model_config_path=<path_to_config_model> \
     --key_image=<key_text> --key_image_embedding=<key_token> --image_path=<image_path> --model=<pytorch_model.bin>
 """
 

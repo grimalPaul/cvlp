@@ -2,8 +2,6 @@
 
 You can find in this folder the different config that we try.
 
-
-
 ## embedding
 
 - Bart Without pretrain: Embedding dim 50465 768
