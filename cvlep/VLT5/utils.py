@@ -10,7 +10,7 @@ def get_pool(strategy, hidden_states):
     if strategy =="1token":
         return hidden_states[:, 0, :]
     elif strategy =="avg":
-        return np.mean(hidden_states, axis=1)
+        return torch.mean(hidden_states, dim=1)
 
 def get_area(pos):
     """

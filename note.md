@@ -258,14 +258,28 @@ Ne nous intéresse pas :
 
 ## Code
 
+Nom des embedding :
+nomModel_embedding_prefix_pooling
+
+vlt5_embedding_vqa_1token
+vlt5_embedding_vqa_avg
+vlt5_embedding_imt_1token
+vlt5_embedding_imt_avg
+
+vlbart_embedding_vqa_1token
+vlbart_embedding_vqa_avg
+vlbart_embedding_imt_1token
+vlbart_embedding_imt_avg
+
+Nom des indices pour la recheche :
 nomModel_technique_prefix_pooling
 
-vlt5_zero_vqa_1token
-vlt5_zero_vqa_avg
-vlt5_zero_imt_1token
-vlt5_zero_imt_avg
+vlt5_zs_vqa_1token
+vlt5_zs_vqa_avg
+vlt5_zs_imt_1token
+vlt5_zs_imt_avg
 
-vlbart_zero_vqa_1token
-vlbart_zero_vqa_avg
-vlbart_zero_imt_1token
-vlbart_zero_imt_avg
+vlbart_zs_vqa_1token
+vlbart_zs_vqa_avg
+vlbart_zs_imt_1token
+vlbart_zs_imt_avg
