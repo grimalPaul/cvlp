@@ -148,6 +148,8 @@ Voir VL adapter cr me sera très utile je pense pour train mon modèle et faire 
 
 Réussir mes premières expés.
 
+Pour visual content.Il y a une projection qui est apprise et appliquer sur embedding de l'image + on ajoute obj order embedding
+
 ## Piste de Training
 
 Déjà juste ajouter un préfix pour notre modèle et pour cette tâche.
@@ -174,6 +176,42 @@ Trouver grosses facon de pretrain.
 Puis faire du finetuning avec vl adapter si cela est possible.
 
 On pourrait utiliser DPR indices pour générer des irrelevants. On pourrait utiliser le modèle non préentrainés ca pourrait être intérressant dans un second temps. Facile à faire car on l'a déjà fait et on utilisera un modèle tel quel donc pourra etre considéré comme zero shot.
+
+### Training
+
+Etape :
+
+Commencer par VL-adapter directement !
+
+1. mettre en place du continuous optimization pour essayer d'avoir les meilleurs performances possibles avec les données actuels. En supposant que le modèle est assez général. Voir si on peut faire du few shot en entrainant comme cela.
+
+2. entrainer à l'aide d'une projection finale en gelant le modèle et en ajoutant une couche linéaire en fin de modèle. NON
+
+3. mettre en place adapter et faire un finetuning sue le peu de donner que l'on a en utilisant juste les données ou +
+
+4. pretraining et fine tuning (DPR + autres tâches possible de pretraining, et du coup utiliser CLIP)
+
+- faire juste un finetuning sur le modèle actuel en modifiant seulement des parties du modèle.
+
+- On part d'un modèle vierge avec adapter + on fait des tâches de vision de pretraining sur un encoder decoder. Puis on recup encoder, on duplique et pretarain si on trouve une tache ou fine tuning directement.
+
+voir si pas un dataset question image et passage wikipedia.
+
+- faire directement un training directement sur les encoders en partant des encoder pretrained
+
+- faire un training sur les encoders sans entrainements
+
+- Avec CLIP on va devoir faire quoi qu'il arrive des pretrainings donc à voir quels sont les pretraining qu'on va faire. Voir si dans VL adapter ca part uniquement de BART et T5 brute.
+
+- on peut aussi pendant le pretraining ajouter une tâche de question réponse
+
+Expliquer qu'utiliser encoder decoder pour faire le train généralise mieux.
+
+Modèle génératif plus interessant mais utiliser dans un context discriminatif.
+
+On peut essayer de partir du modèle préentrainé pour faire une optimization du prompting. (aussi commencer juste par le text puis ajouter image)
+
+faire des tâches pour apprendre des personnalités de wikipedia ?
 
 ## Dataset
 
@@ -231,6 +269,8 @@ puis on cherche dans les passages de cette article lesquels contiennent la répo
 ## Embedding
 
 Ajouter du padding sur le text pour pouvoir faire du batch
+
+embedding de T5
 
 ## VL Adapter
 

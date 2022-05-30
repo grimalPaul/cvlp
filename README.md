@@ -161,3 +161,10 @@ Many thanks to following codes that help us a lot in building this codebase:
 - Our model is based on this model [VL-T5](https://github.com/j-min/VL-T5)
 - [VL adapter](https://github.com/ylsung/VL_adapter)
 - [ViQuAE](https://github.com/PaulLerner/ViQuAE/)
+
+## Miscellaneous
+
+```py
+column = 'input'
+dataset = dataset.map(lambda x: {x[column]:x[column].replace('[SEP]','</s>')})
+```
