@@ -1,0 +1,21 @@
+{
+    "kb_kwargs": {
+        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages": {
+            "device": "cpu",
+            "index_kwargs": {
+                "vlt5_zs_vqa_1token": {
+                    "key_kb": "vlt5_embedding_vqa_1token",
+                    "index_load": false,
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
+                    "string_factory": "L2norm,Flat"
+                },
+                "vlt5_zs_imt_1token": {
+                    "key_kb": "vlt5_embedding_imt_1token",
+                    "index_load": false,
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
+                    "string_factory": "L2norm,Flat"
+                }
+            }
+        }
+    }
+}
