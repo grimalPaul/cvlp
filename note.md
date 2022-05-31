@@ -213,6 +213,10 @@ On peut essayer de partir du modèle préentrainé pour faire une optimization d
 
 faire des tâches pour apprendre des personnalités de wikipedia ?
 
+- match du text
+- match des images
+- math text + images
+
 ## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
@@ -276,11 +280,14 @@ embedding de T5
 
 Appliquer Adapter to simplify the training, [github](https://github.com/ylsung/VL_adapter) [paper](https://arxiv.org/pdf/2112.06825.pdf)
 
-Je ne comprends pas s'ils font quand même un pretrain ? (au moins apprendre visual embedding ? ou la aussi adapter ?)
+ne font pas de pretrain, apprennent juste la projection pour être utilisé par le modèle de language.
+Puis font uniquement un fine tuning avec les adapters pour avoir de bonnes performances en changeant très peu les paramètres.
 
 Mais si aussi bien que ca en a l'air est une très bonne piste pour ce que je veux faire
 
 Je pense que je peux aussi essayer d'optimiser mon prompting dans mon cas
+
+
 
 ## Prefix disponible
 

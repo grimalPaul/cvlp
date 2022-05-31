@@ -18,40 +18,42 @@ class CVLEP(nn.Module):
 
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
-
-        if config.shared_embedding:
-            if embedding_passage is None and embedding_question is None:
-                # check if when we train it will shared the same embedding
-                # and not independant copy
-                self.embedding_encoder_question = nn.Embedding(
-                    config.num_embeddings, config.embedding_dim)
-                # we want they share the same parameters chack if it is
-                self.embedding_encoder_passage = self.embedding_encoder_question
-            elif embedding_passage is None:
-                self.embedding_encoder_question = embedding_question
-                # we want they share the same parameters chack if it is
-                self.embedding_encoder_passage = self.embedding_encoder_question
+        print(config.config_str)
+        if config.backbone_question == "t5":
+            # TODO: modify we want the same visual projection and the same embedding
+            if config.shared_embedding:
+                if embedding_passage is None and embedding_question is None:
+                    # check if when we train it will shared the same embedding
+                    # and not independant copy
+                    self.embedding_encoder_question = nn.Embedding(
+                        config.num_embeddings, config.embedding_dim)
+                    # we want they share the same parameters chack if it is
+                    self.embedding_encoder_passage = self.embedding_encoder_question
+                elif embedding_passage is None:
+                    self.embedding_encoder_question = embedding_question
+                    # we want they share the same parameters chack if it is
+                    self.embedding_encoder_passage = self.embedding_encoder_question
+                else:
+                    self.embedding_encoder_passage = embedding_passage
+                    # we want they share the same parameters chack if it is
+                    self.embedding_encoder_question = self.embedding_encoder_passage
             else:
-                self.embedding_encoder_passage = embedding_passage
-                # we want they share the same parameters chack if it is
-                self.embedding_encoder_question = self.embedding_encoder_passage
-        else:
-            if embedding_passage is None and embedding_question is None:
-                self.embedding_encoder_question = nn.Embedding(
-                    config.num_embeddings, config.embedding_dim)
-                self.embedding_encoder_passage = nn.Embedding(
-                    config.num_embeddings, config.embedding_dim)
-            elif embedding_passage is None:
-                self.embedding_encoder_question = embedding_question
-                self.embedding_encoder_passage = nn.Embedding(
-                    config.num_embeddings, config.embedding_dim)
-            else:
-                self.embedding_encoder_passage = embedding_passage
-                self.embedding_encoder_question = embedding_question
-        self.image_passage_encoder.set_input_embeddings(
-            self.embedding_encoder_passage)
-        self.image_question_encoder.set_input_embeddings(
-            self.embedding_encoder_question)
+                if embedding_passage is None and embedding_question is None:
+                    self.embedding_encoder_question = nn.Embedding(
+                        config.num_embeddings, config.embedding_dim)
+                    self.embedding_encoder_passage = nn.Embedding(
+                        config.num_embeddings, config.embedding_dim)
+                elif embedding_passage is None:
+                    self.embedding_encoder_question = embedding_question
+                    self.embedding_encoder_passage = nn.Embedding(
+                        config.num_embeddings, config.embedding_dim)
+                else:
+                    self.embedding_encoder_passage = embedding_passage
+                    self.embedding_encoder_question = embedding_question
+            self.image_passage_encoder.set_input_embeddings(
+                self.embedding_encoder_passage)
+            self.image_question_encoder.set_input_embeddings(
+                self.embedding_encoder_question)
         # according to the config we add or not a projection
         # We beginn with a simple linear projection
         # We can maybe after create a Projection Head like here

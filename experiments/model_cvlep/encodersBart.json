@@ -40,7 +40,9 @@
         "use_projection" : false,
         "shared_embedding":true,
         "num_embeddings":50465,
-        "embedding_dim":768
+        "embedding_dim":768,
+        "backbone_question":"bart",
+        "backbone_passage":"bart"
     },
     "distributed":false,
     "verbose":false

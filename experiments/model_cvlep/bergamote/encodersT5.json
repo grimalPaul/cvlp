@@ -41,7 +41,9 @@
         "use_projection": false,
         "shared_embedding": true,
         "num_embeddings": 32200,
-        "embedding_dim": 768
+        "embedding_dim": 768,
+        "backbone_question":"t5",
+        "backbone_passage":"t5"
     },
     "distributed": false,
     "verbose": false

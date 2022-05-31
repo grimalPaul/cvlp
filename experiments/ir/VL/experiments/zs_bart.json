@@ -3,6 +3,18 @@
         "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/bart_passages": {
             "device": "cpu",
             "index_kwargs": {
+                "vlbart_zs_1token": {
+                    "key_kb": "vlbart_embedding_1token",
+                    "index_load": false,
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
+                    "string_factory": "L2norm,Flat"
+                },
+                "vlbart_zs_avg": {
+                    "key_kb": "vlbart_embedding_avg",
+                    "index_load": false,
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
+                    "string_factory": "L2norm,Flat"
+                },
                 "vlbart_zs_vqa_1token": {
                     "key_kb": "vlbart_embedding_vqa_1token",
                     "index_load": true,
@@ -17,13 +29,13 @@
                 },
                 "vlbart_zs_vqa_avg": {
                     "key_kb": "vlbart_embedding_vqa_avg",
-                    "index_load": false,
+                    "index_load": true,
                     "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
                     "string_factory": "L2norm,Flat"
                 },
                 "vlbart_zs_imt_avg": {
                     "key_kb": "vlbart_embedding_imt_avg",
-                    "index_load": false,
+                    "index_load": true,
                     "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
                     "string_factory": "L2norm,Flat"
                 }

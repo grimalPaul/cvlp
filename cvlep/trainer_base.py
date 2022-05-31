@@ -22,7 +22,6 @@ def get_encoder(config):
         encoder = VLt5Encoder.from_pretrained(config.model.pretrained_model_name_or_path)
     elif config.model.backbone == 'bart':
         temp = BartConfig.from_pretrained(config.model.pretrained_model_name_or_path)
-        print(config.model.pretrained_model_name_or_path)
         encoder = VLBartEncoder(temp)
         # encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
     else:

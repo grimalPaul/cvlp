@@ -11,13 +11,13 @@ How the config works:
                 "name_of_your_index_1": {
                     "key_kb": "column to index to do the search",
                     "index_load": "true or false if you want to load index from index path",
-                    "index_path": "where you want to save the index or load index. Be carefull exact name of the index when you load it but when you save it the name will be path/name_of_your_index_1.faiss",
+                    "index_path": "path where you want to load or save your index",
                     "string_factory": "https://github.com/facebookresearch/faiss/wiki/The-index-factory"
                 },
                 "name_of_your_index_2": {
                     "key_kb": "column to index to do the search",
                     "index_load": "true or false if you want to load index from index path",
-                    "index_path": "Be carefull exact name of the index when you load it but when you save it the name will be path/name_of_your_index_1.faiss",
+                    "index_path": "path where you want to load or save your index",
                     "string_factory": "https://github.com/facebookresearch/faiss/wiki/The-index-factory"
                 }
             }
