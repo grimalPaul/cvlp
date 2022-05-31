@@ -92,7 +92,7 @@ class KnowledgeBase:
             do_L2norm = False
         if index_load:
             self.dataset.load_faiss_index(
-                index_name=index_name, file=index_path, device=device)
+                index_name=index_name, file=f'{index_path}/{index_name}.faiss', device=device)
         else:
             # HACK: fix L2-normalisation on GPU https://github.com/facebookresearch/faiss/issues/2010
             if do_L2norm and device is not None:
