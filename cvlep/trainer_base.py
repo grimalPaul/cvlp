@@ -150,28 +150,42 @@ class Trainer(object):
         if self.verbose:
             print(f'It took {time() - start:.1f}s')"""
 
-    def create_model(self, config=None, **kwargs):
+    def create_model(self, model_class, config=None, **kwargs):
+        print(f'Building Model at GPU {self.args.gpu}')
 
-        question_encoder = get_encoder(config.encoder_question)
-        passage_encoder = get_encoder(config.encoder_passage)
-        embedding_question = get_embedding(config.encoder_question) 
-        embedding_passage = get_embedding(config.encoder_passage)
-        config_model = config.cvlep
-        model = CVLEP(
-            config_model,
-            image_question_encoder=question_encoder,
-            image_passage_encoder=passage_encoder,
-            embedding_question = embedding_question,
-            embedding_passage = embedding_passage
+        model_name = self.args.backbone
+        model = model_class.from_pretrained(
+            model_name,
+            config=config,
+            **kwargs
         )
         return model
 
-    def create_tokenizer(self, config):
-        
-        tokenizer_question = get_tokenizer(config.encoder_question)
-        tokenizer_passage = get_tokenizer(config.encoder_passage)
-        #
-        return tokenizer_question,tokenizer_passage
+    def create_tokenizer(self, **kwargs):
+            from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
+            from tokenization import VLT5Tokenizer, VLT5TokenizerFast
+
+            if 't5' in self.args.tokenizer:
+                if self.args.use_vision:
+                    # tokenizer_class = VLT5Tokenizer
+                    tokenizer_class = VLT5TokenizerFast
+                else:
+                    # tokenizer_class = T5Tokenizer
+                    tokenizer_class = T5TokenizerFast
+            elif 'bart' in self.args.tokenizer:
+                tokenizer_class = BartTokenizer
+                # tokenizer_class = BartTokenizerFast
+
+            tokenizer_name = self.args.backbone
+
+            tokenizer = tokenizer_class.from_pretrained(
+                tokenizer_name,
+                max_length=self.args.max_text_length,
+                do_lower_case=self.args.do_lower_case,
+                **kwargs
+                )
+
+            return tokenizer
 
     def create_optimizer_and_scheduler(self):
         if self.verbose:
