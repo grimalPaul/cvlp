@@ -217,6 +217,11 @@ faire des tâches pour apprendre des personnalités de wikipedia ?
 - match des images
 - math text + images
 
+commencer par optimiser prompting
+puis faire une projection à la fin
+manières de gérer hidden states
+entrainer un seul encoder sur des tâches et finetuner avec la tâche dont on a besoin plus tard
+
 ## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
@@ -330,3 +335,11 @@ vlbart_zs_vqa_1token
 vlbart_zs_vqa_avg
 vlbart_zs_imt_1token
 vlbart_zs_imt_avg
+
+## Test a realiser
+
+- refaire les tests avec les modèles chargés en state dict
+- refaire les tests en ajoutant le token DE start de sequence ou CLS en début et utiliser ce token pour faire similarité
+- utiliser token start avec le decodeur et refaire les experiences
+- uniquement du prompt tuning (voir config à tester, encodeur w/o decodeur, traitement des hidden states
+- puis essayer vl adapters sur les différentes configurations possibles (encoder w/o decodeur, juste fine tuning, puis essayer pretraining)

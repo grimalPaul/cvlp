@@ -3,7 +3,7 @@ import torch
 from cvlep.VLT5.utils import load_state_dict
 from pprint import pprint
 import os
-from cvlep.utils import set_global_logging_level
+from cvlep.utils import get_config, set_global_logging_level, dotdict
 import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -17,11 +17,14 @@ from cvlep.utils import device
 
 from transformers import BartConfig
 
+
 def get_encoder(config):
     if config.model.backbone == 't5':
-        encoder = VLt5Encoder.from_pretrained(config.model.pretrained_model_name_or_path)
+        encoder = VLt5Encoder.from_pretrained(
+            config.model.pretrained_model_name_or_path)
     elif config.model.backbone == 'bart':
-        temp = BartConfig.from_pretrained(config.model.pretrained_model_name_or_path)
+        temp = BartConfig.from_pretrained(
+            config.model.pretrained_model_name_or_path)
         encoder = VLBartEncoder(temp)
         # encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
     else:
@@ -29,102 +32,124 @@ def get_encoder(config):
     return encoder
 
 
-def get_tokenizer(config, **kwargs):
-    from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
-    from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
-    if config.tokenizer.backbone == 't5':
-        if config.tokenizer.use_vision:
-            # tokenizer_class = VLT5Tokenizer
-            tokenizer_class = VLT5TokenizerFast
-        else:
-            # tokenizer_class = T5Tokenizer
-            tokenizer_class = T5TokenizerFast
-    elif config.tokenizer.backbone ==  'bart':
-            tokenizer_class = BartTokenizer
-            # tokenizer_class = BartTokenizerFast
-    else:
-        raise NotImplementedError('This type of tokenizer is not implemented')
-    tokenizer = tokenizer_class.from_pretrained(
-        config.tokenizer.pretrained_model_name_or_path,
-        max_length=config.tokenizer.max_text_length,
-        do_lower_case=config.tokenizer.do_lower_case,
-        **kwargs
-    )
-    return tokenizer
-
 def get_embedding(config):
     if config.embedding.path == "":
         return None
     else:
-        embedding = nn.Embedding(config.embedding.num_embeddings,config.embedding.embedding_dim)
-        embedding.load_state_dict(torch.load(config.embedding.path,map_location=device))
+        embedding = nn.Embedding(
+            config.embedding.num_embeddings, config.embedding.embedding_dim)
+        embedding.load_state_dict(torch.load(
+            config.embedding.path, map_location=device))
     return embedding
-        
+
+
 class Trainer(object):
-    def __init__(self, config_path, train_loader=None, val_loader=None, test_loader=None, train=True):
-        
-        config = Config.load_json(config_path)
+    def __init__(self, config_question_path, config_passage_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
+        # on aura deux configs car deux encoders
+        # on fait via deux fichiers séparés
+        # on ajoute si vl adapter ou non pour nous faciliter les choses
 
-        self.args = config
+        # trois fichier
+        # config de chaque encoder
+        # config du training
+        config_encoder_question = Config.load_json(config_question_path)
+        config_encoder_passage = Config.load_json(config_passage_path)
+        config_training = Config.load_json(config_training_path)
 
+        self.args = config_training
+        self.verbose = True
+
+        # TODO:apply for contrastive learning
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
 
-        if self.args.distributed:
+        # create config
+        encoder_question_config = self.create_config(config_encoder_question)
+        encoder_passage_config = self.create_config(config_encoder_passage)
+
+        # create tokenizer
+        self.tokenizer_question = self.create_tokenizer(
+            config_encoder_question)
+        self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
+
+        # modify tokenizer
+        if 'bart' in config_encoder_question.tokenizer:
+            num_added_toks_question = 0
+            if encoder_question_config.use_vis_order_embedding:
+                additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
+                    [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
+                special_tokens_dict = {
+                    'additional_special_tokens': additional_special_tokens}
+                num_added_toks_question = self.tokenizer_question.add_special_tokens(
+                    special_tokens_dict)
+                encoder_question_config.default_obj_order_ids = self.tokenizer_question.convert_tokens_to_ids(
+                    [f'<vis_extra_id_{i}>' for i in range(100)])
+
+        if 'bart' in config_encoder_passage.tokenizer:
+            num_added_toks_passage = 0
+            if encoder_passage_config.use_vis_order_embedding:
+                additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
+                    [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
+                special_tokens_dict = {
+                    'additional_special_tokens': additional_special_tokens}
+                num_added_toks_passage = self.tokenizer_passage.add_special_tokens(
+                    special_tokens_dict)
+                encoder_passage_config.default_obj_order_ids = self.tokenizer_passage.convert_tokens_to_ids(
+                    [f'<vis_extra_id_{i}>' for i in range(100)])
+
+        self.encoder_question = self.create_encoder(encoder_question_config, num_added_toks_passage)
+        self.encoder_passage = self.create_encoder(encoder_passage_config, num_added_toks_passage)
+        
+        if 't5' in config_encoder_question.tokenizer:
+            self.encoder_question.resize_token_embeddings(
+                self.tokenizer_question.vocab_size)
+        """elif 'bart' in config_encoder_question.tokenizer:
+            self.encoder_question.resize_token_embeddings(
+                self.encoder_question.embed_tokens.num_embeddings + num_added_toks_question)
+        """
+        if 't5' in config_encoder_passage.tokenizer:
+            self.encoder_passage.resize_token_embeddings(
+                self.tokenizer_passage.vocab_size)
+        """elif 'bart' in config_encoder_passage.tokenizer:
+            self.encoder_passage.resize_token_embeddings(
+                self.encoder_passage.model.shared.num_embeddings + num_added_toks_passage)
+        """
+        # Load Checkpoint encoder question
+        self.start_epoch = None
+        if config_encoder_question.load_path is not None:
+            ckpt_path = config_encoder_question.load_path + '.pth'
+            self.load_checkpoint(ckpt_path, "question")
+
+        if config_encoder_question.from_scratch:
+            self.init_weights("question")
+
+        # Load Checkpoint encoder passage
+        if config_encoder_passage.load_path is not None:
+            ckpt_path = config_encoder_passage.load_path + '.pth'
+            self.load_checkpoint(ckpt_path, "passage")
+
+        if config_encoder_passage.from_scratch:
+            self.init_weights("passage")
+
+       
+        # Create the model
+        self.model = self.create_model()
+
+        self.model.to(device)
+        # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra
+        # etre amené à devoir les changer
+
+        # Normalement déjà dans la confiq des encoders que l'on a enregistré
+        
+
+        """
+         if self.args.distributed:
             if self.args.gpu != 0:
                 self.args.verbose = False
 
         if not self.args.verbose:
             set_global_logging_level(logging.ERROR, ["transformers"])
-
-        # on va passer la config de l'encoder en argument
-
-        # de base on a un modèle complet mais on veut juste joint encoder
-        # si je peux charger encoder depuis pretrained ca peut me permettre de charger directement ce dont j'ai besoin et ne pas passer par les configs compliqués
-
-        self.model = self.create_model(config)
-        self.tokenizer_question, self.tokenizer_passage = self.create_tokenizer(
-            config)
-
-        self.model.to(device)
-        # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra 
-        # etre amené à devoir les changer
-        """if config.encoder_passage.tokenizer.backbone == 't5':
-            self.model.encoder_passage.resize_token_embeddings(self.tokenizer_question.vocab_size)
-        elif config.encoder_passage.tokenizer.backbone == 'bart':
-            self.model.encoder_passage.resize_token_embeddings(
-                self.model.encoder_passage.model.shared.num_embeddings + num_added_toks)"""
-
-        
-        # Normalement déjà dans la confiq des encoders que l'on a enregistré
-        """if 'bart' in self.args.tokenizer:
-            num_added_toks = 0
-            if config.use_vis_order_embedding:
-                additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
-                    [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
-                special_tokens_dict = {
-                    'additional_special_tokens': additional_special_tokens}
-                num_added_toks = self.tokenizer.add_special_tokens(
-                    special_tokens_dict)
-
-                config.default_obj_order_ids = self.tokenizer.convert_tokens_to_ids(
-                    [f'<vis_extra_id_{i}>' for i in range(100)])"""
-
-
-        """useless for now
-        # Load Checkpoint
-        # useless for now
-        self.start_epoch = None
-        if args.load is not None:
-            ckpt_path = args.load + '.pth'
-            self.load_checkpoint(ckpt_path)
-            self.start_epoch = int(args.load.split('Epoch')[-1])
-
-        # useless for now
-        if self.args.from_scratch:
-            self.init_weights()
-
         # GPU Options
         print(f'Model Launching at GPU {self.args.gpu}')
         if self.verbose:
@@ -150,42 +175,84 @@ class Trainer(object):
         if self.verbose:
             print(f'It took {time() - start:.1f}s')"""
 
-    def create_model(self, model_class, config=None, **kwargs):
-        print(f'Building Model at GPU {self.args.gpu}')
+    def create_config(self, config_model):
+        from transformers import T5Config, BartConfig
 
-        model_name = self.args.backbone
-        model = model_class.from_pretrained(
-            model_name,
-            config=config,
-            **kwargs
-        )
+        if 't5' in config_model.backbone:
+            config_class = T5Config
+        elif 'bart' in config_model.backbone:
+            config_class = BartConfig
+        else:
+            return None
+
+        config_encoder = config_class.from_pretrained(config_model.backbone)
+        args = config_model
+
+        config_encoder._name_or_path = args.backbone
+        config_encoder.feat_dim = args.feat_dim
+        config_encoder.pos_dim = args.pos_dim
+        config_encoder.n_images = 2
+        config_encoder.use_vis_order_embedding = args.use_vis_order_embedding
+        config_encoder.dropout_rate = args.dropout
+        config_encoder.dropout = args.dropout
+        config_encoder.attention_dropout = args.dropout
+        config_encoder.activation_dropout = args.dropout
+        config_encoder.use_vis_layer_norm = args.use_vis_layer_norm
+        config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
+        config_encoder.losses = args.losses
+        config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
+
+        return config_encoder
+
+    def create_model(self, config_model=None):
+        model = CVLEP(config_model, self.encoder_question,
+                      self.encoder_passage)
         return model
 
-    def create_tokenizer(self, **kwargs):
-            from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
-            from tokenization import VLT5Tokenizer, VLT5TokenizerFast
+    def create_encoder(self, config_model, add_token = 0):
 
-            if 't5' in self.args.tokenizer:
-                if self.args.use_vision:
-                    # tokenizer_class = VLT5Tokenizer
-                    tokenizer_class = VLT5TokenizerFast
-                else:
-                    # tokenizer_class = T5Tokenizer
-                    tokenizer_class = T5TokenizerFast
-            elif 'bart' in self.args.tokenizer:
-                tokenizer_class = BartTokenizer
-                # tokenizer_class = BartTokenizerFast
+        if 't5' in config_model._name_or_path:
+            model_class = VLt5Encoder
+            embedding = nn.Embedding(config_model.vocab_size, config_model.d_model)
 
-            tokenizer_name = self.args.backbone
+        elif 'bart' in config_model._name_or_path:
+            model_class = VLBartEncoder
+            padding_idx, vocab_size = config_model.pad_token_id, config_model.vocab_size
+            embedding = nn.Embedding(vocab_size + add_token, config_model.d_model, padding_idx)
+        model_name = config_model._name_or_path
+        
+        model = model_class.from_pretrained(
+            model_name,
+            config=config_model,
+            embed_tokens=embedding
+            )
+        return model
 
-            tokenizer = tokenizer_class.from_pretrained(
-                tokenizer_name,
-                max_length=self.args.max_text_length,
-                do_lower_case=self.args.do_lower_case,
-                **kwargs
-                )
+    def create_tokenizer(self, config_model, **kwargs):
 
-            return tokenizer
+        from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
+        from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
+
+        if 't5' in config_model.tokenizer:
+            if config_model.use_vision:
+                # tokenizer_class = VLT5Tokenizer
+                tokenizer_class = VLT5TokenizerFast
+            else:
+                # tokenizer_class = T5Tokenizer
+                tokenizer_class = T5TokenizerFast
+        elif 'bart' in config_model.tokenizer:
+            tokenizer_class = BartTokenizer
+            # tokenizer_class = BartTokenizerFast
+        else:
+            raise ValueError('This type of tokenizer is not implemented')
+
+        tokenizer = tokenizer_class.from_pretrained(
+            config_model.tokenizer,
+            max_length=config_model.max_text_length,
+            do_lower_case=config_model.do_lower_case,
+            **kwargs
+        )
+        return tokenizer
 
     def create_optimizer_and_scheduler(self):
         if self.verbose:
@@ -221,16 +288,13 @@ class Trainer(object):
                           lr=self.args.lr, eps=self.args.adam_eps)
             lr_scheduler = get_linear_schedule_with_warmup(
                 optim, warmup_iters, t_total)
-
         else:
             optim = self.args.optimizer(
                 list(self.model.parameters()), self.args.lr)
-
         return optim, lr_scheduler
 
-    def load_checkpoint(self, ckpt_path):
+    def load_checkpoint(self, ckpt_path, encoder):
         state_dict = load_state_dict(ckpt_path, 'cpu')
-
         original_keys = list(state_dict.keys())
         for key in original_keys:
             if key.startswith("vis_encoder."):
@@ -240,14 +304,17 @@ class Trainer(object):
             if key.startswith("model.vis_encoder."):
                 new_key = 'model.encoder.' + key[len("model.vis_encoder."):]
                 state_dict[new_key] = state_dict.pop(key)
-
-        results = self.model.load_state_dict(state_dict, strict=False)
+        if encoder == "question":
+            results = self.encoder_question.load_state_dict(
+                state_dict, strict=False)
+        elif encoder == "passage":
+            results = self.encoder_passage.load_state_dict(
+                state_dict, strict=False)
         if self.verbose:
             print('Model loaded from ', ckpt_path)
             pprint(results)
 
-    def init_weights(self):
-
+    def init_weights(self, encoder):
         def init_bert_weights(module):
             """ Initialize the weights."""
             if isinstance(module, (nn.Linear, nn.Embedding)):
@@ -259,8 +326,12 @@ class Trainer(object):
                 module.weight.data.fill_(1.0)
             if isinstance(module, nn.Linear) and module.bias is not None:
                 module.bias.data.zero_()
-        self.model.apply(init_bert_weights)
-        self.model.init_weights()
+        if encoder == "question":
+            self.encoder_question.apply(init_bert_weights)
+            self.encoder_question.init_weights()
+        elif encoder == "passage":
+            self.encoder_passage.apply(init_bert_weights)
+            self.encoder_passage.init_weights()
 
     def predict(self):
         pass

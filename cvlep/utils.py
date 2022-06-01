@@ -34,4 +34,13 @@ def get_config(config_path:str) -> dict:
     with open(config_path, 'r') as file:
         config = json.load(file)
     return config
+
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
     

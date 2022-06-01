@@ -18,9 +18,12 @@ class CVLEP(nn.Module):
 
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
-        print(config.config_str)
+
+        #TODO: probably we want to share the same embedding between the two encoders
+        #TODO: probably we want to share the same visual projection between th two encoders
+        print(config)
+        """
         if config.backbone_question == "t5":
-            # TODO: modify we want the same visual projection and the same embedding
             if config.shared_embedding:
                 if embedding_passage is None and embedding_question is None:
                     # check if when we train it will shared the same embedding
@@ -66,7 +69,7 @@ class CVLEP(nn.Module):
         else:
             self.image_question_projection = None
             self.image_passage_projection = None
-
+        """
         # we want to be able to freeze or not the model with the config
 
         # init projection weights

@@ -159,10 +159,6 @@ class JointEncoder(BartEncoder):
 
         self.init_weights()
 
-    def set_input_embeddings(self, new_embeddings):
-        self.embed_tokens = new_embeddings
-        self.visual_embedding.obj_order_embedding = new_embeddings
-
     def forward(
         self,
         input_ids=None,
@@ -299,8 +295,21 @@ class JointEncoder(BartEncoder):
             return BaseModelOutput(
                 last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions
             )
+"""
+class VLBartEncoder(nn.modules):
+    def __init__(self):
+        super().__init__()
+        self.config = config
+        padding_idx, vocab_size = config.pad_token_id, config.vocab_size
+        self.shared = nn.Embedding(vocab_size, config.d_model, padding_idx)
+        self.encoder = JointEncoder(config, self.shared)
+
+        self.init_weights()
+
+    def"""
 
 
+        
 
 class VLBartModel(BartModel):
     def __init__(self, config: BartConfig):
