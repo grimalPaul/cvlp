@@ -222,6 +222,8 @@ puis faire une projection à la fin
 manières de gérer hidden states
 entrainer un seul encoder sur des tâches et finetuner avec la tâche dont on a besoin plus tard
 
+- pour apprendre la projection visuelle, on peut utiliser le dataset de CLIP (s'il est dispo), et juste entrainer cette projection (et Adapters ?) puis dans un second temps faire les autres choses ici article qui fournit dataset dans le style de CLIP [article](https://arxiv.org/abs/2111.02114).
+
 ## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices

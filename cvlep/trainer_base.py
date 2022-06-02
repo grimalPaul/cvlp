@@ -73,9 +73,9 @@ class Trainer(object):
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
 
+        num_added_toks_question = 0
         # modify tokenizer
         if 'bart' in config_encoder_question.tokenizer:
-            num_added_toks_question = 0
             if encoder_question_config.use_vis_order_embedding:
                 additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
                     [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
@@ -86,8 +86,8 @@ class Trainer(object):
                 encoder_question_config.default_obj_order_ids = self.tokenizer_question.convert_tokens_to_ids(
                     [f'<vis_extra_id_{i}>' for i in range(100)])
 
+        num_added_toks_passage = 0
         if 'bart' in config_encoder_passage.tokenizer:
-            num_added_toks_passage = 0
             if encoder_passage_config.use_vis_order_embedding:
                 additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
                     [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
@@ -98,7 +98,7 @@ class Trainer(object):
                 encoder_passage_config.default_obj_order_ids = self.tokenizer_passage.convert_tokens_to_ids(
                     [f'<vis_extra_id_{i}>' for i in range(100)])
 
-        self.encoder_question = self.create_encoder(encoder_question_config, num_added_toks_passage)
+        self.encoder_question = self.create_encoder(encoder_question_config, num_added_toks_question)
         self.encoder_passage = self.create_encoder(encoder_passage_config, num_added_toks_passage)
         
         if 't5' in config_encoder_question.tokenizer:
