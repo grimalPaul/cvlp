@@ -294,8 +294,6 @@ Mais si aussi bien que ca en a l'air est une très bonne piste pour ce que je ve
 
 Je pense que je peux aussi essayer d'optimiser mon prompting dans mon cas
 
-
-
 ## Prefix disponible
 
 interessant :
@@ -345,3 +343,15 @@ vlbart_zs_imt_avg
 - utiliser token start avec le decodeur et refaire les experiences
 - uniquement du prompt tuning (voir config à tester, encodeur w/o decodeur, traitement des hidden states
 - puis essayer vl adapters sur les différentes configurations possibles (encoder w/o decodeur, juste fine tuning, puis essayer pretraining)
+
+## Load model with state dict
+
+[information state dict](https://pytorch.org/tutorials/recipes/recipes/what_is_state_dict.html)
+[load and init some part of the model](https://discuss.pytorch.org/t/load-part-model-with-pretrained-weights-other-part-reinit-xavier/41310)
+
+## prompt multiple prompt
+
+- si single prompt embedding sera partagé même si tâche différente.
+- si multiple prompt une facon de faire embedding par tâche
+
+avec Moduledict je peux passer différents modèles suivant ce que je veux mettre en place.

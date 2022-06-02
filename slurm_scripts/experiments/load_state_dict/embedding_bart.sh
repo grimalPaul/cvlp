@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embedding_passage
+#SBATCH -J embed_bart
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
-#SBATCH --mem=20G
+#SBATCH --mem=40G
 #SBATCH --time=7-00:00:00
 
 source /home/pgrimal/.bashrc
@@ -38,7 +38,7 @@ python -m processing.embedding_dataset \
     --key_text=passage \
     --key_embedding=vlbart_embedding_avg_dict \
     --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
-    --batch_size=128 \
+    --batch_size=64 \
     --pool_strategy=avg
 
 echo "DONE"
