@@ -348,6 +348,7 @@ vlbart_zs_imt_avg
 
 [information state dict](https://pytorch.org/tutorials/recipes/recipes/what_is_state_dict.html)
 [load and init some part of the model](https://discuss.pytorch.org/t/load-part-model-with-pretrained-weights-other-part-reinit-xavier/41310)
+[load avec les keys du states dict](https://discuss.pytorch.org/t/how-to-load-part-of-pre-trained-model/1113)
 
 ## prompt multiple prompt
 
