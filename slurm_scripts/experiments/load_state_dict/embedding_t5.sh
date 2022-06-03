@@ -42,5 +42,3 @@ python -m processing.embedding_dataset \
     --kb_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
     --batch_size=128 \
     --pool_strategy=avg
-
-echo "vlt5 zs avg"

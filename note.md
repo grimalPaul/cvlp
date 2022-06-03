@@ -224,6 +224,10 @@ entrainer un seul encoder sur des tâches et finetuner avec la tâche dont on a 
 
 - pour apprendre la projection visuelle, on peut utiliser le dataset de CLIP (s'il est dispo), et juste entrainer cette projection (et Adapters ?) puis dans un second temps faire les autres choses ici article qui fournit dataset dans le style de CLIP [article](https://arxiv.org/abs/2111.02114).
 
+- on peut toujours essayer de partager lors de l'apprentissage la proejction visuelle
+
+- pour apprendre la projection visuelle on peut aussi utiliser  toutes les images de la KB, peut permettre de fixer les concepts
+
 ## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
@@ -277,6 +281,8 @@ superscript denote sgnificant differences in Fisher's randomizaton test with p <
 On recherche dans viquae dataset les titres de l'article
 puis on cherche dans les passages de cette article lesquels contiennent la réponse ou une réponse alternative
 
+Remarque :
+Vu un  passage recup comme une bonne réponse alors que ne parait pas pertinent. Je pense que le passage a été ajouté après avec find relevant dans le search. Si il trouve un passage qui peut quand même contenir la réponse il l'ajoute. peut être a ajouter à un moment pour comptabiliser ce genre de chose.
 ## Embedding
 
 Ajouter du padding sur le text pour pouvoir faire du batch

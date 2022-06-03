@@ -35,6 +35,9 @@ Avec Best hyperparameters: {'b': 0.2, 'k1': 0.4}
 |d|    vlbart_zs_imt_avg   |        0|        0|         0 |        0|      0    |      0 |     0 |      0 |      0 |       0 |            0 |        0 |             0.001  |       0.001 |          0.002|
 |e|    vlbart_zs_1token            |0    |0         |0         |0          |0          |0      |0       |0       |0        |0             |0         |0              |0              |0.001           |0.006|
 |f|    vlbart_zs_avg               |0    |0.001     |0.001     |0.001      |0.001      |0      |0       |0       |0        |0             |0         |0.002          |0.002          |0.003           |0.005|
+|g    |vlbart_zs_avg_dict          |0    |0.001 |0.002ᵃᶜᵈᵉᶠ  |0.003ᵃᵇᶜᵈᵉᶠ  |0.004ᵃᵇᶜᵈᵉᶠ      |0  |0.001  |0.001ᵃᵇᶜᵈᵉᶠ  |0.001ᵃᵇᶜᵈᵉᶠ  |0.001ᵃᵇᶜᵈᵉᶠ             |0         |0.004  |0.013ᵃᵇᶜᵈᵉᶠ   | 0.023ᵃᵇᶜᵈᵉᶠ  |  0.072ᵃᵇᶜᵈᵉᶠ|
+
+On remarque bien pour la dernière ligne que suivant la facon dont je charge mon modèle on a des résultats différents. Je n'ai pas bien implémenté chargement du modèle.
 
 ## 0 shots
 
