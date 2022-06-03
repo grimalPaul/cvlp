@@ -150,6 +150,21 @@ Réussir mes premières expés.
 
 Pour visual content.Il y a une projection qui est apprise et appliquer sur embedding de l'image + on ajoute obj order embedding
 
+```py
+VisualEmbedding(
+    (feat_embedding): Sequential(
+      (0): Linear(in_features=2048, out_features=768, bias=True)
+      (1): T5LayerNorm()
+    )
+    (absolute_vis_pos_embedding): Sequential(
+      (0): Linear(in_features=5, out_features=768, bias=True)
+      (1): T5LayerNorm()
+    )
+    (obj_order_embedding): Embedding(32200, 768)
+    (img_order_embedding): Embedding(2, 768)
+)
+```
+
 ## Piste de Training
 
 Déjà juste ajouter un préfix pour notre modèle et pour cette tâche.
@@ -283,6 +298,7 @@ puis on cherche dans les passages de cette article lesquels contiennent la répo
 
 Remarque :
 Vu un  passage recup comme une bonne réponse alors que ne parait pas pertinent. Je pense que le passage a été ajouté après avec find relevant dans le search. Si il trouve un passage qui peut quand même contenir la réponse il l'ajoute. peut être a ajouter à un moment pour comptabiliser ce genre de chose.
+
 ## Embedding
 
 Ajouter du padding sur le text pour pouvoir faire du batch
@@ -299,6 +315,23 @@ Puis font uniquement un fine tuning avec les adapters pour avoir de bonnes perfo
 Mais si aussi bien que ca en a l'air est une très bonne piste pour ce que je veux faire
 
 Je pense que je peux aussi essayer d'optimiser mon prompting dans mon cas
+
+dimension input visual projection
+
+```
+feat dim 2048
+dim model 768
+
+
+if use_clip and clip_model_name == "ViT-B/32":
+            self.visual_feat_dim = 768
+        elif use_vit:
+            self.visual_feat_dim = 768
+        elif use_clip and clip_model_name == "RN50x4":
+            self.visual_feat_dim = 2560
+        else:
+            self.visual_feat_dim = 2048
+```
 
 ## Prefix disponible
 

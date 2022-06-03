@@ -8,8 +8,8 @@ import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from cvlep.VLT5.modeling_t5 import JointEncoder as VLt5Encoder
-from cvlep.VLT5.modeling_bart import JointEncoder as VLBartEncoder
+from cvlep.VLT5.modeling_t5 import VLT5
+from cvlep.VLT5.modeling_bart import VLBart
 from cvlep.VLT5.param import Config
 
 from cvlep.modeling_cvlp import CVLEP
@@ -18,7 +18,7 @@ from cvlep.utils import device
 from transformers import BartConfig
 
 
-def get_encoder(config):
+"""def get_encoder(config):
     if config.model.backbone == 't5':
         encoder = VLt5Encoder.from_pretrained(
             config.model.pretrained_model_name_or_path)
@@ -29,7 +29,7 @@ def get_encoder(config):
         # encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
     else:
         raise NotImplementedError('This type of encoder is not implemented')
-    return encoder
+    return encoder"""
 
 
 def get_embedding(config):
@@ -104,17 +104,18 @@ class Trainer(object):
         if 't5' in config_encoder_question.tokenizer:
             self.encoder_question.resize_token_embeddings(
                 self.tokenizer_question.vocab_size)
-        """elif 'bart' in config_encoder_question.tokenizer:
-            self.encoder_question.resize_token_embeddings(
-                self.encoder_question.embed_tokens.num_embeddings + num_added_toks_question)
-        """
+        elif 'bart' in config_encoder_question.tokenizer:
+            self.encoder_passage.resize_token_embeddings(
+                self.encoder_passage.model.shared.num_embeddings + num_added_toks_passage)
+        
+        
         if 't5' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
                 self.tokenizer_passage.vocab_size)
-        """elif 'bart' in config_encoder_passage.tokenizer:
+        elif 'bart' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
                 self.encoder_passage.model.shared.num_embeddings + num_added_toks_passage)
-        """
+        
         # Load Checkpoint encoder question
         self.start_epoch = None
         if config_encoder_question.load_path is not None:
@@ -212,19 +213,16 @@ class Trainer(object):
     def create_encoder(self, config_model, add_token = 0):
 
         if 't5' in config_model._name_or_path:
-            model_class = VLt5Encoder
-            embedding = nn.Embedding(config_model.vocab_size, config_model.d_model)
+            model_class = VLT5
 
         elif 'bart' in config_model._name_or_path:
-            model_class = VLBartEncoder
-            padding_idx, vocab_size = config_model.pad_token_id, config_model.vocab_size
-            embedding = nn.Embedding(vocab_size + add_token, config_model.d_model, padding_idx)
+            model_class = VLBart
+            
         model_name = config_model._name_or_path
         
         model = model_class.from_pretrained(
             model_name,
             config=config_model,
-            embed_tokens=embedding
             )
         return model
 
