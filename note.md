@@ -333,7 +333,11 @@ if use_clip and clip_model_name == "ViT-B/32":
             self.visual_feat_dim = 2048
 ```
 
-## Prefix disponible
+## Sortie de CLIP
+
+## Sortie de FasterCNN
+
+## Prefix disponible pour VLT5, VLBART
 
 interessant :
 
