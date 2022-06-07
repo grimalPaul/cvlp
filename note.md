@@ -333,6 +333,37 @@ if use_clip and clip_model_name == "ViT-B/32":
             self.visual_feat_dim = 2048
 ```
 
+### Dimension adapter
+
+### Gestion des single adapters
+
+Il y a un objet AdapterConfig(object)
+
+
+Comment est géré l'entrainement des singles adapter ?
+
+Etude du fichier multitask.py
+roundrobin ordonnancement tourniquet
+set_epoch est à utiliser pour distribuer les calculs
+
+DataLoader
+Dataset
+
+Une bouche avec un nombre d'epoch
+  Une boucle 
+
+
+### prompt multiple prompt
+
+- si single prompt embedding sera partagé même si tâche différente.
+- si multiple prompt une facon de faire embedding par tâche
+
+avec Moduledict je peux passer différents modèles suivant ce que je veux mettre en place.
+
+Comment est géré entrainement du prompting ?
+
+Dans article ils précisent que promptig sur le decoder n'est pas efficace
+
 ## Sortie de CLIP
 
 ## Sortie de FasterCNN
@@ -393,9 +424,3 @@ vlbart_zs_imt_avg
 [load and init some part of the model](https://discuss.pytorch.org/t/load-part-model-with-pretrained-weights-other-part-reinit-xavier/41310)
 [load avec les keys du states dict](https://discuss.pytorch.org/t/how-to-load-part-of-pre-trained-model/1113)
 
-## prompt multiple prompt
-
-- si single prompt embedding sera partagé même si tâche différente.
-- si multiple prompt une facon de faire embedding par tâche
-
-avec Moduledict je peux passer différents modèles suivant ce que je veux mettre en place.
