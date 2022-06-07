@@ -16,7 +16,6 @@
     "dry": false,
     "epochs": 12,
     "fp16": false,
-    "from_scratch": false,
     "gen_max_length": 20,
     "gradient_accumulation_steps": 1,
     "ground_upsample": 1,
