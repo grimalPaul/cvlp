@@ -339,19 +339,22 @@ if use_clip and clip_model_name == "ViT-B/32":
 
 Il y a un objet AdapterConfig(object)
 
-
 Comment est géré l'entrainement des singles adapter ?
 
 Etude du fichier multitask.py
 roundrobin ordonnancement tourniquet
-set_epoch est à utiliser pour distribuer les calculs
+set_epoch est à utiliser pour distribuer les calculs.
+avec roundrobin prends les tâches et les mélanges avec le seed `epoch` si `shuffle=True`
+C'est le cas pour le training de single adapter
+shuffle = True pour single adapter
 
 DataLoader
 Dataset
 
 Une bouche avec un nombre d'epoch
-  Une boucle 
-
+  Une boucle ou on réalise un certain nombre de tache
+    À chaque fois on charge un tache différente et on fait la descente de gradient
+    voir dans Multitask_dataLoader.set_epoch et __next__ pour comprendre
 
 ### prompt multiple prompt
 
