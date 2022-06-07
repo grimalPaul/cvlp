@@ -335,6 +335,9 @@ if use_clip and clip_model_name == "ViT-B/32":
 
 ### Dimension adapter
 
+Dans multitask pour single adapter les dimensions sont d'après le paiper d=96
+donc un facteur de reduction de 8
+
 ### Gestion des single adapters
 
 Il y a un objet AdapterConfig(object)
@@ -368,7 +371,12 @@ Comment est géré entrainement du prompting ?
 
 Dans article ils précisent que promptig sur le decoder n'est pas efficace
 
-## Sortie de CLIP
+## Features avec CLIP
+
+Comment est géré extraction de CLIP.
+
+voir clip_prepo_feats. py
+aussi notion de box ?
 
 ## Sortie de FasterCNN
 
