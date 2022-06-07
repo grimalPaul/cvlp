@@ -347,6 +347,7 @@ set_epoch est à utiliser pour distribuer les calculs.
 avec roundrobin prends les tâches et les mélanges avec le seed `epoch` si `shuffle=True`
 C'est le cas pour le training de single adapter
 shuffle = True pour single adapter
+nombre de workers 4
 
 DataLoader
 Dataset
@@ -427,3 +428,12 @@ vlbart_zs_imt_avg
 [load and init some part of the model](https://discuss.pytorch.org/t/load-part-model-with-pretrained-weights-other-part-reinit-xavier/41310)
 [load avec les keys du states dict](https://discuss.pytorch.org/t/how-to-load-part-of-pre-trained-model/1113)
 
+## Distribuer les calculs
+
+DDP
+Dataloader  permet de charger les données pour le dataset
+
+workers pour charger données pour le gpu
+pin memory = True the data loader will copy Tensors
+            into CUDA pinned memory before returning them.  If your data elements
+            are a custom type, or your :attr:`collate_fn` returns a batch that is a custom type,
