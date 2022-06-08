@@ -192,6 +192,8 @@ Puis faire du finetuning avec vl adapter si cela est possible.
 
 On pourrait utiliser DPR indices pour générer des irrelevants. On pourrait utiliser le modèle non préentrainés ca pourrait être intérressant dans un second temps. Facile à faire car on l'a déjà fait et on utilisera un modèle tel quel donc pourra etre considéré comme zero shot.
 
+**pretraining avec trivia qa en associant une image de wikipedia à la question et une autre à la base de données.**
+
 ### Training
 
 Etape :
@@ -468,3 +470,5 @@ J'ai mis en place très rapidement mon modèle. Peut être que j'auurai besoin d
 Je pourrai juste charger une partie et pas les deux ocmme je fais à chaque fois pour faciliter l'inférence. A voir
 
 Dépendra du test que je réalise
+
+hidden states decoder 768

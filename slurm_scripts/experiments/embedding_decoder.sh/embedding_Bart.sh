@@ -23,6 +23,7 @@ batch_size=64
 echo "Decoder BART"
 echo "-----without prefix----"
 echo "Dataset"
+<<com
 python -m processing.embedding_dataset \
     --dataset_path=${dataset} \
     --type=question \
@@ -35,7 +36,7 @@ python -m processing.embedding_dataset \
     --key_embedding=vlbart_decoder \
     --batch_size=${batch_size}
 
-<<com
+com
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -49,10 +50,10 @@ python -m processing.embedding_dataset \
     --key_embedding=vlbart_decoder \
     --kb_path=${kb} \
     --batch_size=${batch_size}
-com
 
 echo "----With imt----"
 echo "Dataset"
+<<com
 python -m processing.embedding_dataset \
     --dataset_path=${dataset} \
     --type=question \
@@ -65,7 +66,7 @@ python -m processing.embedding_dataset \
     --key_embedding=vlbart_imt_decoder \
     --batch_size=${batch_size}
 
-<<com
+com
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -79,6 +80,5 @@ python -m processing.embedding_dataset \
     --key_embedding=vlbart_imt_decoder \
     --kb_path=${kb} \
     --batch_size=${batch_size}
-com
 
 echo "Done"
