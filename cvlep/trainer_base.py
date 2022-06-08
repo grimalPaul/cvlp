@@ -1,3 +1,4 @@
+from distutils.command.config import config
 from torch import nn
 import torch
 from cvlep.VLT5.utils import load_state_dict
@@ -175,7 +176,8 @@ class Trainer(object):
         config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
         config_encoder.losses = args.losses
         config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
-
+        # TODO:Fix
+        config_encoder.embed_with_decoder = True
         return config_encoder
 
     def create_model(self, config_model=None):

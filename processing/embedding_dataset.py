@@ -34,7 +34,7 @@ def map_embed_question(item, key_boxes: str, key_vision_features: str, key_text:
         input_ids=input_ids,
         return_pooled_output=True,
         pool_strategy=pool_strategy
-    ).pooler_output.cpu().numpy()
+    ).cpu().numpy()
     return item
 
 
@@ -53,7 +53,7 @@ def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_text: 
         input_ids=input_ids,
         return_pooled_output=True,
         pool_strategy=pool_strategy
-    ).pooler_output.cpu().numpy()
+    ).cpu().numpy()
     return item
 
 
