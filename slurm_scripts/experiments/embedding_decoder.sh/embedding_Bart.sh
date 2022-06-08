@@ -20,7 +20,7 @@ config_question_path=experiments/configEncoder/bergamote/args_bart.json
 config_training_path=experiments/configEncoder/training_params/training_vlbart.json
 batch_size=64
 
-echo "Decoder T5"
+echo "Decoder BART"
 echo "-----without prefix----"
 echo "Dataset"
 python -m processing.embedding_dataset \
@@ -32,7 +32,7 @@ python -m processing.embedding_dataset \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
     --key_text=input \
-    --key_embedding=vlt5_decoder \
+    --key_embedding=vlbart_decoder \
     --batch_size=${batch_size}
 
 <<com
@@ -45,8 +45,8 @@ python -m processing.embedding_dataset \
     --config_training_path=${config_training_path} \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
-    --key_text=passage\
-    --key_embedding=vlt5_decoder \
+    --key_text=passage_sep \
+    --key_embedding=vlbart_decoder \
     --kb_path=${kb} \
     --batch_size=${batch_size}
 com
@@ -62,7 +62,7 @@ python -m processing.embedding_dataset \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
     --key_text=input_imt \
-    --key_embedding=vlt5_imt_decoder \
+    --key_embedding=vlbart_imt_decoder \
     --batch_size=${batch_size}
 
 <<com
@@ -75,8 +75,8 @@ python -m processing.embedding_dataset \
     --config_training_path=${config_training_path} \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
-    --key_text=passage_imt \
-    --key_embedding=vlt5_imt_decoder \
+    --key_text=passage_imt_sep \
+    --key_embedding=vlbart_imt_decoder \
     --kb_path=${kb} \
     --batch_size=${batch_size}
 com
