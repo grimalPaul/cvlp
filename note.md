@@ -316,21 +316,19 @@ Mais si aussi bien que ca en a l'air est une très bonne piste pour ce que je ve
 
 Je pense que je peux aussi essayer d'optimiser mon prompting dans mon cas
 
-dimension input visual projection
+Topk semble juste être une proportion des données
 
-```
-feat dim 2048
-dim model 768
+```py
+ if isinstance(self.topk, float) and (0 < self.topk <= 1):
+            used_samples = int(self.topk * len(data))
+            data = random.sample(data, used_samples)
+            if self.verbose:
+                print(f"Use only {len(data)} data")
 
-
-if use_clip and clip_model_name == "ViT-B/32":
-            self.visual_feat_dim = 768
-        elif use_vit:
-            self.visual_feat_dim = 768
-        elif use_clip and clip_model_name == "RN50x4":
-            self.visual_feat_dim = 2560
-        else:
-            self.visual_feat_dim = 2048
+        elif self.topk > 0:
+            data = data[:int(self.topk)]
+            if self.verbose:
+                print(f"Use only {len(data)} data")
 ```
 
 ### Dimension adapter
@@ -377,6 +375,23 @@ Comment est géré extraction de CLIP.
 
 voir clip_prepo_feats. py
 aussi notion de box ?
+
+dimension input visual projection
+
+```note
+feat dim 2048
+dim model 768
+
+
+if use_clip and clip_model_name == "ViT-B/32":
+            self.visual_feat_dim = 768
+        elif use_vit:
+            self.visual_feat_dim = 768
+        elif use_clip and clip_model_name == "RN50x4":
+            self.visual_feat_dim = 2560
+        else:
+            self.visual_feat_dim = 2048
+```
 
 ## Sortie de FasterCNN
 
@@ -445,3 +460,11 @@ workers pour charger données pour le gpu
 pin memory = True the data loader will copy Tensors
             into CUDA pinned memory before returning them.  If your data elements
             are a custom type, or your :attr:`collate_fn` returns a batch that is a custom type,
+
+## Arhictecture encoder decoder
+
+J'ai mis en place très rapidement mon modèle. Peut être que j'auurai besoin de refactor à un moment.
+
+Je pourrai juste charger une partie et pas les deux ocmme je fais à chaque fois pour faciliter l'inférence. A voir
+
+Dépendra du test que je réalise

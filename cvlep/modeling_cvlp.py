@@ -8,7 +8,7 @@ from transformers.modeling_outputs import ModelOutput, BaseModelOutputWithPoolin
 from cvlep.VLT5.modeling_t5 import JointEncoder as encoderT5
 from cvlep.VLT5.modeling_bart import JointEncoder as encoderBart
 from typing import Optional, Tuple, Any
-
+from cvlep.utils import device
 
 class CVLEP(nn.Module):
     def __init__(self, config, image_question_encoder, image_passage_encoder, embedding_question=None, embedding_passage=None):
@@ -112,12 +112,39 @@ class CVLEP(nn.Module):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def embed_image_passage(self, **kwargs):
-        return self.image_passage_encoder(**kwargs)
+    def embed_image_passage(self, input_ids, vis_inputs,**kwargs):
+        if self.image_passage_encoder.config.embed_with_decoder:
+            B = len(input_ids)
+            decoder_input_ids = torch.ones(
+                B, 1, dtype=torch.long, device=device) * self.image_passage_encoder.config.decoder_start_token_id
+            output = self.image_passage_encoder(
+                input_ids=input_ids,
+                vis_inputs=vis_inputs,
+                decoder_input_ids=decoder_input_ids,
+                output_hidden_states=True,
+                return_dict=True
+            )
+            last_layer_hidden_state = output.decoder_hidden_states[-1]
+            last_hidden_state = last_layer_hidden_state.view(B, -1, self.image_passage_encoder.config.d_model)[:, -1]
+            return last_hidden_state
 
     @torch.no_grad()
-    def embed_image_question(self, **kwargs):
-        return self.image_passage_encoder(**kwargs)
+    def embed_image_question(self, input_ids, vis_inputs, **kwargs):
+        if self.image_question_encoder.config.embed_with_decoder:
+            B = len(input_ids)
+            decoder_input_ids = torch.ones(
+                B, 1, dtype=torch.long, device=device) * self.image_question_encoder.config.decoder_start_token_id
+            output = self.image_question_encoder(
+                input_ids=input_ids,
+                vis_inputs=vis_inputs,
+                decoder_input_ids=decoder_input_ids,
+                output_hidden_states=True,
+                return_dict=True
+            )
+            last_layer_hidden_state = output.decoder_hidden_states[-1]
+            last_hidden_state = last_layer_hidden_state.view(B, -1, self.image_question_encoder.config.d_model)[:, -1]
+            return last_hidden_state
+            
 
 
 def contrastive_loss(logits: torch.Tensor) -> torch.Tensor:

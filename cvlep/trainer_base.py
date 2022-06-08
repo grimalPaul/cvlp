@@ -18,31 +18,6 @@ from cvlep.utils import device
 from transformers import BartConfig
 
 
-"""def get_encoder(config):
-    if config.model.backbone == 't5':
-        encoder = VLt5Encoder.from_pretrained(
-            config.model.pretrained_model_name_or_path)
-    elif config.model.backbone == 'bart':
-        temp = BartConfig.from_pretrained(
-            config.model.pretrained_model_name_or_path)
-        encoder = VLBartEncoder(temp)
-        # encoder = VLBartEncoder(config.model.pretrained_model_name_or_path)
-    else:
-        raise NotImplementedError('This type of encoder is not implemented')
-    return encoder"""
-
-
-def get_embedding(config):
-    if config.embedding.path == "":
-        return None
-    else:
-        embedding = nn.Embedding(
-            config.embedding.num_embeddings, config.embedding.embedding_dim)
-        embedding.load_state_dict(torch.load(
-            config.embedding.path, map_location=device))
-    return embedding
-
-
 class Trainer(object):
     def __init__(self, config_question_path, config_passage_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
         # on aura deux configs car deux encoders

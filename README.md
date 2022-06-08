@@ -152,7 +152,7 @@ python -m processing.irrelevant \
 
 ### Search relevant and irrelevant passages with DPR
 
-TODO: do the same things than before with DPR zero shot
+TODO: MAYBE do the same things than before with DPR zero shot
 
 ## Aknowledgments
 
