@@ -23,7 +23,7 @@ class DPRDataset(Dataset):
 class CLIPlikeDataset(Dataset):
     def __init__(
             self,
-            passage_path,
+            passages_path,
             dataset_path,
             kb_path,
             key_relevant='provenance_indices',
@@ -36,11 +36,11 @@ class CLIPlikeDataset(Dataset):
     ) -> None:
         super().__init__()
         self.verbose = verbose
-        self.sources = split.split(',')
+        self.split = split
         if self.verbose:
-            print('Data sources: ', self.sources)
-        self.passages = load_from_disk(passage_path)
-        self.dataset = load_from_disk(dataset_path)[self.sources]
+            print('Data sources: ', self.split)
+        self.passages = load_from_disk(passages_path)
+        self.dataset = load_from_disk(dataset_path)[self.split]
         self.kb = load_from_disk(kb_path)
         self.key_index_relevant_passages = key_relevant
         self.key_text_question = key_text_question
@@ -76,7 +76,7 @@ class CLIPlikeDataset(Dataset):
             pass
 
         # select just one relevant passage
-        relevant_index = random.choice(relevant_index)
+        relevant_index = random.choice(relevants_index)
 
         # passage features
         kb_index = self.passages[relevant_index]['index']
@@ -101,11 +101,27 @@ class CLIPlikeDataset(Dataset):
         # tokenize dans le forward du modèle ?
         pass
 
+def get_dataloader():
+    kwargs = {
+        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
+        "key_relevant": 'provenance_indices',
+        "key_text_question": 'input',
+        "key_text_passage": 'passage',
+        "key_vision_features": 'vlt5_features',
+        "key_vision_boxes": 'vlt5_normalized_boxes',
+        "split": 'train'
+    }
+
+    dataset = CLIPlikeDataset(**kwargs)
+    dataloader = DataLoader(dataset, batch_size=2)
+    return dataloader
 
 if __name__ == '__main__':
     kwargs = {
         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
-        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset/kb",
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
         "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
         "key_relevant": 'provenance_indices',
         "key_text_question": 'input',
