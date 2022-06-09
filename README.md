@@ -185,3 +185,7 @@ sep token bart : `</s>`
 
 cls token T5, T5 use `<pad>` for classifier
 sep token T5 : dont have, use `.`, `,`, or `;` instead ?. Explore that in further works.
+
+## Methodology
+
+Quand je referai mes expés sur gros dataset, réfléchir à bien avoir juste les passages contenant les réponses dans passages.

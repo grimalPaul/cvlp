@@ -157,7 +157,31 @@ def clip_loss(similarity: torch.Tensor) -> torch.Tensor:
     # https://github.com/huggingface/transformers/blob/bdd690a74da5283cbc893dfd79e1c7c72ec1bcfa/src/transformers/models/clip/modeling_clip.py#L69
     image_question_loss = contrastive_loss(similarity)
     image_passage_loss = contrastive_loss(similarity.T)
-    return (image_question_loss, image_passage_loss)
+    return (image_question_loss + image_passage_loss) / 2.0
+
+
+""" 
+# Calculating the Loss
+logits = (text_embeddings @ image_embeddings.T) / self.temperature
+images_similarity = image_embeddings @ image_embeddings.T
+texts_similarity = text_embeddings @ text_embeddings.T
+targets = F.softmax(
+    (images_similarity + texts_similarity) / 2 * self.temperature, dim=-1
+)
+texts_loss = cross_entropy(logits, targets, reduction='none')
+images_loss = cross_entropy(logits.T, targets.T, reduction='none')
+loss =  (images_loss + texts_loss) / 2.0 # shape: (batch_size)
+return loss.mean()
+
+
+def cross_entropy(preds, targets, reduction='none'):
+    log_softmax = nn.LogSoftmax(dim=-1)
+    loss = (-targets * log_softmax(preds)).sum(1)
+    if reduction == "none":
+        return loss
+    elif reduction == "mean":
+        return loss.mean()
+"""
 
 
 # Think about that and define

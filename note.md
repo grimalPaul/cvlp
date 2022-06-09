@@ -245,6 +245,19 @@ entrainer un seul encoder sur des tâches et finetuner avec la tâche dont on a 
 
 - pour apprendre la projection visuelle on peut aussi utiliser  toutes les images de la KB, peut permettre de fixer les concepts
 
+### Training encoder architecture
+
+Learn visual projection with caption (maybe othe visual tasks) and freezing the model.
+Then DPR training (maybe coupled with visual task : roundrobin)
+then finetuning
+
+
+au vue du papier ST5, logique d'utiliser pooling ou encoder + decoder
+
+### Training encoder decoder architecture
+
+pretraining DPR or with dataset ST5 seems to be a good idea
+
 ## Dataset
 
 quand on fait un set format seul les colonnes indiqués sont récupérables en utilisant les indices
@@ -358,7 +371,7 @@ Dataset
 Une bouche avec un nombre d'epoch
   Une boucle ou on réalise un certain nombre de tache
     À chaque fois on charge un tache différente et on fait la descente de gradient
-    voir dans Multitask_dataLoader.set_epoch et __next__ pour comprendre
+    voir dans Multitask_dataLoader.set_epoch et **next** pour comprendre
 
 ### prompt multiple prompt
 
