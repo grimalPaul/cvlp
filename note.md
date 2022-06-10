@@ -247,16 +247,33 @@ entrainer un seul encoder sur des tâches et finetuner avec la tâche dont on a 
 
 ### Training encoder architecture
 
-Learn visual projection with caption (maybe othe visual tasks) and freezing the model.
+Learn visual projection with caption (maybe othe visual tasks) and freezing the model (not sure that freezing the whole model is a good idea).
 Then DPR training (maybe coupled with visual task : roundrobin)
 then finetuning
-
 
 au vue du papier ST5, logique d'utiliser pooling ou encoder + decoder
 
 ### Training encoder decoder architecture
 
 pretraining DPR or with dataset ST5 seems to be a good idea
+
+### Contrastive learning
+
+#### DPR
+
+Explication de la gestion des exemples positives et des exemples négatives 
+Gestion quand relevant et irrelevant en commun entre passages ?
+
+Va calculer une similarité entre une question et son relevant passage et tous les autres passages (reelavtn passages des autres question, son irrelevant passage, et irrelevant passages des autres questions).
+
+puis LOGsoft max sur matrice de similarité PAS JUSTE SOFT MAX
+[aide](https://stackoverflow.com/questions/65192475/pytorch-logsoftmax-vs-softmax-for-crossentropyloss)
+
+[nllloss](https://pytorch.org/docs/stable/generated/torch.nn.NLLLoss.html)
+
+et enfin on utilise NLLLoss reduction = 'mean'
+
+Utilise qu'un seul relevant passage. On fait la même chose pour l'instant.
 
 ## Dataset
 
@@ -410,6 +427,8 @@ if use_clip and clip_model_name == "ViT-B/32":
 
 ## Sortie de FasterCNN
 
+Projection 2048 vers 768, bias = true
+
 ## Prefix disponible pour VLT5, VLBART
 
 interessant :
@@ -475,6 +494,21 @@ workers pour charger données pour le gpu
 pin memory = True the data loader will copy Tensors
             into CUDA pinned memory before returning them.  If your data elements
             are a custom type, or your :attr:`collate_fn` returns a batch that is a custom type,
+
+```py
+# dans VL adapter voir CLT5.src.dist_utils.py
+import torch.distributed as dist
+
+distributed = ...
+
+if distributed:
+    torch.cuda.set_device(args.gpu)
+    dist.init_process_group(backend='nccl')
+
+if distributed:
+  dist.barrier()
+
+```
 
 ## Arhictecture encoder decoder
 

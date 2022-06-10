@@ -1,3 +1,4 @@
+import warnings
 from datasets import disable_caching, load_from_disk
 import numpy as np
 import torch
@@ -25,6 +26,7 @@ class DPRDataset(Dataset):
             passages_path,
             dataset_path,
             kb_path,
+            n_irrelevant_passages=1,
             key_relevant='provenance_indices',
             key_irrelevant='BM25_irrelevant_indices',
             key_text_question='input',
@@ -37,8 +39,16 @@ class DPRDataset(Dataset):
         super().__init__()
         self.verbose = verbose
         self.split = split
+        self.n_relevant_passages = 1
+        self.n_irrelevant_passages = n_irrelevant_passages
         if self.verbose:
             print('Data sources: ', self.split)
+            print(
+                f'Number of passages per question in a batch :\
+                {self.n_relevant_passages + self.n_irrelevant_passages} \
+                nb relevants : {self.n_relevant_passages} \
+                nb irrelevants : {self.n_irrelevant_passages}'
+            )
         self.passages = load_from_disk(passages_path)
         self.dataset = load_from_disk(dataset_path)[self.split]
         self.kb = load_from_disk(kb_path)
@@ -58,39 +68,80 @@ class DPRDataset(Dataset):
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
         irrelevant_index = self.dataset[index][self.key_index_irrelevant_passages]
         if len(relevants_index) < 1:
-            # prepare to deal with that
-            pass
+            warnings.warn(
+                f"Didn't find any relevant passage for question {self.dataset[index]['id']}")
+            item[f'passage_relevant_text'] = None
+            item[f'passage_relevant_image_boxes'] = None
+            item[f'passage_relevant_image_features'] = None
+        else:
+            relevant_index = np.random.choice(relevants_index)
 
-        if len(irrelevant_index) < 1:
-            # prepare to deal with that
-            pass
-
-        # select just one relevant passage and one irrelevant passage
-        relevant_index = np.random.choice(relevants_index)
-        irrelevant_index = np.random.choice(irrelevant_index)
-
-        item['question_text'] = self.dataset[index][self.key_text_question]
-        question_image_features = torch.Tensor(
-            self.dataset[index][self.key_vision_features])
-        question_image_boxes = torch.Tensor(
-            self.dataset[index][self.key_boxes])
-        item['question_image_features'] = torch.squeeze(
-            question_image_features, dim=1)
-        item['question_image_boxes'] = torch.squeeze(
-            question_image_boxes, dim=1)
-
-        # relevant and irrelevant passage features
-        for idx, idx_name in [(relevant_index, 'relevant'),(irrelevant_index, 'irrelevant')]:
-            kb_index = self.passages[idx]['index']
-            item[f'passage_{idx_name}_text'] = self.passages[idx][self.key_text_passage]
+            kb_index = self.passages[relevant_index]['index']
+            item[f'passage_relevant_text'] = self.passages[relevant_index][self.key_text_passage]
             passage_image_features = torch.Tensor(
                 self.kb[kb_index][self.key_vision_features])
-            passage_image_boxes = torch.Tensor(self.kb[kb_index][self.key_boxes])
-            item[f'passage_{idx_name}_image_boxes'] = torch.squeeze(passage_image_boxes, dim=1)
-            item[f'passage_{idx_name}_image_features'] = torch.squeeze(
+            passage_image_boxes = torch.Tensor(
+                self.kb[kb_index][self.key_boxes])
+            item[f'passage_relevant_image_boxes'] = torch.squeeze(
+                passage_image_boxes, dim=1)
+            item[f'passage_relevant_image_features'] = torch.squeeze(
+                passage_image_features, dim=1)
+        if len(irrelevant_index) < 1:
+            warnings.warn(
+                f"Didn't find any irrelevant passage for question {self.dataset[index]['id']}")
+            item[f'passage_relevant_text'] = None
+            item[f'passage_relevant_image_boxes'] = None
+            item[f'passage_relevant_image_features'] = None
+        else:
+            irrelevant_index = np.random.choice(irrelevant_index)
+
+            kb_index = self.passages[irrelevant_index]['index']
+            item[f'passage_irrelevant_text'] = self.passages[irrelevant_index][self.key_text_passage]
+            passage_image_features = torch.Tensor(
+                self.kb[kb_index][self.key_vision_features])
+            passage_image_boxes = torch.Tensor(
+                self.kb[kb_index][self.key_boxes])
+            item[f'passage_irrelevant_image_boxes'] = torch.squeeze(
+                passage_image_boxes, dim=1)
+            item[f'passage_irrelevant_image_features'] = torch.squeeze(
                 passage_image_features, dim=1)
 
         return item
+
+    def collate_fn(self, batch):
+        questions, relevant_passages, irrelevant_passages, labels = [], [], [], []
+        for target, item in enumerate(batch):
+            if item['passage_irrelevant_text'] is None:
+                # pas de irrelevant
+                # mettre du vent à la place et le bon nombre
+                self.n_irrelevant_passages
+            else:
+                pass
+            if item['passage_relevant_text'] is None:
+                # pas de relevant
+                # to ignore index, target should be equal to -100
+                # mettre du vent et le bon nombre
+                labels.append(-100)
+                # add random
+            else:
+                labels.append(target)
+
+            if len(relevant_passage) < 1:
+                relevant_passage = ['']
+                labels.append(self.loss_fct.ignore_index)
+            else:
+                labels.append(i)
+            
+            questions.append(item['input'])
+            relevant_passages.extend(relevant_passage)
+            irrelevant_passages.extend(irrelevant_passage)
+
+        question_inputs = self.tokenizer(questions, **self.tokenization_kwargs)
+        context_inputs = self.tokenizer(
+            relevant_passages + irrelevant_passages, **self.tokenization_kwargs)
+        labels = torch.tensor(labels)
+        batch = dict(question_inputs=question_inputs,
+                     context_inputs=context_inputs, labels=labels)
 
 
 #                        |  passage   |              |  question  |
@@ -123,6 +174,7 @@ class CLIPlikeDataset(Dataset):
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
         self.key_boxes = key_vision_boxes
+        self.tokenizer = 'None'
 
     def __len__(self):
         return self.dataset.num_rows
@@ -138,7 +190,11 @@ class CLIPlikeDataset(Dataset):
 
         # question features
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
+
         if len(relevants_index) < 1:
+            # gerer dans collate fn
+            # si pas de relevant passage on peut prendre un random
+            # et le mettre à 0 ?
             pass
 
         # select just one relevant passage
@@ -169,7 +225,7 @@ class CLIPlikeDataset(Dataset):
     def collate_fn(self, batch):
         # collate fn permet de préciser comment on va charger le batch
         # TODO: add tokenizer to have less computation in the cpu
-        pass
+        self.tokenizer()
 
 
 def get_dataloader():
