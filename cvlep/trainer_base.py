@@ -45,6 +45,7 @@ class Trainer(object):
         ModelPassageConfig = self.create_config(config_encoder_passage)
 
         # create tokenizer
+        # TODO: we will use the same tokenier for question and answer        
         self.tokenizer_question = self.create_tokenizer(
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)

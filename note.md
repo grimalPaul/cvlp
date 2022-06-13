@@ -261,7 +261,7 @@ pretraining DPR or with dataset ST5 seems to be a good idea
 
 #### DPR
 
-Explication de la gestion des exemples positives et des exemples négatives 
+Explication de la gestion des exemples positives et des exemples négatives
 Gestion quand relevant et irrelevant en commun entre passages ?
 
 Va calculer une similarité entre une question et son relevant passage et tous les autres passages (reelavtn passages des autres question, son irrelevant passage, et irrelevant passages des autres questions).
@@ -519,3 +519,7 @@ Je pourrai juste charger une partie et pas les deux ocmme je fais à chaque fois
 Dépendra du test que je réalise
 
 hidden states decoder 768
+
+## idee pour quand plusieurs images dans la db
+
+Un modele de vision qui prends plusieurs image en entrée

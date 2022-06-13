@@ -1,3 +1,6 @@
+from cvlep.VLT5.param import Config
+from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
+from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
 from multiprocessing import context
 import warnings
 from datasets import disable_caching, load_from_disk
@@ -27,8 +30,7 @@ class DPRDataset(Dataset):
             passages_path,
             dataset_path,
             kb_path,
-            tokenizer,
-            tokenization_kwargs,
+            tokenizer_path,
             n_irrelevant_passages=1,
             key_relevant='provenance_indices',
             key_irrelevant='BM25_irrelevant_indices',
@@ -61,8 +63,27 @@ class DPRDataset(Dataset):
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
         self.key_boxes = key_vision_boxes
-        self.tokenizer = tokenizer
-        self.tokenization_kwargs = tokenization_kwargs
+        # we use the same tokenizer for question and passage
+        TokenizerConfig = Config.load_json(tokenizer_path)
+        if 't5' in TokenizerConfig.tokenizer:
+            if TokenizerConfig.use_vision:
+                # tokenizer_class = VLT5Tokenizer
+                tokenizer_class = VLT5TokenizerFast
+            else:
+                # tokenizer_class = T5Tokenizer
+                tokenizer_class = T5TokenizerFast
+        elif 'bart' in TokenizerConfig.tokenizer:
+            tokenizer_class = BartTokenizer
+            # tokenizer_class = BartTokenizerFast
+        else:
+            raise ValueError('This type of tokenizer is not implemented')
+
+        self.tokenizer = tokenizer_class.from_pretrained(
+            TokenizerConfig.tokenizer,
+            max_length=TokenizerConfig.max_text_length,
+            do_lower_case=TokenizerConfig.do_lower_case,
+        )
+        self.tokenization_kwargs = TokenizerConfig.tokenization_kwargs
 
     def __len__(self):
         return self.dataset.num_rows
@@ -142,16 +163,18 @@ class DPRDataset(Dataset):
         context_inputs = self.tokenizer(
             batch['passage_relevant_text'] + batch['passage_irrelevant_text'], **self.tokenization_kwargs)
         labels = torch.tensor(labels)
-        visual_feats_context = torch.concat([batch['passage_relevant_image_features'],batch['passage_irrelevant_image_features']])
-        context_image_boxes = torch.concat([batch['passage_relevant_image_boxes'],batch['passage_irrelevant_image_boxes']])
+        visual_feats_context = torch.concat(
+            [batch['passage_relevant_image_features'], batch['passage_irrelevant_image_features']])
+        context_image_boxes = torch.concat(
+            [batch['passage_relevant_image_boxes'], batch['passage_irrelevant_image_boxes']])
         return {
             "input_ids_question": question_inputs,
             "input_ids_context": context_inputs,
             "labels": labels,
             "visual_feats_question": batch['question_image_features'],
-            "visual_feats_context" :visual_feats_context,
-            "question_image_boxes":batch['question_image_boxes'],
-            "context_image_boxes":context_image_boxes
+            "visual_feats_context": visual_feats_context,
+            "question_image_boxes": batch['question_image_boxes'],
+            "context_image_boxes": context_image_boxes
         }
 
 
@@ -164,8 +187,7 @@ class CLIPlikeDataset(Dataset):
             passages_path,
             dataset_path,
             kb_path,
-            tokenizer,
-            tokenization_kwargs,
+            tokenizer_path,
             key_relevant='provenance_indices',
             key_text_question='input',
             key_text_passage='passage',
@@ -187,9 +209,28 @@ class CLIPlikeDataset(Dataset):
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
         self.key_boxes = key_vision_boxes
-        self.tokenizer = 'None'
-        self.tokenizer = tokenizer
-        self.tokenization_kwargs = tokenization_kwargs
+
+        # we use the same tokenizer for question and passage
+        TokenizerConfig = Config.load_json(tokenizer_path)
+        if 't5' in TokenizerConfig.tokenizer:
+            if TokenizerConfig.use_vision:
+                # tokenizer_class = VLT5Tokenizer
+                tokenizer_class = VLT5TokenizerFast
+            else:
+                # tokenizer_class = T5Tokenizer
+                tokenizer_class = T5TokenizerFast
+        elif 'bart' in TokenizerConfig.tokenizer:
+            tokenizer_class = BartTokenizer
+            # tokenizer_class = BartTokenizerFast
+        else:
+            raise ValueError('This type of tokenizer is not implemented')
+
+        self.tokenizer = tokenizer_class.from_pretrained(
+            TokenizerConfig.tokenizer,
+            max_length=TokenizerConfig.max_text_length,
+            do_lower_case=TokenizerConfig.do_lower_case,
+        )
+        self.tokenization_kwargs = TokenizerConfig.tokenization_kwargs
 
     def __len__(self):
         return self.dataset.num_rows
@@ -235,14 +276,15 @@ class CLIPlikeDataset(Dataset):
             "input_ids_question": question_inputs,
             "input_ids_context": context_inputs,
             "visual_feats_question": batch['question_image_features'],
-            "visual_feats_context" :batch['passage_relevant_image_features'],
-            "question_image_boxes":batch['question_image_boxes'],
-            "context_image_boxes":batch['passage_relevant_image_boxes']
+            "visual_feats_context": batch['passage_relevant_image_features'],
+            "question_image_boxes": batch['question_image_boxes'],
+            "context_image_boxes": batch['passage_relevant_image_boxes']
         }
 
 
 def get_dataloader():
-    kwargs = {
+    kwargs_clip = {
+        "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
         "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
         "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
@@ -253,12 +295,25 @@ def get_dataloader():
         "key_vision_boxes": 'vlt5_normalized_boxes',
         "split": 'train'
     }
+    kwargs_dpr = {
+        "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
+        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
+        "key_relevant": 'provenance_indices',
+        "key_text_question": 'input',
+        "key_text_passage": 'passage',
+        "key_vision_features": 'vlt5_features',
+        "key_vision_boxes": 'vlt5_normalized_boxes',
+        "split": 'train',
+        "key_irrelevant" : 'BM25_irrelevant_indices'
+    }
 
-    dataset = CLIPlikeDataset(**kwargs)
-    dataloader = DataLoader(dataset, batch_size=2)
-    dataset = CLIPlikeDataset(**kwargs)
-    dataloader = DataLoader(dataset, batch_size=2)
-    return dataloader
+    dataset_clip = CLIPlikeDataset(**kwargs_clip)
+    dataloader_clip = DataLoader(dataset_clip, batch_size=2, collate_fn=dataset_clip.collate_fn)
+    dataset_dpr = DPRDataset(**kwargs_dpr)
+    dataloader_dpr = DataLoader(dataset_dpr, batch_size=2, collate_fn=dataset_dpr.collate_fn)
+    return dataloader_clip,dataloader_dpr
 
 
 if __name__ == '__main__':
