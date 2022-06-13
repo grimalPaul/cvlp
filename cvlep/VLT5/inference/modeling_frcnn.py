@@ -1888,7 +1888,6 @@ class GeneralizedRCNN(nn.Module):
             scales=scales_yx,
         )
 
-        # will we pad???
         subset_kwargs = {
             "max_detections": kwargs.get("max_detections", None),
             "return_tensors": kwargs.get("return_tensors", None),
@@ -1919,6 +1918,3 @@ class GeneralizedRCNN(nn.Module):
                 "normalized_boxes": normalized_boxes,
             }
         )
-        """
-        return Trouver ce que je dois retourner pour faire du batch
-        """

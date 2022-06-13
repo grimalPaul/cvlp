@@ -4,7 +4,7 @@ from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokeni
 from multiprocessing import context
 import warnings
 from datasets import disable_caching, load_from_disk
-import numpy as np
+import random
 import torch
 from torch.utils.data import Dataset, DataLoader
 disable_caching()
@@ -64,26 +64,25 @@ class DPRDataset(Dataset):
         self.key_vision_features = key_vision_features
         self.key_boxes = key_vision_boxes
         # we use the same tokenizer for question and passage
-        TokenizerConfig = Config.load_json(tokenizer_path)
-        if 't5' in TokenizerConfig.tokenizer:
-            if TokenizerConfig.use_vision:
+        self.TokenizerConfig = Config.load_json(tokenizer_path)
+        if 't5' in self.TokenizerConfig.tokenizer:
+            if self.TokenizerConfig.use_vision:
                 # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
                 # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
-        elif 'bart' in TokenizerConfig.tokenizer:
+        elif 'bart' in self.TokenizerConfig.tokenizer:
             tokenizer_class = BartTokenizer
             # tokenizer_class = BartTokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
         self.tokenizer = tokenizer_class.from_pretrained(
-            TokenizerConfig.tokenizer,
-            max_length=TokenizerConfig.max_text_length,
-            do_lower_case=TokenizerConfig.do_lower_case,
+            self.TokenizerConfig.tokenizer,
+            max_length=self.TokenizerConfig.max_text_length,
+            do_lower_case=self.TokenizerConfig.do_lower_case,
         )
-        self.tokenization_kwargs = TokenizerConfig.tokenization_kwargs
 
     def __len__(self):
         return self.dataset.num_rows
@@ -97,9 +96,10 @@ class DPRDataset(Dataset):
         question_image_boxes = torch.Tensor(
             self.dataset[index][self.key_boxes])
         item['question_image_features'] = torch.squeeze(
-            question_image_features, dim=1)
+            question_image_features, dim=0)
         item['question_image_boxes'] = torch.squeeze(
-            question_image_boxes, dim=1)
+            question_image_boxes, dim=0)
+        item['n_boxes_question'] = item['question_image_boxes'].size()[0]
 
         # relevant and irrelevant passage features
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
@@ -111,7 +111,7 @@ class DPRDataset(Dataset):
             item[f'passage_relevant_image_boxes'] = None
             item[f'passage_relevant_image_features'] = None
         else:
-            relevant_index = np.random.choice(relevants_index)
+            relevant_index = random.choice(relevants_index)
             kb_index = self.passages[relevant_index]['index']
             item[f'passage_relevant_text'] = self.passages[relevant_index][self.key_text_passage]
             passage_image_features = torch.Tensor(
@@ -119,9 +119,11 @@ class DPRDataset(Dataset):
             passage_image_boxes = torch.Tensor(
                 self.kb[kb_index][self.key_boxes])
             item[f'passage_relevant_image_boxes'] = torch.squeeze(
-                passage_image_boxes, dim=1)
+                passage_image_boxes, dim=0)
             item[f'passage_relevant_image_features'] = torch.squeeze(
-                passage_image_features, dim=1)
+                passage_image_features, dim=0)
+            item['n_boxes_passage_relevant'] = item['passage_relevant_image_boxes'].size()[0]
+
         if len(irrelevant_index) < 1:
             warnings.warn(
                 f"Didn't find any irrelevant passage for question {self.dataset[index]['id']}")
@@ -129,7 +131,7 @@ class DPRDataset(Dataset):
             item[f'passage_irrelevant_image_boxes'] = None
             item[f'passage_irrelevant_image_features'] = None
         else:
-            irrelevant_index = np.random.choice(irrelevant_index)
+            irrelevant_index = random.choice(irrelevant_index)
             kb_index = self.passages[irrelevant_index]['index']
             item[f'passage_irrelevant_text'] = self.passages[irrelevant_index][self.key_text_passage]
             passage_image_features = torch.Tensor(
@@ -137,43 +139,74 @@ class DPRDataset(Dataset):
             passage_image_boxes = torch.Tensor(
                 self.kb[kb_index][self.key_boxes])
             item[f'passage_irrelevant_image_boxes'] = torch.squeeze(
-                passage_image_boxes, dim=1)
+                passage_image_boxes, dim=0)
             item[f'passage_irrelevant_image_features'] = torch.squeeze(
-                passage_image_features, dim=1)
+                passage_image_features, dim=0)
+            item['n_boxes_passage_irrelevant'] = item['passage_irrelevant_image_boxes'].size()[0]
 
         return item
 
+        # add n_boxes
+
     def collate_fn(self, batch):
-        labels = []
-        for target, relevant_text in enumerate(batch['passage_relevant_text']):
-            # for now, we consider that we always have relevant and ireeelevant passage
-            # but we should replace None with something if it happen
-            if relevant_text is None:
+        B = len(batch)
+        if self.TokenizerConfig.use_vision:
+        
+            V_L_question = max(item['n_boxes_question'] for item in batch)
+            V_L_context = max(max(item['n_boxes_passage_relevant'], item['n_boxes_passage_irrelevant']) for item in batch)
+            feat_dim = batch[0]['question_image_features'].shape[-1]
+            # boxes are represented by 4 points
+            question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
+            question_vis_feats = torch.zeros(B, V_L_question, feat_dim, dtype=torch.float)
+            relevant_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+            relevant_vis_feats = torch.zeros(B, V_L_context, feat_dim, dtype=torch.float)
+            irrelevant_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+            irrelevant_vis_feats = torch.zeros(B, V_L_context, feat_dim, dtype=torch.float)
+
+        relevant_text, irrelevant_text, question_text, labels = list(), list(), list(), list()
+        for i, item in enumerate(batch):
+            question_text.append(item['question_text'])
+            relevant_text.append(item['passage_relevant_text'])
+            irrelevant_text.append(item['passage_irrelevant_text'])
+            if self.TokenizerConfig.use_vision:
+                n_boxes_relevant = item['n_boxes_passage_relevant']
+                n_boxes_irrelevant = item['n_boxes_passage_irrelevant']
+                n_boxes_question = item['n_boxes_question']
+                question_boxes[i, :n_boxes_question] = item['question_image_boxes']
+                question_vis_feats[i, :n_boxes_question] = item['question_image_features']
+                relevant_boxes[i, :n_boxes_relevant] = item['passage_relevant_image_boxes']
+                relevant_vis_feats[i, :n_boxes_relevant] = item['passage_relevant_image_features']
+                irrelevant_boxes[i, :n_boxes_irrelevant] = item['passage_irrelevant_image_boxes']
+                irrelevant_vis_feats[i, :n_boxes_irrelevant] = item['passage_irrelevant_image_features']
+            if item['passage_relevant_text'] is None:
                 labels.append(-100)  # ignore index when computing the loss
             else:
-                labels.append(target)
-            """ 
-            if item['passage_irrelevant_text'] is None:
-                # pas de irrelevant
-                # mettre du vent à la place et le bon nombre
-                self.n_irrelevant_passages
-            """
+                labels.append(i)
+                # for now, we consider that we always have relevant and ireeelevant passage
+                # but we should replace None with something if it happen
+                
+                """ 
+                if item['passage_irrelevant_text'] is None:
+                    # pas de irrelevant
+                    # mettre du vent à la place et le bon nombre
+                    self.n_irrelevant_passages
+                """
         question_inputs = self.tokenizer(
-            batch['question_text'], **self.tokenization_kwargs)
+            question_text, padding=True)
         context_inputs = self.tokenizer(
-            batch['passage_relevant_text'] + batch['passage_irrelevant_text'], **self.tokenization_kwargs)
+            relevant_text+ irrelevant_text, padding=True)
         labels = torch.tensor(labels)
         visual_feats_context = torch.concat(
-            [batch['passage_relevant_image_features'], batch['passage_irrelevant_image_features']])
+            [relevant_vis_feats,irrelevant_vis_feats])
         context_image_boxes = torch.concat(
-            [batch['passage_relevant_image_boxes'], batch['passage_irrelevant_image_boxes']])
+            [relevant_boxes, irrelevant_boxes])
         return {
             "input_ids_question": question_inputs,
             "input_ids_context": context_inputs,
             "labels": labels,
-            "visual_feats_question": batch['question_image_features'],
+            "visual_feats_question":question_vis_feats,
             "visual_feats_context": visual_feats_context,
-            "question_image_boxes": batch['question_image_boxes'],
+            "question_image_boxes": question_boxes,
             "context_image_boxes": context_image_boxes
         }
 
@@ -230,7 +263,6 @@ class CLIPlikeDataset(Dataset):
             max_length=TokenizerConfig.max_text_length,
             do_lower_case=TokenizerConfig.do_lower_case,
         )
-        self.tokenization_kwargs = TokenizerConfig.tokenization_kwargs
 
     def __len__(self):
         return self.dataset.num_rows
@@ -244,9 +276,10 @@ class CLIPlikeDataset(Dataset):
         question_image_boxes = torch.Tensor(
             self.dataset[index][self.key_boxes])
         item['question_image_features'] = torch.squeeze(
-            question_image_features, dim=1)
+            question_image_features, dim=0)
         item['question_image_boxes'] = torch.squeeze(
-            question_image_boxes, dim=1)
+            question_image_boxes, dim=0)
+        item['n_boxes_question'] = item['question_image_boxes'].size()[0]
 
         # passage features
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
@@ -256,30 +289,56 @@ class CLIPlikeDataset(Dataset):
             # et le mettre à 0 ?
             pass
         # select just one relevant passage
-        relevant_index = np.random.choice(relevants_index)
+        relevant_index = random.choice(relevants_index)
         kb_index = self.passages[relevant_index]['index']
         item['passage_text'] = self.passages[relevant_index][self.key_text_passage]
         passage_image_features = torch.Tensor(
             self.kb[kb_index][self.key_vision_features])
         passage_image_boxes = torch.Tensor(self.kb[kb_index][self.key_boxes])
-        item['passage_image_boxes'] = torch.squeeze(passage_image_boxes, dim=1)
+        item['passage_image_boxes'] = torch.squeeze(passage_image_boxes, dim=0)
         item['passage_image_features'] = torch.squeeze(
-            passage_image_features, dim=1)
+            passage_image_features, dim=0)
+        item['n_boxes_passage_'] = item['passage_image_boxes'].size()[0]
+
         return item
 
     def collate_fn(self, batch):
+        B = len(batch)
+        if self.TokenizerConfig.use_vision:
+        
+            V_L_question = max(item['n_boxes_question'] for item in batch)
+            V_L_context = max(item['n_boxes_passage'] for item in batch)
+            feat_dim = batch[0]['question_image_features'].shape[-1]
+            # boxes are represented by 4 points
+            question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
+            question_vis_feats = torch.zeros(B, V_L_question, feat_dim, dtype=torch.float)
+            relevant_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+            relevant_vis_feats = torch.zeros(B, V_L_context, feat_dim, dtype=torch.float)
+
+        relevant_text, question_text = list(), list()
+        for i, item in enumerate(batch):
+            question_text.append(item['question_text'])
+            relevant_text.append(item['passage_relevant_text'])
+            if self.TokenizerConfig.use_vision:
+                n_boxes_relevant = item['n_boxes_passage_relevant']
+                n_boxes_question = item['n_boxes_question']
+                question_boxes[i, :n_boxes_question] = item['question_image_boxes']
+                question_vis_feats[i, :n_boxes_question] = item['question_image_features']
+                relevant_boxes[i, :n_boxes_relevant] = item['passage_image_boxes']
+                relevant_vis_feats[i, :n_boxes_relevant] = item['passage_image_features']
         question_inputs = self.tokenizer(
-            batch['question_text'], **self.tokenization_kwargs)
+            question_text, padding=True)
         context_inputs = self.tokenizer(
-            batch['passage_relevant_text'], **self.tokenization_kwargs)
+            relevant_text, padding=True)
         return {
             "input_ids_question": question_inputs,
             "input_ids_context": context_inputs,
-            "visual_feats_question": batch['question_image_features'],
-            "visual_feats_context": batch['passage_relevant_image_features'],
-            "question_image_boxes": batch['question_image_boxes'],
-            "context_image_boxes": batch['passage_relevant_image_boxes']
+            "visual_feats_question":question_vis_feats,
+            "visual_feats_context": relevant_vis_feats,
+            "question_image_boxes": question_boxes,
+            "context_image_boxes": relevant_text
         }
+        
 
 
 def get_dataloader():
@@ -311,8 +370,11 @@ def get_dataloader():
 
     dataset_clip = CLIPlikeDataset(**kwargs_clip)
     dataloader_clip = DataLoader(dataset_clip, batch_size=2, collate_fn=dataset_clip.collate_fn)
+
     dataset_dpr = DPRDataset(**kwargs_dpr)
+    #dataloader_dpr = DataLoader(dataset_dpr, batch_size=2)    
     dataloader_dpr = DataLoader(dataset_dpr, batch_size=2, collate_fn=dataset_dpr.collate_fn)
+    data = next(iter(dataloader_dpr))
     return dataloader_clip,dataloader_dpr
 
 

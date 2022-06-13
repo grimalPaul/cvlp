@@ -253,6 +253,9 @@ then finetuning
 
 au vue du papier ST5, logique d'utiliser pooling ou encoder + decoder
 
+Quand on utilisera clip
+A voir mais je ne sais pas s'il y aura la notion des boxes, donc je pourrai peut être les virer de ce que je réalise actuelement.
+
 ### Training encoder decoder architecture
 
 pretraining DPR or with dataset ST5 seems to be a good idea
