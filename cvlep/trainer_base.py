@@ -79,8 +79,8 @@ class Trainer(object):
             self.encoder_question.resize_token_embeddings(
                 self.tokenizer_question.vocab_size)
         elif 'bart' in config_encoder_question.tokenizer:
-            self.encoder_question.resize_token_embeddings(
-                self.encoder_question.model.shared.num_embeddings + num_added_toks_passage)
+            self.encoder_question.resize_tokCVLPDen_embeddings(
+                self.encoder_question.model.shared.num_embeddings + num_added_toks_question)
         
         
         if 't5' in config_encoder_passage.tokenizer:
