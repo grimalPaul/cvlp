@@ -523,6 +523,24 @@ Dépendra du test que je réalise
 
 hidden states decoder 768
 
+## Miniviquae dataset
+
+pas d'indices de passage pour les passages suivants :
+train 201, 388, 428, 677, 1077
+val 43, 121, 473, 582, 688, 1075, 1099
+test 578, 643, 904, 1056
+
+par exemple dans test, index 578
+answer thousand island
+provenance title Saint Lawrence River
+Saint Lawrence River, kb 2785,
+
+La réponse n'est juste pas dans le text !
+
+Pas trouvé de problème pour BM25 irrelevant, comprennent toujours des indices.
+
+Mais y penser lorsqu'on utilisera d'autres provenances indices.
+
 ## idee pour quand plusieurs images dans la db
 
 Un modele de vision qui prends plusieurs image en entrée
