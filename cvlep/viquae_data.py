@@ -420,11 +420,11 @@ def compute_loss_like_dpr(model1, model2, data, temperature):
         (data['visual_feats_context'],data['context_image_boxes'])
         )
 
+    # TODO: normalized or not ?
     similarities = question_embeddings @ context_embeddings.T
     log_probs = log_softmax(similarities)
     loss = loss_fct(log_probs, data['labels'])
     return loss
-
 
 
 def compute_loss_like_clip(model1, model2, data, temperature):
@@ -447,7 +447,11 @@ def compute_loss_like_clip(model1, model2, data, temperature):
         (data['visual_feats_context'],data['context_image_boxes'])
         )
 
+
     # TODO : peut être normaliser ? Voir la gueule de la training loop dans clip
+    # normalized features from https://github.com/openai/CLIP/blob/b46f5ac7587d2e1862f8b7b1573179d80dcdd620/clip/model.py#L363
+    # image_features = image_features / image_features.norm(dim=1, keepdim=True)
+    # text_features = text_features / text_features.norm(dim=1, keepdim=True)
     logits = (passage_embeddings @ question_embeddings.T) / temperature
     questions_similarity = question_embeddings @ question_embeddings.T
     passages_similarity = passage_embeddings @ passage_embeddings.T
