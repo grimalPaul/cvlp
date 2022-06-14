@@ -544,3 +544,16 @@ Mais y penser lorsqu'on utilisera d'autres provenances indices.
 ## idee pour quand plusieurs images dans la db
 
 Un modele de vision qui prends plusieurs image en entrée
+
+## A lire
+
+<https://ai.googleblog.com/2021/05/kelm-integrating-knowledge-graphs-with.html>
+
+- (IA)^3 : le travail que je mentionnais, conseillé par Julien Launay
+
+Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning
+<https://arxiv.org/pdf/2205.05638.pdf>
+
+- une étude récente pas trop optimiste sur ces histoires de PET
+Revisiting Parameter-Efficient Tuning: Are We Really There Yet?
+<https://arxiv.org/abs/2202.07962>

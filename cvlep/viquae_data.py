@@ -94,7 +94,6 @@ class DPRDataset(Dataset):
 
         self.tokenizer = tokenizer_class.from_pretrained(
             self.TokenizerConfig.tokenizer,
-            max_length=self.TokenizerConfig.max_text_length,
             do_lower_case=self.TokenizerConfig.do_lower_case,
         )
 
@@ -219,9 +218,9 @@ class DPRDataset(Dataset):
                     self.n_irrelevant_passages
                 """
         question_inputs = self.tokenizer(
-            question_text, padding=True, return_tensors="pt")
+            question_text, padding='max_length', truncation=True, return_tensors="pt")
         context_inputs = self.tokenizer(
-            relevant_text + irrelevant_text, padding=True, return_tensors="pt")
+            relevant_text + irrelevant_text, padding='max_length', truncation=True, return_tensors="pt")
         labels = torch.tensor(labels)
         visual_feats_context = torch.concat(
             [relevant_vis_feats, irrelevant_vis_feats])
@@ -289,7 +288,6 @@ class CLIPlikeDataset(Dataset):
 
         self.tokenizer = tokenizer_class.from_pretrained(
             self.TokenizerConfig.tokenizer,
-            max_length=self.TokenizerConfig.max_text_length,
             do_lower_case=self.TokenizerConfig.do_lower_case,
         )
 
@@ -359,9 +357,9 @@ class CLIPlikeDataset(Dataset):
                 context_vis_feats[i,
                                   :n_boxes_context] = item['passage_image_features']
         question_inputs = self.tokenizer(
-            question_text, padding=True, return_tensors="pt")
+            question_text, padding='max_length', truncation=True, return_tensors="pt")
         context_inputs = self.tokenizer(
-            context_text, padding=True, return_tensors="pt")
+            context_text, padding='max_length', truncation=True, return_tensors="pt")
         return {
             "input_ids_question": question_inputs,
             "input_ids_context": context_inputs,
@@ -398,7 +396,7 @@ def test_dataloader():
         "split": 'train',
         "key_irrelevant": 'BM25_irrelevant_indices'
     }
-    batch_size = 128
+    batch_size = 2
     dataset_clip = CLIPlikeDataset(**kwargs_clip)
     dataloader_clip = DataLoader(
         dataset_clip, batch_size=batch_size, collate_fn=dataset_clip.collate_fn)
