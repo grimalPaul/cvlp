@@ -541,7 +541,14 @@ Pas trouvé de problème pour BM25 irrelevant, comprennent toujours des indices.
 
 Mais y penser lorsqu'on utilisera d'autres provenances indices.
 
-## idee pour quand plusieurs images dans la db
+## ENCODAGE CLIP
+
+pistes chercher vis_encoder et get vis encoder pour trouver des éléments de réponse.
+Voir aussi vis forward
+on voit comment sont créer les boxes
+faire des tests avec vis_forward en chargeant le model de vision. regarder pour les embeddings.
+
+## multi image
 
 Un modele de vision qui prends plusieurs image en entrée
 
