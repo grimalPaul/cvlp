@@ -222,7 +222,6 @@ class Trainer(object):
 
         tokenizer = tokenizer_class.from_pretrained(
             config_model.tokenizer,
-            max_length=config_model.max_text_length,
             do_lower_case=config_model.do_lower_case,
             **kwargs
         )

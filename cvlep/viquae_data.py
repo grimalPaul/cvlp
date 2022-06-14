@@ -1,3 +1,4 @@
+from regex import B
 from cvlep.VLT5.param import Config
 from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
@@ -11,22 +12,23 @@ disable_caching()
 
 
 def remove_lines(n_rows, split):
-            index = [_ for _  in range(n_rows)]
-            if split == 'train':
-                idx2remove = [201, 388, 428, 677, 1077]            
-            elif split == 'validation':
-                idx2remove = [43, 121, 473, 582, 688, 1075, 1099]
-            elif split == 'test':
-                idx2remove = [578, 643, 904, 1056]
-            # reverse the list to pop without shift index
-            idx2remove = idx2remove[::-1]
-            for i in idx2remove:
-                index.pop(i)
-            return index
+    index = [_ for _ in range(n_rows)]
+    if split == 'train':
+        idx2remove = [201, 388, 428, 677, 1077]
+    elif split == 'validation':
+        idx2remove = [43, 121, 473, 582, 688, 1075, 1099]
+    elif split == 'test':
+        idx2remove = [578, 643, 904, 1056]
+    # reverse the list to pop without shift index
+    idx2remove = idx2remove[::-1]
+    for i in idx2remove:
+        index.pop(i)
+    return index
 
 # https://arxiv.org/abs/2004.04906
 # Loss with relevant passage and irrelevant passages
 # can used random irrelevant or irrelant mined by sime method to define (BM25, ...)
+
 
 """We use the same hyperparameters as Karpukinh et al.. 
 We train DPR using 4 V100 GPUs of 32GB, allowing a total batch size of 256 
@@ -158,10 +160,7 @@ class DPRDataset(Dataset):
                 passage_image_features, dim=0)
             item['n_boxes_passage_irrelevant'] = item['passage_irrelevant_image_boxes'].size()[
                 0]
-
         return item
-
-        # add n_boxes
 
     def collate_fn(self, batch):
         B = len(batch)
@@ -406,26 +405,30 @@ def test_dataloader():
     return dataloader_clip, dataloader_dpr
 
 
-if __name__ == '__main__':
-    pass
 
-    """
-    data = next(iter)
-    passage_embeddings = encoder_passage(batch_passage)
-    question_embeddings = encoder_question(batch_question)
+def compute_loss_like_dpr(model1, model2, data, temperature):
+    # fake function to implement after in the model
+    log_softmax = nn.LogSoftmax(1)
+    loss_fct = nn.NLLLoss(reduction='mean')
 
-    # TODO : peut être normaliser ?
-    logits = (passage_embeddings @ question_embeddings.T) / self.temperature
-    questions_similarity = question_embeddings @ question_embeddings.T
-    passages_similarity = passage_embeddings @ passage_embeddings.T
-    targets = F.softmax(
-        (questions_similarity + passages_similarity) / 2 * self.temperature, dim=-1
+    question_embeddings = model1(
+        data['input_ids_question'],
+        (data['visual_feats_question'],data['question_image_boxes'])
     )
-    questions_loss = cross_entropy(logits, targets, reduction='none')
-    passages_loss = cross_entropy(logits.T, targets.T, reduction='none')
-    loss = (questions_loss + passages_loss) / 2.0  # shape: (batch_size)
-    return loss.mean()
+    context_embeddings = model2(
+        data['input_ids_context'],
+        (data['visual_feats_context'],data['context_image_boxes'])
+        )
 
+    similarities = question_embeddings @ context_embeddings.T
+    log_probs = log_softmax(similarities)
+    loss = loss_fct(log_probs, data['labels'])
+    return loss
+
+
+
+def compute_loss_like_clip(model1, model2, data, temperature):
+    # fake function to implement after in the model
 
     def cross_entropy(preds, targets, reduction='none'):
         log_softmax = nn.LogSoftmax(dim=-1)
@@ -435,11 +438,27 @@ if __name__ == '__main__':
         elif reduction == "mean":
             return loss.mean()
 
-    # DataLoader
+    question_embeddings = model1(
+        data['input_ids_question'],
+        (data['visual_feats_question'],data['question_image_boxes'])
+    )
+    passage_embeddings = model2(
+        data['input_ids_context'],
+        (data['visual_feats_context'],data['context_image_boxes'])
+        )
+
+    # TODO : peut être normaliser ? Voir la gueule de la training loop dans clip
+    logits = (passage_embeddings @ question_embeddings.T) / temperature
+    questions_similarity = question_embeddings @ question_embeddings.T
+    passages_similarity = passage_embeddings @ passage_embeddings.T
+    targets = F.softmax(
+        (questions_similarity + passages_similarity) / 2 * temperature, dim=-1
+    )
+    questions_loss = cross_entropy(logits, targets, reduction='none')
+    passages_loss = cross_entropy(logits.T, targets.T, reduction='none')
+    loss = (questions_loss + passages_loss) / 2.0  # shape: (batch_size)
+    return loss.mean()
 
 
-    # loss
-
-    # deux facon de faire le training avec hard examples et negative ou à la facon de clip
-    # mettre en place les deux
-    """
+if __name__ == '__main__':
+    pass
