@@ -326,13 +326,16 @@ class Trainer(object):
         config_encoder.embed_with_decoder = True
         
         # unfreeze or freeze
+        config_encoder.use_lora = args.use_lora
+        config_encoder.encoder_prompt_len = args.encoder_prompt_len
+        config_encoder.decoder_prompt_len =args.decoder_prompt_len
         config_encoder.unfreeze_language_model=args.unfreeze_language_model
         config_encoder.unfreeze_lm_head=args.unfreeze_lm_head
         config_encoder.unfreeze_vis_encoder=args.unfreeze_vis_encoder
         config_encoder.unfreeze_vis_last_layer=args.unfreeze_vis_last_layer
         config_encoder.use_vis_adapter=args.use_vis_adapter
         config_encoder.unfreeze_layer_norms=args.unfreeze_layer_norms
-        config_encoder.unfreeze_batch_norms=args.unfreeze_batch_normm
+        config_encoder.unfreeze_batch_norms=args.unfreeze_batch_norms
 
         return config_encoder
 
@@ -396,7 +399,7 @@ class Trainer(object):
             # else:
             #     p.requires_grad = False
 
-        if self.args.unfreeze_language_model:
+        if model.config.unfreeze_language_model:
             targets = ["lm_head", "shared"]
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
@@ -410,14 +413,14 @@ class Trainer(object):
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-        if self.args.unfreeze_lm_head:
+        if model.config.unfreeze_lm_head:
             targets = ["lm_head", "shared"] # shared and lm_head share the same weight
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
                     print(f"{n} is trainable...")
 
-        if self.args.use_lora:
+        if model.config.use_lora:
             targets = ["lora", "bias"]
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
@@ -425,67 +428,65 @@ class Trainer(object):
                     print(f"{n} is trainable...")
 
         for name, sub_module in model.named_modules():
-            if self.args.decoder_prompt_len > 0 or self.args.encoder_prompt_len > 0:
+            if model.config.decoder_prompt_len > 0 or model.config.encoder_prompt_len > 0:
                 if isinstance(sub_module, (PromptController)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
         
-            if self.args.unfreeze_vis_encoder:
+            if model.config.unfreeze_vis_encoder:
                 if isinstance(sub_module, (CLIPResNetEncoder)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.unfreeze_vis_last_layer:
+            if model.config.unfreeze_vis_last_layer:
                 if "visual.layer4" in name and "visual.layer4." not in name:
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.use_vis_adapter:
+            if model.config.use_vis_adapter:
                 if isinstance(sub_module, (VisualAdapter)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.unfreeze_layer_norms:
+            if model.config.unfreeze_layer_norms:
                 if isinstance(sub_module, (T5LayerNorm, nn.LayerNorm)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.unfreeze_batch_norms:
+            if model.config.unfreeze_batch_norms:
                 if isinstance(sub_module, (nn.BatchNorm2d)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.use_adapter or self.args.use_compacter or self.args.use_lradapter:
+            if model.config.use_adapter or model.config.use_compacter or model.config.use_lradapter:
                 if isinstance(sub_module, (AdapterController)):
                     print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.use_lm_head_adapter:
+            if model.config.use_lm_head_adapter:
                 if isinstance(sub_module, (OutputParallelAdapterLayer)):
                     print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
-            if self.args.use_hyperformer:
+            if model.config.use_hyperformer:
                 if isinstance(sub_module, (TaskEmbeddingController, AdapterLayersHyperNetController, AdapterLayersOneHyperNetController)):
                     print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
-
-            return model
 
     def create_optimizer_and_scheduler(self):
         if self.verbose:
