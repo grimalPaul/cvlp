@@ -9,13 +9,16 @@ import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from cvlep.VLT5.modeling_t5 import VLT5
-from cvlep.VLT5.modeling_bart import VLBart
+from cvlep.CLIPT5.modeling_t5 import VLT5
+from cvlep.CLIPT5.modeling_bart import VLBart
 from cvlep.VLT5.param import Config
+
+from cvlep.CLIPT5 import modeling_bart, modeling_t5
 
 from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import device
-
+import random
+import numpy as np
 from cvlep.CLIPT5.adapters import (
     AdapterLayer, 
     AdapterController,
@@ -32,6 +35,11 @@ from cvlep.CLIPT5.adapters import (
 from cvlep.CLIPT5.prompt import EncoderPromptConfig, DecoderPromptConfig, PromptController
 from cvlep.CLIPT5.lora import LoraConfig
 
+from cvlep.CLIPT5.vis_encoder import CLIPResNetEncoder
+from cvlep.CLIPT5.clip.model import VisualAdapter
+
+from transformers.models.t5.modeling_t5 import T5LayerNorm
+
 class Trainer(object):
     def __init__(self, config_question_path, config_passage_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
         # on aura deux configs car deux encoders
@@ -46,6 +54,11 @@ class Trainer(object):
         config_training = Config.load_json(config_training_path)
 
         self.args = config_training
+
+        # Set seeds
+        torch.manual_seed(self.args.seed)
+        random.seed(self.args.seed)
+        np.random.seed(self.args.seed)
         self.verbose = True
 
         # TODO:apply for contrastive learning
@@ -125,12 +138,21 @@ class Trainer(object):
         # Create the model
         self.model = self.create_model()
 
+        # freeze whole parameters first
+        self.freeze_whole_model(self.model.image_passage_encoder) 
+        self.freeze_whole_model(self.model.image_question_encoder)
+        
+        # unfreeze selected parameters
+        self.unfreeze_parameters(self.model.image_passage_encoder) 
+        self.unfreeze_parameters(self.model.image_question_encoder)
+
         self.model.to(device)
         # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra
         # etre amené à devoir les changer
 
         # Normalement déjà dans la confiq des encoders que l'on a enregistré
         
+
 
         """
          if self.args.distributed:
@@ -196,15 +218,11 @@ class Trainer(object):
         config_encoder.sparse_sample = args.sparse_sample
         
         # augment number of layers for projection
-        config_encoder.additional_visual_embedding_layers = args.additional_visual_embedding_layers
-        # dimension middle in the linear config of the model
-        config_encoder.mid_dim = args.mid_dim
-        # reduction factor in adapters
-        config_encoder.reduction_factor = args.reduction_factor
+        config_encoder.additional_visual_embedding_layers = args.additional_visual_embedding_layers 
 
         # strategy when forwarding with the vision model
         config_encoder.vis_pooling_output = args.vis_pooling_output
-        # TODO: Idk for now the use (dont use in CLIP T5)
+        # TODO: Idk for now the use (dont use with T5 just with Bart)
         config_encoder.use_lm_head_adapter = args.use_lm_head_adapter
         
         # which type of Adapter module or lra
@@ -212,7 +230,9 @@ class Trainer(object):
         config_encoder.use_adapter = args.use_adapter
         config_encoder.use_compacter = args.use_compacter
         config_encoder.use_lradapter = args.use_lradapter
-        
+        # reduction factor in adapters
+        config_encoder.reduction_factor = args.reduction_factor
+
         # TODO: use ? add adapter cross attention 
         config_encoder.add_adapter_cross_attn = args.add_adapter_cross_attn
 
@@ -261,7 +281,10 @@ class Trainer(object):
         else:
             config_encoder.adapter_config = None
 
-        # for prompt        
+        # for prompt
+        # dimension middle in the linear config of the model for prompt
+        config_encoder.mid_dim = args.mid_dim 
+                
         if args.encoder_prompt_len > 0:
             config_encoder.encoder_prompt_config = EncoderPromptConfig()
             config_encoder.encoder_prompt_config.prompt_len = args.encoder_prompt_len
@@ -296,12 +319,21 @@ class Trainer(object):
         config_encoder.activation_dropout = args.dropout
         config_encoder.use_vis_layer_norm = args.use_vis_layer_norm
         config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
-        config_encoder.losses = args.losses
+        #config_encoder.losses = args.losses
         config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
         
         # TODO: add a way to use only the decoder
         config_encoder.embed_with_decoder = True
         
+        # unfreeze or freeze
+        config_encoder.unfreeze_language_model=args.unfreeze_language_model
+        config_encoder.unfreeze_lm_head=args.unfreeze_lm_head
+        config_encoder.unfreeze_vis_encoder=args.unfreeze_vis_encoder
+        config_encoder.unfreeze_vis_last_layer=args.unfreeze_vis_last_layer
+        config_encoder.use_vis_adapter=args.use_vis_adapter
+        config_encoder.unfreeze_layer_norms=args.unfreeze_layer_norms
+        config_encoder.unfreeze_batch_norms=args.unfreeze_batch_normm
+
         return config_encoder
 
     def create_model(self, config_model=None):
@@ -350,14 +382,14 @@ class Trainer(object):
         )
         return tokenizer
         
-    def freeze_whole_model(self):
-        for _, p in self.model.named_parameters():
+    def freeze_whole_model(self, model):
+        for _, p in model.named_parameters():
             p.requires_grad = False
 
-    def unfreeze_parameters(self):       
+    def unfreeze_parameters(self, model): 
         targets = ["visual_embedding"]
         # unfreeze the parameters in targets anyway
-        for n, p in self.model.named_parameters():
+        for n, p in model.named_parameters():
             if any(t in n for t in targets):
                 p.requires_grad = True
                 print(f"{n} is trainable...")
@@ -366,11 +398,12 @@ class Trainer(object):
 
         if self.args.unfreeze_language_model:
             targets = ["lm_head", "shared"]
-            for n, p in self.model.named_parameters():
+            for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
                     print(f"{n} is trainable...")
-            for name, sub_module in self.model.named_modules():
+            for name, sub_module in model.named_modules():
+                
                 if isinstance(sub_module, (modeling_bart.JointEncoder, modeling_bart.BartDecoder, modeling_t5.T5Stack, modeling_t5.JointEncoder)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
@@ -379,26 +412,26 @@ class Trainer(object):
 
         if self.args.unfreeze_lm_head:
             targets = ["lm_head", "shared"] # shared and lm_head share the same weight
-            for n, p in self.model.named_parameters():
+            for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
                     print(f"{n} is trainable...")
 
         if self.args.use_lora:
             targets = ["lora", "bias"]
-            for n, p in self.model.named_parameters():
+            for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
                     print(f"{n} is trainable...")
 
-        for name, sub_module in self.model.named_modules():
+        for name, sub_module in model.named_modules():
             if self.args.decoder_prompt_len > 0 or self.args.encoder_prompt_len > 0:
                 if isinstance(sub_module, (PromptController)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
-
+        
             if self.args.unfreeze_vis_encoder:
                 if isinstance(sub_module, (CLIPResNetEncoder)):
                     print(f"{name} is trainable...")
@@ -451,6 +484,8 @@ class Trainer(object):
                     print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
+
+            return model
 
     def create_optimizer_and_scheduler(self):
         if self.verbose:

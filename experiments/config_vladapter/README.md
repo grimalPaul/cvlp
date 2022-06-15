@@ -49,13 +49,45 @@ Some arguments are not compatible with each others
     "dropout":0.1,    
     "losses":"lm,obj,attr,feat", 
     "log_train_accuracy":false,
+    // compute results before any training
+    "dry":false,
+    //ajouter une facon de faire les commentaires
+    "comment":"",
+    
+    
+    
+   
+    ///////////// DATASET //////////////////////
+    
+   
+    // add specific prompt for each task
+    "use_tasks_prompt":true,
 
-    //dataset
-    "n_ground":1,
+    "n_ground":1, // vcr
     "word_mask_rate": 0.15,
     "obj_mask_rate":0.15,
 
-    /////// Model Config ////////
+    "caption_only": true,
+    "coco_only": true,
+    "caption_cocoonly":true,
+
+    "do_lower_case":true,
+    "oscar_tags":true,
+
+    "prefix":"span, denoise, ....",
+
+    // if self.args.prefix is None:
+    // prefix = f'{self.args.prompt}'
+    "prompt" :"vqa: ",
+    "post_prompt":"",
+
+    //type of input features
+    // "RN50", "RN101", "RN50x4", "ViT", "butd", "raw_RN50", "raw_RN101", "raw_RN50x4", "raw_ViT
+    "feature_type":"butd" 
+
+
+
+    /////////// Model Config ////////////
     "backbone":"t5-base",
     "tokenizer": null,
 
@@ -74,11 +106,12 @@ Some arguments are not compatible with each others
     
     "additional_visual_embedding_layers":0,
 
-
+    // OneDDownsample xor Downsample xor SparseSample, to reduce size of visual input or embed
+    "sparse_sample":true,
     "downsample":true,
     "oneddownsample":true,
     "expand_vis_embedding": true,
-    "n_image_tokens" :4,
+    "n_image_tokens" :4, // pas utilisé avec VLT5
     "vis_use_transformer": true,
 
 
@@ -91,8 +124,9 @@ Some arguments are not compatible with each others
     "unfreeze_layer_norms":false,
     "use_attn_prefix":false,
     "mid_dim":768,
+    
 
-    //choose one tyoe of adapter
+    //choose one type of adapter
     "use_adapter": false,
     "use_hyperformer":false,
     "use_compacter":false,
@@ -154,8 +188,7 @@ Some arguments are not compatible with each others
     "use_data_augmentation":true,
     //only used to full pretrain the model
     "deepspeed":null,
-    // OneDDownsample xor Downsample xor SparseSample, to reduce size of visual input or embed
-    "sparse_sample":true,
+    
     // load vis encoder with or without Batchnorm 
     "remove_bn_vis_adapter": true,
     //unfreeze lm head
@@ -174,23 +207,42 @@ Some arguments are not compatible with each others
     "num_beams" :1,
     "gen_max_length" :20,
 
-    // Data
-    "caption_only": true,
-    "coco_only": true,
-    "caption_cocoonly":true,
 
-    "do_lower_case":true,
-    "oscar_tags":true,
+    //// dataset, config model, training
+    //multitask
+    "multitask_sampling":"roundrobin",
+    "tasks": "",
+    "testing":true,
+    // une valeur dans les adapteurs qui peut être suivi
+    "lambda_z":0.001,
+    "track_z":true,
 
-    "prefix":"span, denoise, ....",
 
-    // if self.args.prefix is None:
-    // prefix = f'{self.args.prompt}'
-    "prompt" :"vqa: ",
-    "post_prompt":"",
-
-    //type of input features
-    // "RN50", "RN101", "RN50x4", "ViT", "butd", "raw_RN50", "raw_RN101", "raw_RN50x4", "raw_ViT
-    "feature_type":"butd" 
 }
+```
+
+```bash
+ # Pretraining
+    parser.add_argument('--ground_upsample', type=int, default=1)
+    parser.add_argument('--ground_weight', type=int, default=1)
+    parser.add_argument('--itm_cocoonly', default=True, type=str2bool)
+    parser.add_argument('--single_vqa_prefix', action='store_true')
+
+    # COCO Caption
+    parser.add_argument('--no_prefix', action='store_true')
+
+    # VQA
+    parser.add_argument("--raw_label", action='store_true')
+    parser.add_argument("--answer_normalize", action='store_true')
+    parser.add_argument("--classifier", action='store_true')
+    parser.add_argument("--test_answerable", action='store_true')
+
+    # RefCOCOg
+    parser.add_argument('--RefCOCO_GT', action='store_true')
+    parser.add_argument('--RefCOCO_BUTD', action='store_true')
+    parser.add_argument("--shuffle_boxes", action='store_true')
+    parser.add_argument('--vis_pointer', action='store_true')
+
+    # Classification
+    parser.add_argument('--cls_task', type=str, default='tinyimagenet')
 ```

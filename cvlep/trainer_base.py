@@ -16,8 +16,6 @@ from cvlep.VLT5.param import Config
 from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import device
 
-from transformers import BartConfig
-
 
 class Trainer(object):
     def __init__(self, config_question_path, config_passage_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
@@ -82,7 +80,6 @@ class Trainer(object):
         elif 'bart' in config_encoder_question.tokenizer:
             self.encoder_question.resize_tokCVLPDen_embeddings(
                 self.encoder_question.model.shared.num_embeddings + num_added_toks_question)
-        
         
         if 't5' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
@@ -338,6 +335,21 @@ class Trainer(object):
         if self.verbose:
             print('Model loaded from ', path)
             pprint(results)
+
+    def freeze_whole_model(self):
+            for n, p in self.model.named_parameters():
+                p.requires_grad = False
+
+    def unfreeze_parameters(self):       
+        targets = ["visual_embedding"]
+        # unfreeze the parameters in targets anyway
+        for n, p in self.model.named_parameters():
+            if any(t in n for t in targets):
+                p.requires_grad = True
+                print(f"{n} is trainable...")
+            # else:
+            #     p.requires_grad = False
+    
 
     def embedding_passage(self, **kwargs):
         return self.model.embed_image_passage(**kwargs)

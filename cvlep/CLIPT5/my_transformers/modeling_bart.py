@@ -48,7 +48,7 @@ from transformers.models.bart.configuration_bart import BartConfig
 import os
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from adapters import (
+from cvlep.CLIPT5.adapters import (
     AdapterLayer, 
     AdapterController,
     OutputParallelAdapterLayer,
@@ -58,7 +58,7 @@ from adapters import (
     MetaLayersAdapterController
 )
 
-import lora
+import cvlep.CLIPT5.lora
 
 
 logger = logging.get_logger(__name__)

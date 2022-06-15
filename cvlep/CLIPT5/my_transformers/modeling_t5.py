@@ -46,7 +46,7 @@ from transformers.models.t5.configuration_t5 import T5Config
 import os
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from adapters import (
+from cvlep.CLIPT5.adapters import (
     AdapterLayer, 
     AdapterController,
     OutputParallelAdapterLayer,

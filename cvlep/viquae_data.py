@@ -184,6 +184,7 @@ class DPRDataset(Dataset):
 
         relevant_text, irrelevant_text, question_text, labels = list(), list(), list(), list()
         for i, item in enumerate(batch):
+            # TODO: voir si besoin de changer gestion pour le text, car a un impact sur attention mask
             question_text.append(item['question_text'])
             relevant_text.append(item['passage_relevant_text'])
             irrelevant_text.append(item['passage_irrelevant_text'])
@@ -342,6 +343,7 @@ class CLIPlikeDataset(Dataset):
 
         context_text, question_text = list(), list()
         for i, item in enumerate(batch):
+            #TODO: voir si besoin changer facon de gérer le text car impact sur le mask 
             question_text.append(item['question_text'])
             context_text.append(item['passage_text'])
             if self.TokenizerConfig.use_vision:

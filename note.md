@@ -89,6 +89,8 @@ Le sep pour T5 est `?`. Il parle d'un sep_token
 
 [doc hugging face](https://huggingface.co/docs/transformers/model_doc/t5#transformers.T5Tokenizer)
 
+Quand on fait tokenizer.encode() on ne génère pas de mask
+
 ### Tokenizer Bart
 
 [doc hugging face](https://huggingface.co/docs/transformers/model_doc/bart#transformers.BartTokenizer)
@@ -403,6 +405,15 @@ avec Moduledict je peux passer différents modèles suivant ce que je veux mettr
 Comment est géré entrainement du prompting ?
 
 Dans article ils précisent que promptig sur le decoder n'est pas efficace
+
+### Prompt controller
+
+quand on appelle le prompt module forward
+on passe en argument la taille du batch size
+la tache (en multi prompt, un prompt par tache)
+
+si on remplit `use_tasks_prompt`, on aura le format suivant :
+`{inputs prompt}{prompt de la task}{text ou question}`
 
 ## Features avec CLIP
 
