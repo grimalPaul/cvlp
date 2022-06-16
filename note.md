@@ -577,6 +577,16 @@ Comment se déroule un entrainement quand on partage des embeddings ?
 
 [why share embedding](https://arxiv.org/pdf/1608.05859.pdf)
 
+
+Voir pour initialiser prompt et adapter par défaut
+Mettre partage des infos
+
+probablement couplé à du random search
+
+https://arxiv.org/pdf/1711.09846.pdf
+https://medium.com/distributed-computing-with-ray/hyperparameter-optimization-for-transformers-a-guide-c4e32c6c989b
+
+
 ## multi image
 
 Un modele de vision qui prends plusieurs image en entrée
