@@ -559,6 +559,24 @@ Voir aussi vis forward
 on voit comment sont créer les boxes
 faire des tests avec vis_forward en chargeant le model de vision. regarder pour les embeddings.
 
+## PARTAGE d'embedding, visual embedding, etc
+
+Ce qu'on peut éventuellement partagé :
+
+```py
+# dans VLT5
+self.shared = nn.Embedding(config.vocab_size, config.d_model)
+# dans Joint encoder
+self.visual_embedding = VisualEmbedding(self.config, embed_tokens)
+```
+
+si unfreeze visual embedding peut être interessant à partager
+embedding du text aussi
+
+Comment se déroule un entrainement quand on partage des embeddings ?
+
+[why share embedding](https://arxiv.org/pdf/1608.05859.pdf)
+
 ## multi image
 
 Un modele de vision qui prends plusieurs image en entrée

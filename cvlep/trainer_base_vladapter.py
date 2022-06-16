@@ -41,7 +41,7 @@ from cvlep.CLIPT5.clip.model import VisualAdapter
 from transformers.models.t5.modeling_t5 import T5LayerNorm
 
 class Trainer(object):
-    def __init__(self, config_question_path, config_passage_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
+    def __init__(self, config_question_path, config_passage_path, config_model_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
         # on aura deux configs car deux encoders
         # on fait via deux fichiers séparés
         # on ajoute si vl adapter ou non pour nous faciliter les choses
@@ -51,6 +51,7 @@ class Trainer(object):
         # config du training
         config_encoder_question = Config.load_json(config_question_path)
         config_encoder_passage = Config.load_json(config_passage_path)
+        config_model = Config.load_json(config_model_path)
         config_training = Config.load_json(config_training_path)
 
         self.args = config_training
@@ -133,10 +134,9 @@ class Trainer(object):
 
         if config_encoder_passage.from_scratch:
             self.init_weights("passage")
-
        
         # Create the model
-        self.model = self.create_model()
+        self.model = self.create_model(config_model)
 
         # freeze whole parameters first
         self.freeze_whole_model(self.model.image_passage_encoder) 
@@ -327,6 +327,7 @@ class Trainer(object):
         
         # unfreeze or freeze
         config_encoder.use_lora = args.use_lora
+        config_encoder.unfreeze_visual_embedding = args.unfreeze_visual_embedding
         config_encoder.encoder_prompt_len = args.encoder_prompt_len
         config_encoder.decoder_prompt_len =args.decoder_prompt_len
         config_encoder.unfreeze_language_model=args.unfreeze_language_model
@@ -392,12 +393,13 @@ class Trainer(object):
     def unfreeze_parameters(self, model): 
         targets = ["visual_embedding"]
         # unfreeze the parameters in targets anyway
-        for n, p in model.named_parameters():
-            if any(t in n for t in targets):
-                p.requires_grad = True
-                print(f"{n} is trainable...")
-            # else:
-            #     p.requires_grad = False
+        if model.config.unfreeze_visual_embedding:
+            for n, p in model.named_parameters():
+                if any(t in n for t in targets):
+                    p.requires_grad = True
+                    print(f"{n} is trainable...")
+                # else:
+                #     p.requires_grad = False
 
         if model.config.unfreeze_language_model:
             targets = ["lm_head", "shared"]

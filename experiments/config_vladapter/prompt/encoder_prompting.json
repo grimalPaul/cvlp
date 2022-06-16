@@ -36,7 +36,7 @@
     "load_path": "data_model/whole_model/vlt5/VLT5Epoch30",
     "from_scratch": false,
 
-
+    "unfreeze_visual_embedding":false,
     "unfreeze_language_model":false,
     "unfreeze_lm_head":false,
     "unfreeze_vis_encoder":false,

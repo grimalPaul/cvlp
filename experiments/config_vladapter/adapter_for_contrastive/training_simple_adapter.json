@@ -15,8 +15,8 @@
     "tasks": "",
     "test": null,
     "test_only": false,
-    "train": "train",
-    "valid": "valid",
+    "train": "path_to_dataset/test",
+    "valid": "path_to_dataset/validation",
     "valid_batch_size": 128,
     "distributed": false,
     "multiGPU": false

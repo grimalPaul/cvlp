@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from errno import EMEDIUMTYPE
 
 from .my_transformers.modeling_t5 import (
     T5Stack, T5Block, T5LayerNorm, T5LayerSelfAttention, T5LayerFF, T5LayerCrossAttention,
@@ -13,7 +14,7 @@ from torch.nn import CrossEntropyLoss
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import copy
 
-from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
+from transformers.modeling_outputs import ModelOutput, BaseModelOutput, BaseModelOutputWithPast, BaseModelOutputWithPastAndCrossAttentions, BaseModelOutputWithPoolingAndCrossAttentions, Seq2SeqLMOutput, Seq2SeqModelOutput
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers import BeamScorer, BeamSearchScorer
@@ -21,9 +22,9 @@ from transformers import BeamScorer, BeamSearchScorer
 from cvlep.CLIPT5.modeling_bart import Downsample, SparseSample, OneDDownsample
 
 from .adapters import (
-    AdapterLayer, 
+    AdapterLayer,
     AdapterController,
-    OutputParallelAdapterLayer, 
+    OutputParallelAdapterLayer,
     TaskEmbeddingController,
     AdapterLayersHyperNetController,
     AdapterLayersOneHyperNetController,
@@ -35,6 +36,8 @@ from .adapters.hypercomplex.layers import PHMLinear
 from .prompt import (
     PromptController,
 )
+
+from cvlep.CLIPT5.utils import get_pool
 
 # from utils import *
 
@@ -56,28 +59,35 @@ class VisualEmbedding(nn.Module):
             feat_embedding = [nn.Linear(feat_dim, config.d_model)]
 
             if self.config.use_vis_layer_norm:
-                feat_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
+                feat_embedding.append(T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon))
 
             for i in range(config.additional_visual_embedding_layers):
-                feat_embedding.append(nn.Linear(config.d_model, config.d_model))
+                feat_embedding.append(
+                    nn.Linear(config.d_model, config.d_model))
                 feat_embedding.append(nn.ReLU(True))
 
                 if self.config.use_vis_layer_norm:
-                    feat_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
-            
+                    feat_embedding.append(T5LayerNorm(
+                        config.d_model, eps=config.layer_norm_epsilon))
+
             self.feat_embedding = nn.Sequential(*feat_embedding)
 
             # self.relative_vis_pos_embedding = nn.Linear(pos_dim + 1, config.num_heads)
-            absolute_vis_pos_embedding = [nn.Linear(pos_dim + 1, config.d_model)]
+            absolute_vis_pos_embedding = [
+                nn.Linear(pos_dim + 1, config.d_model)]
             if self.config.use_vis_layer_norm:
-                absolute_vis_pos_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
-            self.absolute_vis_pos_embedding = nn.Sequential(*absolute_vis_pos_embedding)
+                absolute_vis_pos_embedding.append(T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon))
+            self.absolute_vis_pos_embedding = nn.Sequential(
+                *absolute_vis_pos_embedding)
             # self.absolute_vis_pos_layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
 
             if self.config.use_vis_order_embedding:
                 # self.obj_order_embedding = nn.Embedding(n_objs, config.d_model)
                 self.obj_order_embedding = obj_order_embedding
-                self.img_order_embedding = nn.Embedding(n_images, config.d_model)
+                self.img_order_embedding = nn.Embedding(
+                    n_images, config.d_model)
 
         else:
             # Object feature encoding
@@ -86,25 +96,30 @@ class VisualEmbedding(nn.Module):
             #     feat_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
 
             for i in range(config.additional_visual_embedding_layers):
-                feat_embedding.append(nn.Linear(config.d_model, config.d_model))
+                feat_embedding.append(
+                    nn.Linear(config.d_model, config.d_model))
                 feat_embedding.append(nn.ReLU(True))
 
             self.feat_embedding = nn.Sequential(*feat_embedding)
 
             # self.relative_vis_pos_embedding = nn.Linear(pos_dim + 1, config.num_heads)
-            absolute_vis_pos_embedding = [nn.Linear(pos_dim + 1, config.d_model)]
+            absolute_vis_pos_embedding = [
+                nn.Linear(pos_dim + 1, config.d_model)]
             # if self.config.use_vis_layer_norm:
             #     absolute_vis_pos_embedding.append(T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon))
-            self.absolute_vis_pos_embedding = nn.Sequential(*absolute_vis_pos_embedding)
+            self.absolute_vis_pos_embedding = nn.Sequential(
+                *absolute_vis_pos_embedding)
             # self.absolute_vis_pos_layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
 
             if self.config.use_vis_order_embedding:
                 # self.obj_order_embedding = nn.Embedding(n_objs, config.d_model)
                 self.obj_order_embedding = obj_order_embedding
-                self.img_order_embedding = nn.Embedding(n_images, config.d_model)
+                self.img_order_embedding = nn.Embedding(
+                    n_images, config.d_model)
 
             if self.config.use_vis_layer_norm:
-                self.layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
+                self.layer_norm = T5LayerNorm(
+                    config.d_model, eps=config.layer_norm_epsilon)
 
     def get_area(self, pos):
         """
@@ -119,7 +134,6 @@ class VisualEmbedding(nn.Module):
         width = pos[:, :, 1] - pos[:, :, 0]
         area = height * width
         return area
-
 
     def forward(self, feats, pos, img_order_ids=None, obj_order_ids=None):
         """
@@ -140,23 +154,23 @@ class VisualEmbedding(nn.Module):
         device = feats.device
         dtype = feats.dtype
 
-        area = self.get_area(pos).unsqueeze(2) # [B, N, 1]
-        pos = torch.cat([pos, area], dim=2) # [B, N, 5]
+        area = self.get_area(pos).unsqueeze(2)  # [B, N, 1]
+        pos = torch.cat([pos, area], dim=2)  # [B, N, 5]
 
         # [B, N, d_model]
         absolute_vis_pos_embedding = self.absolute_vis_pos_embedding(pos)
         # absolute_vis_pos_embedding = self.absolute_vis_pos_layer_norm(absolute_vis_pos_embedding)
 
-
         if self.config.use_vis_order_embedding:
             if img_order_ids is None:
                 img_order_ids = torch.zeros(N, dtype=torch.long, device=device)
-                img_order_ids = img_order_ids.unsqueeze(0) #.expand(B, -1)
+                img_order_ids = img_order_ids.unsqueeze(0)  # .expand(B, -1)
             img_order_embedding = self.img_order_embedding(img_order_ids)
 
             if obj_order_ids is None:
-                obj_order_ids = torch.arange(N, dtype=torch.long, device=device)
-                obj_order_ids = obj_order_ids.unsqueeze(0) #.expand(B,-1)
+                obj_order_ids = torch.arange(
+                    N, dtype=torch.long, device=device)
+                obj_order_ids = obj_order_ids.unsqueeze(0)  # .expand(B,-1)
             # assert obj_order_ids.max().item() < 32200, obj_order_ids
             obj_order_ids = self.obj_order_embedding.num_embeddings - obj_order_ids - 1
             obj_order_embedding = self.obj_order_embedding(obj_order_ids)
@@ -195,7 +209,8 @@ class JointEncoder(T5Stack):
             self.sparse_sample = SparseSample(config.n_boxes)
 
         if config.encoder_prompt_config:
-            self.prompt_modules = PromptController(config.encoder_prompt_config)
+            self.prompt_modules = PromptController(
+                config.encoder_prompt_config)
         else:
             self.prompt_modules = None
 
@@ -205,8 +220,12 @@ class JointEncoder(T5Stack):
         self.embed_tokens = new_embeddings
         self.visual_embedding.obj_order_embedding = new_embeddings
 
+    def set_vis_embedding(self, vis_embedding):
+        self.visual_embedding = vis_embedding
+
     def get_prompt(self, bsz, device):
-        input_tokens = self.prefix_tokens.unsqueeze(0).expand(bsz, -1).to(device)
+        input_tokens = self.prefix_tokens.unsqueeze(
+            0).expand(bsz, -1).to(device)
         return self.prefix_embedding(input_tokens)
 
     def forward(
@@ -225,6 +244,8 @@ class JointEncoder(T5Stack):
         output_hidden_states=None,
         return_dict=None,
         task=None,
+        return_pooled_output=False,
+        pool_strategy="avg"
     ):
 
         if inputs_embeds is None:
@@ -232,7 +253,8 @@ class JointEncoder(T5Stack):
             inputs_embeds = self.embed_tokens(input_ids)
 
         if self.prompt_modules is not None:
-            prefix_embeds = self.prompt_modules(inputs_embeds.shape[0], inputs_embeds.device, task)
+            prefix_embeds = self.prompt_modules(
+                inputs_embeds.shape[0], inputs_embeds.device, task)
             inputs_embeds = torch.cat([prefix_embeds, inputs_embeds], dim=1)
 
         B, L = inputs_embeds.size()[:-1]
@@ -260,7 +282,8 @@ class JointEncoder(T5Stack):
         inputs_embeds = torch.cat([inputs_embeds, vis_embeds], dim=1)
 
         if attention_mask is None:
-            attention_mask = input_ids.ne(self.config.pad_token_id).to(dtype=inputs_embeds.dtype, device=inputs_embeds.device)
+            attention_mask = input_ids.ne(self.config.pad_token_id).to(
+                dtype=inputs_embeds.dtype, device=inputs_embeds.device)
 
         if vis_attention_mask is None:
             vis_attention_mask = attention_mask.new_ones(B, V_L)
@@ -270,7 +293,8 @@ class JointEncoder(T5Stack):
                 B, prefix_embeds.shape[1], dtype=inputs_embeds.dtype, device=inputs_embeds.device
             )
 
-            attention_mask = torch.cat([prefix_attention_mask, attention_mask], dim=1)
+            attention_mask = torch.cat(
+                [prefix_attention_mask, attention_mask], dim=1)
 
         attention_mask = torch.cat([attention_mask, vis_attention_mask], dim=1)
 
@@ -333,7 +357,8 @@ class JointEncoder(T5Stack):
 
                 block_adapters = None
                 if self.adapter_layers_hyper_net:
-                    block_adapters = self.adapter_layers_hyper_net(task_embedding, i)
+                    block_adapters = self.adapter_layers_hyper_net(
+                        task_embedding, i)
 
                 layer_outputs = layer_module(
                     hidden_states,
@@ -376,25 +401,35 @@ class JointEncoder(T5Stack):
         if output_hidden_states:
             all_hidden_states = all_hidden_states + (hidden_states,)
 
-        if not return_dict:
-            return tuple(
-                v
-                for v in [
-                    hidden_states,
-                    present_key_value_states,
-                    all_hidden_states,
-                    all_attentions,
-                    all_cross_attentions,
-                ]
-                if v is not None
+        if return_pooled_output:
+            pooled_output = get_pool(pool_strategy, hidden_states)
+            return BaseModelOutputWithPoolingAndCrossAttentions(
+                last_hidden_state=hidden_states,
+                past_key_values=present_key_value_states,
+                attentions=all_attentions,
+                cross_attentions=all_cross_attentions,
+                pooler_output=pooled_output
             )
-        return BaseModelOutputWithPastAndCrossAttentions(
-            last_hidden_state=hidden_states,
-            past_key_values=present_key_value_states,
-            hidden_states=all_hidden_states,
-            attentions=all_attentions,
-            cross_attentions=all_cross_attentions,
-        )
+        else:
+            if not return_dict:
+                return tuple(
+                    v
+                    for v in [
+                        hidden_states,
+                        present_key_value_states,
+                        all_hidden_states,
+                        all_attentions,
+                        all_cross_attentions,
+                    ]
+                    if v is not None
+                )
+            return BaseModelOutputWithPastAndCrossAttentions(
+                last_hidden_state=hidden_states,
+                past_key_values=present_key_value_states,
+                hidden_states=all_hidden_states,
+                attentions=all_attentions,
+                cross_attentions=all_cross_attentions,
+            )
 
 
 class VLT5(T5ForConditionalGeneration):
@@ -424,25 +459,29 @@ class VLT5(T5ForConditionalGeneration):
 
         #---- Modified ----#
         # self.encoder = T5Stack(encoder_config, self.shared)
-        self.encoder = JointEncoder(encoder_config, self.shared, self.shared_task_embed)
+        self.encoder = JointEncoder(
+            encoder_config, self.shared, self.shared_task_embed)
         #------------------#
 
         decoder_config = copy.deepcopy(config)
         decoder_config.is_decoder = True
         decoder_config.is_encoder_decoder = False
         decoder_config.num_layers = config.num_decoder_layers
-        
-        self.decoder = T5Stack(decoder_config, self.shared, self.shared_task_embed)
+
+        self.decoder = T5Stack(
+            decoder_config, self.shared, self.shared_task_embed)
 
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
 
         if config.decoder_prompt_config:
-            self.prompt_modules = PromptController(config.decoder_prompt_config)
+            self.prompt_modules = PromptController(
+                config.decoder_prompt_config)
         else:
             self.prompt_modules = None
 
         if config.use_lm_head_adapter:
-            self.output_adapter = OutputParallelAdapterLayer(config, self.model.shared.num_embeddings)
+            self.output_adapter = OutputParallelAdapterLayer(
+                config, self.model.shared.num_embeddings)
 
         adapter_config = config.adapter_config
 
@@ -453,26 +492,29 @@ class VLT5(T5ForConditionalGeneration):
                     self.factorized_phm_rule = adapter_config.factorized_phm_rule
                     if self.factorized_phm_rule:
                         self.phm_rule_left = nn.Parameter(torch.FloatTensor(phm_dim, phm_dim, 1),
-                            requires_grad=adapter_config.learn_phm)
+                                                          requires_grad=adapter_config.learn_phm)
                         self.phm_rule_right = nn.Parameter(torch.FloatTensor(phm_dim, 1, phm_dim),
-                            requires_grad=adapter_config.learn_phm)
+                                                           requires_grad=adapter_config.learn_phm)
                         if adapter_config.phm_c_init == "normal":
-                            self.phm_rule_left.data.normal_(mean=0, std=adapter_config.phm_init_range)
-                            self.phm_rule_right.data.normal_(mean=0, std=adapter_config.phm_init_range)
+                            self.phm_rule_left.data.normal_(
+                                mean=0, std=adapter_config.phm_init_range)
+                            self.phm_rule_right.data.normal_(
+                                mean=0, std=adapter_config.phm_init_range)
                         elif adapter_config.phm_c_init == "uniform":
                             self.phm_rule_left.data.uniform_(-1, 1)
                             self.phm_rule_right.data.uniform_(-1, 1)
                         else:
                             raise NotImplementedError
                     else:
-                        self.phm_rule = nn.Parameter(torch.FloatTensor(phm_dim, phm_dim, phm_dim),\
-                            requires_grad=adapter_config.learn_phm)
+                        self.phm_rule = nn.Parameter(torch.FloatTensor(phm_dim, phm_dim, phm_dim),
+                                                     requires_grad=adapter_config.learn_phm)
                         if adapter_config.phm_c_init == "normal":
-                            self.phm_rule.data.normal_(mean=0, std=adapter_config.phm_init_range)
+                            self.phm_rule.data.normal_(
+                                mean=0, std=adapter_config.phm_init_range)
                         elif adapter_config.phm_c_init == "uniform":
                             self.phm_rule.data.uniform_(-1, 1)
                         else:
-                            raise NotImplementedError 
+                            raise NotImplementedError
                     self.set_phm_rule()
 
         self.init_weights()
@@ -487,7 +529,7 @@ class VLT5(T5ForConditionalGeneration):
             for name, sub_module in module.named_modules():
                 if isinstance(sub_module, PHMLinear):
                     if self.factorized_phm_rule:
-                        sub_module.set_phm_rule(phm_rule_right=self.phm_rule_right, 
+                        sub_module.set_phm_rule(phm_rule_right=self.phm_rule_right,
                                                 phm_rule_left=self.phm_rule_left)
                     else:
                         sub_module.set_phm_rule(phm_rule=self.phm_rule)
@@ -495,10 +537,12 @@ class VLT5(T5ForConditionalGeneration):
         set_phm_rule(self.decoder)
 
     def get_prompt(self, bsz, device):
-        input_tokens = self.prefix_tokens.unsqueeze(0).expand(bsz, -1).to(device) # (B, L)
-        prefix_prompt = self.prefix_embedding(input_tokens) # (B, L, d_model)
+        input_tokens = self.prefix_tokens.unsqueeze(
+            0).expand(bsz, -1).to(device)  # (B, L)
+        prefix_prompt = self.prefix_embedding(input_tokens)  # (B, L, d_model)
 
-        temp_results = self.decoder(inputs_embeds=prefix_prompt, use_cache=True, return_dict=True)
+        temp_results = self.decoder(
+            inputs_embeds=prefix_prompt, use_cache=True, return_dict=True)
 
         past_key_values = temp_results.past_key_values
 
@@ -508,7 +552,7 @@ class VLT5(T5ForConditionalGeneration):
         #     past_key_values[layer] = list(past_key_values[layer])
         #     past_key_values[layer].append(None)
         #     past_key_values[layer].append(None)
-        
+
         return past_key_values
 
     def set_input_embeddings(self, new_embeddings):
@@ -542,9 +586,9 @@ class VLT5(T5ForConditionalGeneration):
         self.vis_encoder.config.vocab_size = vocab_size
         self.decoder.config.vocab_size = vocab_size
 
-
     # @add_start_docstrings_to_callable(T5_INPUTS_DOCSTRING)
     # @replace_return_docstrings(output_type=Seq2SeqLMOutput, config_class=_CONFIG_FOR_DOC)
+
     def forward(
         self,
         input_ids=None,
@@ -616,29 +660,32 @@ class VLT5(T5ForConditionalGeneration):
                 decoder_inputs_embeds = decoder_inputs_embeds[:, -1:]
 
         if attention_mask is None:
-            attention_mask = input_ids.ne(self.config.pad_token_id).to(dtype=hidden_states.dtype, device=hidden_states.device)
+            attention_mask = input_ids.ne(self.config.pad_token_id).to(
+                dtype=hidden_states.dtype, device=hidden_states.device)
 
         if self.config.encoder_prompt_config is not None and self.config.encoder_prompt_config.prompt_len > 0:
             prefix_attention_mask = torch.ones(
-                attention_mask.shape[0], 
-                self.config.encoder_prompt_config.prompt_len, 
-                dtype=attention_mask.dtype, 
+                attention_mask.shape[0],
+                self.config.encoder_prompt_config.prompt_len,
+                dtype=attention_mask.dtype,
                 device=attention_mask.device,
             )
 
-            attention_mask = torch.cat([prefix_attention_mask, attention_mask], dim=1)
-        
+            attention_mask = torch.cat(
+                [prefix_attention_mask, attention_mask], dim=1)
+
         if vis_attention_mask is None:
             B, L = attention_mask.size()
             V_L = encoder_outputs[0].size(1) - L
             vis_attention_mask = attention_mask.new_ones(B, V_L)
-        encoder_attention_mask = torch.cat([attention_mask, vis_attention_mask], dim=1)
+        encoder_attention_mask = torch.cat(
+            [attention_mask, vis_attention_mask], dim=1)
 
         if self.prompt_modules is not None and past_key_values is None:
             prefix_embeds = self.prompt_modules(B, attention_mask.device, task)
 
-            past_key_values = self.decoder(inputs_embeds=prefix_embeds, use_cache=True, return_dict=True).past_key_values
-
+            past_key_values = self.decoder(
+                inputs_embeds=prefix_embeds, use_cache=True, return_dict=True).past_key_values
 
         # Decode
         decoder_outputs = self.decoder(
@@ -684,7 +731,8 @@ class VLT5(T5ForConditionalGeneration):
             if reduce_loss:
                 loss_fct = CrossEntropyLoss(ignore_index=-100)
             else:
-                loss_fct = CrossEntropyLoss(ignore_index=-100, reduction='none')
+                loss_fct = CrossEntropyLoss(
+                    ignore_index=-100, reduction='none')
             loss = loss_fct(
                 lm_logits.view(-1, lm_logits.size(-1)),
                 labels.view(-1))
@@ -731,9 +779,9 @@ class VLT5(T5ForConditionalGeneration):
         return batch
 
     def prepare_inputs_for_generation(
-        self, input_ids, past=None, attention_mask=None, use_cache=None,
-        encoder_outputs=None,
-        **kwargs):
+            self, input_ids, past=None, attention_mask=None, use_cache=None,
+            encoder_outputs=None,
+            **kwargs):
 
         # cut decoder_input_ids if past is used
         if past is not None:
@@ -754,6 +802,38 @@ class VLT5(T5ForConditionalGeneration):
             output["task"] = kwargs["task"]
 
         return output
+
+    def encode(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        vis_inputs=None,
+        vis_attention_mask=None,
+        inputs_embeds=None,
+        head_mask=None,
+        past_key_values=None,
+        use_cache=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
+        task=None,
+        return_pooled_output=False,
+        pool_strategy="avg"
+    ):
+        return self.encoder.forward(input_ids,
+                                    attention_mask,
+                                    vis_inputs,
+                                    vis_attention_mask,
+                                    inputs_embeds,
+                                    head_mask,
+                                    past_key_values,
+                                    use_cache,
+                                    output_attentions,
+                                    output_hidden_states,
+                                    return_dict,
+                                    task,
+                                    return_pooled_output,
+                                    pool_strategy)
 
     @staticmethod
     def _expand_inputs_for_generation(
@@ -896,7 +976,8 @@ if __name__ == "__main__":
 
     if config.use_hyperformer or config.use_adapter or config.use_compacter:
 
-        assert config.use_hyperformer + config.use_adapter + config.use_compacter <= 1, "You can only at most one kind of adapters."
+        assert config.use_hyperformer + config.use_adapter + \
+            config.use_compacter <= 1, "You can only at most one kind of adapters."
         if config.use_hyperformer:
             CONFIG_CLASS = MetaAdapterConfig
         elif config.use_adapter:
@@ -905,7 +986,8 @@ if __name__ == "__main__":
             CONFIG_CLASS = CompactorConfig
 
         config.adapter_config = CONFIG_CLASS()
-        config.adapter_config.tasks = re.split("[, ]+", config.tasks) # tranform to list
+        config.adapter_config.tasks = re.split(
+            "[, ]+", config.tasks)  # tranform to list
         config.adapter_config.input_dim = 768
         config.adapter_config.d_model = 768
         config.adapter_config.use_single_adapter = True
@@ -917,31 +999,32 @@ if __name__ == "__main__":
 
     num_added_toks = 0
     additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
-            [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
-    special_tokens_dict = {'additional_special_tokens': additional_special_tokens}
+        [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
+    special_tokens_dict = {
+        'additional_special_tokens': additional_special_tokens}
     num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
 
-    config.default_obj_order_ids = tokenizer.convert_tokens_to_ids([f'<vis_extra_id_{i}>' for i in range(100)])
+    config.default_obj_order_ids = tokenizer.convert_tokens_to_ids(
+        [f'<vis_extra_id_{i}>' for i in range(100)])
 
     model = VLT5.from_pretrained("t5-base", config=config)
     model.resize_token_embeddings(tokenizer.vocab_size)
     model.tokenizer = tokenizer
 
     inputs = tokenizer("Hello, my dog is cute and ", return_tensors="pt")
-    
+
     vis_feats = torch.randn(1, 36, 2048)
     vis_pos = torch.randn(1, 36, 4)
 
     generation_output = model.generate(
-                **inputs,
-                vis_inputs=(vis_feats, vis_pos),
-                task="gqa"
+        **inputs,
+        vis_inputs=(vis_feats, vis_pos),
+        task="gqa"
     )
-    
+
     print(generation_output)
 
     print(tokenizer.batch_decode(generation_output, skip_special_tokens=True))
-
 
     orig_param_size = 222903552
 
@@ -960,9 +1043,12 @@ if __name__ == "__main__":
             visual_param += p.numel()
             print(f"{n} is trainable...")
 
-    print(f"adapter params: {adapter_param}, {adapter_param / orig_param_size * 100:.3f} %")
+    print(
+        f"adapter params: {adapter_param}, {adapter_param / orig_param_size * 100:.3f} %")
 
-    print(f"visual params: {visual_param}, {visual_param / orig_param_size * 100:.3f} %")
+    print(
+        f"visual params: {visual_param}, {visual_param / orig_param_size * 100:.3f} %")
 
     total_param = adapter_param + visual_param
-    print(f"total params: {total_param}, {total_param / orig_param_size * 100:.3f} %")
+    print(
+        f"total params: {total_param}, {total_param / orig_param_size * 100:.3f} %")

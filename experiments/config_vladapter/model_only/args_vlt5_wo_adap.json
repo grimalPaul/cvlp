@@ -34,5 +34,14 @@
     "dropout": 0.1,
     "losses": "lm,obj,attr,feat",
     "load_path": "data_model/whole_model/vlt5/VLT5Epoch30",
-    "from_scratch": false
+    "from_scratch": false,
+
+    "unfreeze_visual_embedding":false,
+    "unfreeze_language_model":false,
+    "unfreeze_lm_head":false,
+    "unfreeze_vis_encoder":false,
+    "unfreeze_vis_last_layer":false,
+    "use_vis_adapter":false,
+    "unfreeze_layer_norms":false,
+    "unfreeze_batch_norms":false
 }

@@ -25,11 +25,11 @@ def remove_lines(n_rows, split):
         index.pop(i)
     return index
 
+# TODO: renvoyer aussi les masks d'attentions
+
 # https://arxiv.org/abs/2004.04906
 # Loss with relevant passage and irrelevant passages
 # can used random irrelevant or irrelant mined by sime method to define (BM25, ...)
-
-
 """We use the same hyperparameters as Karpukinh et al.. 
 We train DPR using 4 V100 GPUs of 32GB, allowing a total batch size of 256 
 (32 questions * 2 passages each * 4 GPUs). 

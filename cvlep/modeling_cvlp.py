@@ -15,7 +15,17 @@ class CVLEP(nn.Module):
 
         super().__init__()
         self.config = config
-
+        self.share_visual_embedding = None
+        self.share_embedding = None
+        if config.share_vis_embedding:
+            self.share_visual_embedding = image_question_encoder.encoder.visual_embedding
+            image_question_encoder.encoder.set_vis_embedding(self.share_visual_embedding)
+            image_passage_encoder.encoder.set_vis_embedding(self.share_visual_embedding)
+        if config.share_embedding:
+            self.share_embedding = image_question_encoder.encoder.embed_tokens
+            image_question_encoder.encoder.set_input_embeddings(self.share_embedding)
+            image_passage_encoder.encoder.set_input_embeddings(self.share_embedding)
+        
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
 
@@ -78,6 +88,7 @@ class CVLEP(nn.Module):
     def forward(
         self
     ):
+        raise NotImplementedError()
         image_question_output = self.image_question_encoder()
         image_passage_output = self.image_passage_encoder()
 
@@ -98,7 +109,7 @@ class CVLEP(nn.Module):
 
         # cosine similarity
 
-        raise NotImplementedError()
+        
 
     def train_step(self, batch):
         raise NotImplementedError()
@@ -112,38 +123,12 @@ class CVLEP(nn.Module):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def embed_image_passage(self, input_ids, vis_inputs,**kwargs):
-        if self.image_passage_encoder.config.embed_with_decoder:
-            B = len(input_ids)
-            decoder_input_ids = torch.ones(
-                B, 1, dtype=torch.long, device=device) * self.image_passage_encoder.config.decoder_start_token_id
-            output = self.image_passage_encoder(
-                input_ids=input_ids,
-                vis_inputs=vis_inputs,
-                decoder_input_ids=decoder_input_ids,
-                output_hidden_states=True,
-                return_dict=True
-            )
-            last_layer_hidden_state = output.decoder_hidden_states[-1]
-            last_hidden_state = last_layer_hidden_state.view(B, -1, self.image_passage_encoder.config.d_model)[:, -1]
-            return last_hidden_state
+    def embed_image_passage(self, **kwargs):
+        return self.image_passage_encoder.encode(**kwargs)
 
     @torch.no_grad()
-    def embed_image_question(self, input_ids, vis_inputs, **kwargs):
-        if self.image_question_encoder.config.embed_with_decoder:
-            B = len(input_ids)
-            decoder_input_ids = torch.ones(
-                B, 1, dtype=torch.long, device=device) * self.image_question_encoder.config.decoder_start_token_id
-            output = self.image_question_encoder(
-                input_ids=input_ids,
-                vis_inputs=vis_inputs,
-                decoder_input_ids=decoder_input_ids,
-                output_hidden_states=True,
-                return_dict=True
-            )
-            last_layer_hidden_state = output.decoder_hidden_states[-1]
-            last_hidden_state = last_layer_hidden_state.view(B, -1, self.image_question_encoder.config.d_model)[:, -1]
-            return last_hidden_state
+    def embed_image_question(self, **kwargs):
+        return self.image_passage_encoder.encode(**kwargs)
             
 
 
