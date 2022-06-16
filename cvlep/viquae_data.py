@@ -217,9 +217,9 @@ class DPRDataset(Dataset):
                     # mettre du vent à la place et le bon nombre
                     self.n_irrelevant_passages
                 """
-        question_inputs = self.tokenizer(
+        question_input = self.tokenizer(
             question_text, padding='max_length', truncation=True, return_tensors="pt")
-        context_inputs = self.tokenizer(
+        context_input = self.tokenizer(
             relevant_text + irrelevant_text, padding='max_length', truncation=True, return_tensors="pt")
         labels = torch.tensor(labels)
         visual_feats_context = torch.concat(
@@ -227,8 +227,10 @@ class DPRDataset(Dataset):
         context_image_boxes = torch.concat(
             [relevant_boxes, irrelevant_boxes])
         return {
-            "input_ids_question": question_inputs,
-            "input_ids_context": context_inputs,
+            "input_ids_question": question_input.input_ids,
+            "attention_mask_question": question_input.attention_mask,
+            "input_ids_context": context_input.input_ids,
+            "attention_mask_context": context_input.attention_mask,
             "labels": labels,
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": visual_feats_context,
@@ -357,13 +359,13 @@ class CLIPlikeDataset(Dataset):
                               :n_boxes_context] = item['passage_image_boxes']
                 context_vis_feats[i,
                                   :n_boxes_context] = item['passage_image_features']
-        question_inputs = self.tokenizer(
+        question_input = self.tokenizer(
             question_text, padding='max_length', truncation=True, return_tensors="pt")
-        context_inputs = self.tokenizer(
+        context_input = self.tokenizer(
             context_text, padding='max_length', truncation=True, return_tensors="pt")
         return {
-            "input_ids_question": question_inputs,
-            "input_ids_context": context_inputs,
+            "input_ids_question": question_input,
+            "input_ids_context": context_input,
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": context_vis_feats,
             "question_image_boxes": question_boxes,
