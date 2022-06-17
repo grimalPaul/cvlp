@@ -18,6 +18,6 @@
     "train": "path_to_dataset/training",
     "valid": "path_to_dataset/validation",
     "valid_batch_size": 128,
-    "distributed": false,
-    "multiGPU": false
+    "distributed": true,
+    "multiGPU": true
 }

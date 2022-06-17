@@ -42,5 +42,20 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+def get_setup():
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:  # torchrun launch
+        rank = int(os.environ["RANK"])
+        local_rank = int(os.environ["LOCAL_RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+    elif int(os.environ.get('SLURM_NPROCS', 1)) > 1:  # slurm launch
+        rank = int(os.environ["SLURM_PROCID"])
+        local_rank = int(os.environ["SLURM_LOCALID"])
+        world_size = int(os.environ["SLURM_NPROCS"])
+    else:  # single gpu & process launch
+        rank = 0
+        local_rank = 0
+        world_size = 0
+    return rank, local_rank, world_size
+
 
     

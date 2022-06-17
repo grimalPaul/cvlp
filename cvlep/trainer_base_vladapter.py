@@ -1,6 +1,6 @@
 from distutils.command.config import config
 import re
-from torch import nn
+from torch import autocast, nn
 import torch
 from cvlep.VLT5.utils import load_state_dict
 from pprint import pprint
@@ -20,7 +20,7 @@ from cvlep.utils import device
 import random
 import numpy as np
 from cvlep.CLIPT5.adapters import (
-    AdapterLayer, 
+    AdapterLayer,
     AdapterController,
     OutputParallelAdapterLayer,
     MetaAdapterConfig,
@@ -39,6 +39,7 @@ from cvlep.CLIPT5.vis_encoder import CLIPResNetEncoder
 from cvlep.CLIPT5.clip.model import VisualAdapter
 
 from transformers.models.t5.modeling_t5 import T5LayerNorm
+
 
 class Trainer(object):
     def __init__(self, config_question_path, config_passage_path, config_model_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
@@ -72,7 +73,7 @@ class Trainer(object):
         ModelPassageConfig = self.create_config(config_encoder_passage)
 
         # create tokenizer
-        # TODO: we will use the same tokenier for question and answer        
+        # TODO: we will use the same tokenier for question and answer
         self.tokenizer_question = self.create_tokenizer(
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
@@ -102,22 +103,21 @@ class Trainer(object):
 
         self.encoder_question = self.create_encoder(ModelQuestionConfig)
         self.encoder_passage = self.create_encoder(ModelPassageConfig)
-        
+
         if 't5' in config_encoder_question.tokenizer:
             self.encoder_question.resize_token_embeddings(
                 self.tokenizer_question.vocab_size)
         elif 'bart' in config_encoder_question.tokenizer:
             self.encoder_question.resize_tokCVLPDen_embeddings(
                 self.encoder_question.model.shared.num_embeddings + num_added_toks_question)
-        
-        
+
         if 't5' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
                 self.tokenizer_passage.vocab_size)
         elif 'bart' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
                 self.encoder_passage.model.shared.num_embeddings + num_added_toks_passage)
-        
+
         # Load Checkpoint encoder question
         self.start_epoch = None
         if config_encoder_question.load_path is not None:
@@ -134,25 +134,26 @@ class Trainer(object):
 
         if config_encoder_passage.from_scratch:
             self.init_weights("passage")
-       
+
         # Create the model
         self.model = self.create_model(config_model)
 
         # freeze whole parameters first
-        self.freeze_whole_model(self.model.image_passage_encoder) 
+        self.freeze_whole_model(self.model.image_passage_encoder)
         self.freeze_whole_model(self.model.image_question_encoder)
-        
+
         # unfreeze selected parameters
-        self.unfreeze_parameters(self.model.image_passage_encoder) 
+        self.unfreeze_parameters(self.model.image_passage_encoder)
         self.unfreeze_parameters(self.model.image_question_encoder)
 
         self.model.to(device)
-        # pas utile les vocsize ont été enregistrés dans les modèles mais on pourra
-        # etre amené à devoir les changer
 
-        # Normalement déjà dans la confiq des encoders que l'on a enregistré
-        
 
+        # on instantie plusieurs modèle que l'on va placer sur tel ou tel rank
+        # cela veut dire sur tel ou tel gpu
+        if self.args.multiGPU:
+            if self.args.distributed:
+                self.model = DDP(self.model, device_ids="#TODO")
 
         """
          if self.args.distributed:
@@ -177,14 +178,30 @@ class Trainer(object):
             elif _use_apex:
                 self.model, self.optim = amp.initialize(
                     self.model, self.optim, opt_level='O1', verbosity=self.verbose)
+        """
 
-        if args.multiGPU:
-            if args.distributed:
-                self.model = DDP(self.model, device_ids=[args.gpu],
-                                 find_unused_parameters=True
-                                 )
-        if self.verbose:
-            print(f'It took {time() - start:.1f}s')"""
+    def train(self):
+        
+        for epoch in range(self.args.epochs):
+            self.model.train()
+            for step_i, batch in enumerate(self.train_loader):
+                with autocast():
+                    # TODO: comprendre la distribution
+                    if self.args.distributed:
+                        results = self.model.module.train_step(batch)
+                    else:
+                        results = self.model.train_step(batch)
+                loss = results
+                # voir dans fichier train_dense_encoder github de facebook
+                # loss.backward
+
+                # optim step
+
+                """# DDP
+                
+                """
+                # suppose that we receive question and question
+                output_question, output_context = self.model.train_step()
 
     def create_config(self, config_model):
         from transformers import T5Config, BartConfig
@@ -204,27 +221,27 @@ class Trainer(object):
         config_encoder.pos_dim = args.pos_dim
         config_encoder.n_images = 2
 
-        config_encoder.n_boxes = args.n_boxes # VL adapter
-        
-        # for ExpandVisualEmbedding
-        config_encoder.expand_vis_embedding = args.expand_vis_embedding # VL adapter
-        config_encoder.n_image_tokens = args.n_image_tokens # VL adapter
+        config_encoder.n_boxes = args.n_boxes  # VL adapter
 
-        config_encoder.vis_use_transformer = args.vis_use_transformer # only for clip BART
+        # for ExpandVisualEmbedding
+        config_encoder.expand_vis_embedding = args.expand_vis_embedding  # VL adapter
+        config_encoder.n_image_tokens = args.n_image_tokens  # VL adapter
+
+        config_encoder.vis_use_transformer = args.vis_use_transformer  # only for clip BART
 
         # choose between OneDDownsample, Downsample, SparseSample for the model
         config_encoder.downsample = args.downsample
         config_encoder.oneddownsample = args.oneddownsample
         config_encoder.sparse_sample = args.sparse_sample
-        
+
         # augment number of layers for projection
-        config_encoder.additional_visual_embedding_layers = args.additional_visual_embedding_layers 
+        config_encoder.additional_visual_embedding_layers = args.additional_visual_embedding_layers
 
         # strategy when forwarding with the vision model
         config_encoder.vis_pooling_output = args.vis_pooling_output
         # TODO: Idk for now the use (dont use with T5 just with Bart)
         config_encoder.use_lm_head_adapter = args.use_lm_head_adapter
-        
+
         # which type of Adapter module or lra
         config_encoder.use_hyperformer = args.use_hyperformer
         config_encoder.use_adapter = args.use_adapter
@@ -233,15 +250,16 @@ class Trainer(object):
         # reduction factor in adapters
         config_encoder.reduction_factor = args.reduction_factor
 
-        # TODO: use ? add adapter cross attention 
+        # TODO: use ? add adapter cross attention
         config_encoder.add_adapter_cross_attn = args.add_adapter_cross_attn
 
-        tasks = re.split("[, ]+", args.tasks) # tranform to list
+        tasks = re.split("[, ]+", args.tasks)  # tranform to list
 
         # define adapters module
         if args.use_hyperformer or args.use_adapter or args.use_compacter or args.use_lradapter:
-            
-            assert config_encoder.use_hyperformer + config_encoder.use_adapter + config_encoder.use_compacter + config_encoder.use_lradapter <= 1, "You can only at most one kind of adapters."
+
+            assert config_encoder.use_hyperformer + config_encoder.use_adapter + config_encoder.use_compacter + \
+                config_encoder.use_lradapter <= 1, "You can only at most one kind of adapters."
 
             if args.use_hyperformer:
                 CONFIG_CLASS = MetaAdapterConfig
@@ -254,8 +272,9 @@ class Trainer(object):
 
             config_encoder.adapter_config = CONFIG_CLASS()
             config_encoder.adapter_config.tasks = tasks
-            config_encoder.adapter_config.input_dim = config_encoder.d_model # for hyperformer
-            config_encoder.adapter_config.d_model = config_encoder.d_model # for adapter and compactor
+            config_encoder.adapter_config.input_dim = config_encoder.d_model  # for hyperformer
+            # for adapter and compactor
+            config_encoder.adapter_config.d_model = config_encoder.d_model
             config_encoder.adapter_config.unique_hyper_net = args.unique_hyper_net
             config_encoder.adapter_config.efficient_unique_hyper_net = args.efficient_unique_hyper_net
             config_encoder.adapter_config.use_single_adapter = args.use_single_adapter
@@ -283,8 +302,8 @@ class Trainer(object):
 
         # for prompt
         # dimension middle in the linear config of the model for prompt
-        config_encoder.mid_dim = args.mid_dim 
-                
+        config_encoder.mid_dim = args.mid_dim
+
         if args.encoder_prompt_len > 0:
             config_encoder.encoder_prompt_config = EncoderPromptConfig()
             config_encoder.encoder_prompt_config.prompt_len = args.encoder_prompt_len
@@ -310,7 +329,7 @@ class Trainer(object):
             config_encoder.lora_config.lora_alpha = args.lora_alpha
             config_encoder.lora_config.tasks = tasks
             config_encoder.lora_config.use_single_lora = args.use_single_lora
-  
+
         # VLT5/BART
         config_encoder.use_vis_order_embedding = args.use_vis_order_embedding
         config_encoder.dropout_rate = args.dropout
@@ -321,22 +340,22 @@ class Trainer(object):
         config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
         #config_encoder.losses = args.losses
         config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
-        
+
         # TODO: add a way to use only the decoder
         config_encoder.embed_with_decoder = True
-        
+
         # unfreeze or freeze
         config_encoder.use_lora = args.use_lora
         config_encoder.unfreeze_visual_embedding = args.unfreeze_visual_embedding
         config_encoder.encoder_prompt_len = args.encoder_prompt_len
-        config_encoder.decoder_prompt_len =args.decoder_prompt_len
-        config_encoder.unfreeze_language_model=args.unfreeze_language_model
-        config_encoder.unfreeze_lm_head=args.unfreeze_lm_head
-        config_encoder.unfreeze_vis_encoder=args.unfreeze_vis_encoder
-        config_encoder.unfreeze_vis_last_layer=args.unfreeze_vis_last_layer
-        config_encoder.use_vis_adapter=args.use_vis_adapter
-        config_encoder.unfreeze_layer_norms=args.unfreeze_layer_norms
-        config_encoder.unfreeze_batch_norms=args.unfreeze_batch_norms
+        config_encoder.decoder_prompt_len = args.decoder_prompt_len
+        config_encoder.unfreeze_language_model = args.unfreeze_language_model
+        config_encoder.unfreeze_lm_head = args.unfreeze_lm_head
+        config_encoder.unfreeze_vis_encoder = args.unfreeze_vis_encoder
+        config_encoder.unfreeze_vis_last_layer = args.unfreeze_vis_last_layer
+        config_encoder.use_vis_adapter = args.use_vis_adapter
+        config_encoder.unfreeze_layer_norms = args.unfreeze_layer_norms
+        config_encoder.unfreeze_batch_norms = args.unfreeze_batch_norms
 
         return config_encoder
 
@@ -352,13 +371,13 @@ class Trainer(object):
 
         elif 'bart' in config_model._name_or_path:
             model_class = VLBart
-            
+
         model_name = config_model._name_or_path
-        
+
         model = model_class.from_pretrained(
             model_name,
             config=config_model,
-            )
+        )
         return model
 
     def create_tokenizer(self, config_model, **kwargs):
@@ -385,12 +404,12 @@ class Trainer(object):
             **kwargs
         )
         return tokenizer
-        
+
     def freeze_whole_model(self, model):
         for _, p in model.named_parameters():
             p.requires_grad = False
 
-    def unfreeze_parameters(self, model): 
+    def unfreeze_parameters(self, model):
         targets = ["visual_embedding"]
         # unfreeze the parameters in targets anyway
         if model.config.unfreeze_visual_embedding:
@@ -408,7 +427,7 @@ class Trainer(object):
                     p.requires_grad = True
                     print(f"{n} is trainable...")
             for name, sub_module in model.named_modules():
-                
+
                 if isinstance(sub_module, (modeling_bart.JointEncoder, modeling_bart.BartDecoder, modeling_t5.T5Stack, modeling_t5.JointEncoder)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
@@ -416,7 +435,8 @@ class Trainer(object):
                         param.requires_grad = True
 
         if model.config.unfreeze_lm_head:
-            targets = ["lm_head", "shared"] # shared and lm_head share the same weight
+            # shared and lm_head share the same weight
+            targets = ["lm_head", "shared"]
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
@@ -436,7 +456,7 @@ class Trainer(object):
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
-        
+
             if model.config.unfreeze_vis_encoder:
                 if isinstance(sub_module, (CLIPResNetEncoder)):
                     print(f"{name} is trainable...")
@@ -607,3 +627,35 @@ class Trainer(object):
 
     def embedding_question(self, **kwargs):
         return self.model.embed_image_question(**kwargs)
+
+
+def main_worker(gpu, config_question_path, config_passage_path, config_model_path, config_training_path):
+    # je lance le training avec DDP en précisant le local rank
+    trainer = Trainer(
+        config_question_path, 
+        config_passage_path, 
+        config_model_path,
+        config_training_path,
+        train_loader=None, 
+        val_loader=None, 
+        test_loader=None,
+        train=True)
+    trainer.train()
+
+
+if __name__ == '__main__':
+    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:  # torchrun launch
+        rank = int(os.environ["RANK"])
+        local_rank = int(os.environ["LOCAL_RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+    elif int(os.environ.get('SLURM_NPROCS', 1)) > 1:  # slurm launch
+        rank = int(os.environ["SLURM_PROCID"])
+        local_rank = int(os.environ["SLURM_LOCALID"])
+        world_size = int(os.environ["SLURM_NPROCS"])
+    else:  # single gpu & process launch
+        rank = 0
+        local_rank = 0
+        world_size = 0
+    # ajouter à ce moment là 
+    # args.distributed (vladapter passe cette argument dans script) et
+    # args.multi_gpu

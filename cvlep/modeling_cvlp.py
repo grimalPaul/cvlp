@@ -83,6 +83,7 @@ class CVLEP(nn.Module):
         similarities = question_embeddings @ context_embeddings.T
         log_probs = self.log_softmax(similarities)
         loss = self.loss_fct(log_probs, batch['labels'])
+        return loss
         
         
     @torch.no_grad()

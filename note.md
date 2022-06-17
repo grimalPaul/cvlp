@@ -501,7 +501,13 @@ vlbart_zs_imt_avg
 
 ## Distribuer les calculs
 
-DDP
+
+[Lien utile](https://glassboxmedicine.com/2020/03/04/multi-gpu-training-in-pytorch-data-and-model-parallelism/)
+
+[Distributed data vs distributeddataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html)
+
+If my model is too large to fit on a single GPU, I must use model parallel to split it
+
 Dataloader  permet de charger les données pour le dataset
 
 workers pour charger données pour le gpu
@@ -523,6 +529,8 @@ if distributed:
   dist.barrier()
 
 ```
+
+
 
 ## Arhictecture encoder decoder
 
