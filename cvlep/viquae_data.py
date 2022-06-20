@@ -372,6 +372,8 @@ class CLIPlikeDataset(Dataset):
             "context_image_boxes": context_boxes
         }
 
+def get_loader():
+    pass
 
 def test_dataloader():
     kwargs_clip = {
@@ -409,7 +411,7 @@ def test_dataloader():
     return dataloader_clip, dataloader_dpr
 
 
-
+"""
 def compute_loss_like_dpr(model1, model2, data, temperature):
     # fake function to implement after in the model
     log_softmax = nn.LogSoftmax(1)
@@ -466,7 +468,7 @@ def compute_loss_like_clip(model1, model2, data, temperature):
     passages_loss = cross_entropy(logits.T, targets.T, reduction='none')
     loss = (questions_loss + passages_loss) / 2.0  # shape: (batch_size)
     return loss.mean()
-
+"""
 
 if __name__ == '__main__':
     pass

@@ -3,6 +3,8 @@
 All possible argument for config for a model
 Some arguments are not compatible with each others
 
+please add foleder `snap/`
+
 ```json
 {      
     ///////train args//////////

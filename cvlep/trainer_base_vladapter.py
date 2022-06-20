@@ -159,7 +159,7 @@ class Trainer(object):
         if self.args.distributed:
             if self.args.gpu != 0:
                 self.verbose = False
-        
+
         if not self.verbose:
             set_global_logging_level(logging.ERROR, ["transformers"])
 
@@ -168,13 +168,11 @@ class Trainer(object):
             if self.args.fp16 and _use_native_amp:
                 self.scaler = torch.cuda.amp.GradScaler()
 
-
         # on instantie plusieurs modèle que l'on va placer sur tel ou tel rank
         # cela veut dire sur tel ou tel gpu
         if self.args.multiGPU:
             if self.args.distributed:
                 self.model = DDP(self.model, device_ids=["#TODO"])
-        
 
     def train(self):
         if self.verbose:
@@ -194,7 +192,7 @@ class Trainer(object):
                             loss = self.compute_loss(batch)
                 else:
                     loss = self.compute_loss(batch)
-                                
+
                 # loss.backward
                 if self.args.fp16 and _use_native_amp:
                     self.scaler.scale(loss).backward()
@@ -245,21 +243,21 @@ class Trainer(object):
                         lr = self.optim.get_lr()[0]
                     except AttributeError:
                         lr = self.args.lr
-                
+
                 if self.verbose:
                     loss_meter.update(loss.item())
                     desc_str = f'Epoch {epoch} | LR {lr:.6f}'
                     desc_str += f' | Loss {loss_meter.val:4f}'
                     pbar.set_description(desc_str)
                     pbar.update(1)
-            
+
             if self.verbose:
                 pbar.close()
-            
+
             # Validation
             if self.verbose and self.val_loader is not None:
                 self.model.eval()
-                with torch.no_grad()
+                with torch.no_grad():
                     loss_meter = LossMeter()
                     if self.verbose:
                         pbar = tqdm(total=len(self.train_loader), ncols=120)
@@ -276,73 +274,100 @@ class Trainer(object):
                         pbar.set_description(desc_str)
                         pbar.update(1)
                     pbar.close()
-
-                    
-
-            
+                if loss_meter.val > best_valid or epoch == 0:
+                    best_valid = loss_meter.val
+                    best_epoch = epoch
+                    self.save(f"best_{epoch}")
+                log_str = f"\nEpoch {epoch}: Valid Loss {loss_meter.val:4f}"
+                log_str += f"\nEpoch {best_epoch}: Best Loss {best_valid:4f}"
+                print(log_str)
+            elif epoch % 5 == 0:
+                self.save(f"e_{epoch}")
 
 
     def compute_loss(self, batch):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
         # From https://github.com/PaulLerner/ViQuAE/blob/e032dedc568c8a56b9a54ada6bb4dfa20c4301de/meerqat/train/trainer.py#L206
-        
-        local_labels = batch.pop("labels") # N labels
+
+        local_labels = batch.pop("labels")  # N labels
         if self.args.distributed:
-            output_question, output_context = self.model.module.train(batch)
-        else:   
-            output_question, output_context = self.model.train(batch)
-        
-        local_question_representations =  output_question # N question in the batch * dim model = N * d
-        local_context_representations = output_context # (1 relevant + 1 irrelevant) * N * dim model = 2N * d
-        
+            output_question, output_context = self.model.module.train_step(batch)
+        else:
+            output_question, output_context = self.model.train_step(batch)
+
+        # N question in the batch * dim model = N * d
+        local_question_representations = output_question
+        # (1 relevant + 1 irrelevant) * N * dim model = 2N * d
+        local_context_representations = output_context
+
         if self.args.world_size > 1:
-            question_representations_to_send = torch.empty_like(local_question_representations).copy_(local_question_representations).detach_()
-            context_representations_to_send = torch.empty_like(local_context_representations).copy_(local_context_representations).detach_()
+            question_representations_to_send = torch.empty_like(
+                local_question_representations).copy_(local_question_representations).detach_()
+            context_representations_to_send = torch.empty_like(
+                local_context_representations).copy_(local_context_representations).detach_()
             labels_to_send = torch.empty_like(local_labels).copy_(local_labels)
 
             # gathers representations from other GPUs
-            question_representations_gatherer = [torch.empty_like(question_representations_to_send) for _ in range(self.args.world_size)]
-            context_representations_gatherer = [torch.empty_like(context_representations_to_send) for _ in range(self.args.world_size)]
-            labels_gatherer = [torch.empty_like(labels_to_send) for _ in range(self.args.world_size)]
-            dist.all_gather(question_representations_gatherer, question_representations_to_send)
-            dist.all_gather(context_representations_gatherer, context_representations_to_send)
+            question_representations_gatherer = [torch.empty_like(
+                question_representations_to_send) for _ in range(self.args.world_size)]
+            context_representations_gatherer = [torch.empty_like(
+                context_representations_to_send) for _ in range(self.args.world_size)]
+            labels_gatherer = [torch.empty_like(
+                labels_to_send) for _ in range(self.args.world_size)]
+            dist.all_gather(question_representations_gatherer,
+                            question_representations_to_send)
+            dist.all_gather(context_representations_gatherer,
+                            context_representations_to_send)
             dist.all_gather(labels_gatherer, labels_to_send)
 
             # keep local vector in the local_rank index (taken from DPR, to not loose the gradients?)
             label_shift = 0
             global_question_representations, global_context_representations, global_labels = [], [], []
-            gatherers = zip(question_representations_gatherer, context_representations_gatherer, labels_gatherer)
+            gatherers = zip(question_representations_gatherer,
+                            context_representations_gatherer, labels_gatherer)
             for i, (received_question_representations, received_context_representations, received_labels) in enumerate(gatherers):
                 # receiving representations from other GPUs
                 if i != self.args.local_rank:
-                    global_question_representations.append(received_question_representations.to(local_question_representations.device))
-                    global_context_representations.append(received_context_representations.to(local_context_representations.device))
+                    global_question_representations.append(
+                        received_question_representations.to(local_question_representations.device))
+                    global_context_representations.append(
+                        received_context_representations.to(local_context_representations.device))
                     # labels are defined at the batch-level so we need to shift them when concatening batches
-                    received_labels[received_labels!=self.loss_fct.ignore_index] += label_shift
-                    label_shift += received_context_representations.shape[0]  # 2N
-                    global_labels.append(received_labels.to(local_labels.device))
+                    received_labels[received_labels !=
+                                    self.loss_fct.ignore_index] += label_shift
+                    # 2N
+                    label_shift += received_context_representations.shape[0]
+                    global_labels.append(
+                        received_labels.to(local_labels.device))
                 # keep local representation
                 else:
-                    global_question_representations.append(local_question_representations)
-                    global_context_representations.append(local_context_representations)
+                    global_question_representations.append(
+                        local_question_representations)
+                    global_context_representations.append(
+                        local_context_representations)
                     # labels are defined at the batch-level so we need to shift them when concatening batches
-                    local_labels[local_labels!=self.loss_fct.ignore_index] += label_shift
+                    local_labels[local_labels !=
+                                 self.loss_fct.ignore_index] += label_shift
                     label_shift += local_context_representations.shape[0]  # 2N
                     global_labels.append(local_labels)
-            global_question_representations = torch.cat(global_question_representations, dim=0)
-            global_context_representations = torch.cat(global_context_representations, dim=0)
+            global_question_representations = torch.cat(
+                global_question_representations, dim=0)
+            global_context_representations = torch.cat(
+                global_context_representations, dim=0)
             global_labels = torch.cat(global_labels, dim=0)
         else:
-            global_question_representations = local_question_representations  # (N, d)
-            global_context_representations = local_context_representations  # (2N, d)
+            # (N, d)
+            global_question_representations = local_question_representations
+            # (2N, d)
+            global_context_representations = local_context_representations
             global_labels = local_labels  # N
 
         # compute similarity
-        similarities = global_question_representations @ global_context_representations.T  # (N, 2N)
+        # (N, 2N)
+        similarities = global_question_representations @ global_context_representations.T
         log_probs = self.log_softmax(similarities)
 
         return self.loss_fct(log_probs, global_labels)
-
 
     def create_config(self, config_model):
         from transformers import T5Config, BartConfig
@@ -662,20 +687,6 @@ class Trainer(object):
         no_decay = ["bias", "LayerNorm.weight"]
 
         if 'adamw' in self.args.optim:
-                optimizer_grouped_parameters = [
-                    {
-                        "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
-                        "weight_decay": self.args.weight_decay,
-                    },
-                    {
-                        "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
-                        "weight_decay": 0.0,
-                    },
-                ]
-                optim = AdamW(optimizer_grouped_parameters,
-                            lr=self.args.lr, eps=self.args.adam_eps)
-
-        else:
             optimizer_grouped_parameters = [
                 {
                     "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
@@ -686,8 +697,11 @@ class Trainer(object):
                     "weight_decay": 0.0,
                 },
             ]
+            optim = AdamW(optimizer_grouped_parameters,
+                          lr=self.args.lr, eps=self.args.adam_eps)
 
-            optim = self.args.optimizer(optimizer_grouped_parameters, self.args.lr)
+        else:
+            raise NotImplementedError("We do not implement with other optimizer")
 
         batch_per_epoch = len(self.train_loader)
         t_total = batch_per_epoch // self.args.gradient_accumulation_steps * self.args.epochs
@@ -699,7 +713,8 @@ class Trainer(object):
             print('Warmup ratio:', warmup_ratio)
             print("Warm up Iters: %d" % warmup_iters)
 
-        lr_scheduler = get_linear_schedule_with_warmup(optim, warmup_iters, t_total)
+        lr_scheduler = get_linear_schedule_with_warmup(
+            optim, warmup_iters, t_total)
 
         return optim, lr_scheduler
 
@@ -743,17 +758,19 @@ class Trainer(object):
             self.encoder_passage.apply(init_bert_weights)
             self.encoder_passage.init_weights()
 
-    def predict(self):
-        pass
-
-    def evaluate(self):
-        pass
-
     def save(self, name):
         if not os.path.isdir(self.args.output):
             os.makedirs(self.args.output, exist_ok=True)
-        torch.save(self.model.state_dict(), os.path.join(
-            self.args.output, "%s.pth" % name))
+        # save image question encoder
+        torch.save(
+            self.model.image_question_encoder.state_dict(), 
+            os.path.join(self.args.output, f"{name}_question.pth")
+            )
+        # save image passage encoder
+        torch.save(
+            self.model.image_passage_encoder.state_dict(), 
+            os.path.join(self.args.output, f"{name}_passage.pth")
+            )
 
     def load(self, path, loc=None):
         if loc is None and hasattr(self.args, 'gpu'):
@@ -786,12 +803,12 @@ class Trainer(object):
 def main_worker(gpu, config_question_path, config_passage_path, config_model_path, config_training_path):
     # je lance le training avec DDP en précisant le local rank
     trainer = Trainer(
-        config_question_path, 
-        config_passage_path, 
+        config_question_path,
+        config_passage_path,
         config_model_path,
         config_training_path,
-        train_loader=None, 
-        val_loader=None, 
+        train_loader=None,
+        val_loader=None,
         test_loader=None,
         train=True)
     trainer.train()
@@ -810,7 +827,6 @@ if __name__ == '__main__':
         rank = 0
         local_rank = 0
         world_size = 0
-    # ajouter à ce moment là 
+    # ajouter à ce moment là
     # args.distributed (vladapter passe cette argument dans script) et
     # args.multi_gpu
-    

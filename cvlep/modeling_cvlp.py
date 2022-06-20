@@ -34,12 +34,6 @@ class CVLEP(nn.Module):
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
 
-        self.log_softmax = nn.LogSoftmax(1)
-        self.loss_fct = nn.NLLLoss(reduction='mean')
-
-    
-        # TODO: probably we want to share the same embedding between the two encoders
-        # TODO: probably we want to share the same visual projection between th two encoders
         print(config)
 
     def forward(
@@ -72,7 +66,7 @@ class CVLEP(nn.Module):
         return outputs_question, output_passage
 
     def train_step(self, batch):
-        question_embeddings, context_embeddings = self.forward(
+       return self.forward(
             question_input_ids=batch["input_ids_question"].to(device),
             question_attention_mask=batch["attention_mask_question"].to(device),
             question_vis_inputs=(batch["visual_feats_question"].to(device),batch["question_image_boxes"].to(device)),
@@ -80,19 +74,6 @@ class CVLEP(nn.Module):
             passage_attention_mask=batch["attention_mask_context"].to(device),
             passage_vis_inputs=(batch["visual_feats_context"].to(device),batch["context_image_boxes"].to(device))
         )
-        similarities = question_embeddings @ context_embeddings.T
-        log_probs = self.log_softmax(similarities)
-        loss = self.loss_fct(log_probs, batch['labels'])
-        return loss
-        
-        
-    @torch.no_grad()
-    def test_step(self, batch):
-        raise NotImplementedError()
-
-    @torch.no_grad()
-    def _init_weights(self, module):
-        raise NotImplementedError()
 
     @torch.no_grad()
     def embed_image_passage(self, **kwargs):
