@@ -1,4 +1,4 @@
-from regex import B
+import math
 from cvlep.VLT5.param import Config
 from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
@@ -7,9 +7,121 @@ import warnings
 from datasets import disable_caching, load_from_disk
 import random
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
+
 disable_caching()
 
+class DistributedEvalSampler(Sampler):
+    r"""
+    DistributedEvalSampler is different from DistributedSampler.
+    It does NOT add extra samples to make it evenly divisible.
+    DistributedEvalSampler should NOT be used for training. The distributed processes could hang forever.
+    See this issue for details: https://github.com/pytorch/pytorch/issues/22584
+    shuffle is disabled by default
+
+    DistributedEvalSampler is for evaluation purpose where synchronization does not happen every epoch.
+    Synchronization should be done outside the dataloader loop.
+
+    Sampler that restricts data loading to a subset of the dataset.
+
+    It is especially useful in conjunction with
+    :class:`torch.nn.parallel.DistributedDataParallel`. In such a case, each
+    process can pass a :class`~torch.utils.data.DistributedSampler` instance as a
+    :class:`~torch.utils.data.DataLoader` sampler, and load a subset of the
+    original dataset that is exclusive to it.
+
+    .. note::
+        Dataset is assumed to be of constant size.
+
+    Arguments:
+        dataset: Dataset used for sampling.
+        num_replicas (int, optional): Number of processes participating in
+            distributed training. By default, :attr:`rank` is retrieved from the
+            current distributed group.
+        rank (int, optional): Rank of the current process within :attr:`num_replicas`.
+            By default, :attr:`rank` is retrieved from the current distributed
+            group.
+        shuffle (bool, optional): If ``True`` (default), sampler will shuffle the
+            indices.
+        seed (int, optional): random seed used to shuffle the sampler if
+            :attr:`shuffle=True`. This number should be identical across all
+            processes in the distributed group. Default: ``0``.
+
+    .. warning::
+        In distributed mode, calling the :meth`set_epoch(epoch) <set_epoch>` method at
+        the beginning of each epoch **before** creating the :class:`DataLoader` iterator
+        is necessary to make shuffling work properly across multiple epochs. Otherwise,
+        the same ordering will be always used.
+
+    Example::
+
+        >>> sampler = DistributedSampler(dataset) if is_distributed else None
+        >>> loader = DataLoader(dataset, shuffle=(sampler is None),
+        ...                     sampler=sampler)
+        >>> for epoch in range(start_epoch, n_epochs):
+        ...     if is_distributed:
+        ...         sampler.set_epoch(epoch)
+        ...     train(loader)
+    """
+    # from https://github.com/SeungjunNah/DeepDeblur-PyTorch/blob/master/src/data/sampler.py
+    def __init__(self, dataset, num_replicas=None, rank=None, shuffle=False, seed=0):
+        if num_replicas is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            num_replicas = dist.get_world_size()
+        if rank is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            rank = dist.get_rank()
+        self.dataset = dataset
+        self.num_replicas = num_replicas
+        self.rank = rank
+        self.epoch = 0
+        # self.num_samples = int(math.ceil(len(self.dataset) * 1.0 / self.num_replicas))
+        # self.total_size = self.num_samples * self.num_replicas
+        self.total_size = len(self.dataset)         # true value without extra samples
+        indices = list(range(self.total_size))
+        indices = indices[self.rank:self.total_size:self.num_replicas]
+        self.num_samples = len(indices)             # true value without extra samples
+
+        self.shuffle = shuffle
+        self.seed = seed
+
+    def __iter__(self):
+        if self.shuffle:
+            # deterministically shuffle based on epoch and seed
+            g = torch.Generator()
+            g.manual_seed(self.seed + self.epoch)
+            indices = torch.randperm(len(self.dataset), generator=g).tolist()
+        else:
+            indices = list(range(len(self.dataset)))
+
+
+        # # add extra samples to make it evenly divisible
+        # indices += indices[:(self.total_size - len(indices))]
+        # assert len(indices) == self.total_size
+
+        # subsample
+        indices = indices[self.rank:self.total_size:self.num_replicas]
+        assert len(indices) == self.num_samples
+
+        return iter(indices)
+
+    def __len__(self):
+        return self.num_samples
+
+    def set_epoch(self, epoch):
+        r"""
+        Sets the epoch for this sampler. When :attr:`shuffle=True`, this ensures all replicas
+        use a different random ordering for each epoch. Otherwise, the next iteration of this
+        sampler will yield the same ordering.
+
+        Arguments:
+            epoch (int): _epoch number.
+        """
+        self.epoch = epoch
 
 def remove_lines(n_rows, split):
     index = [_ for _ in range(n_rows)]
@@ -24,8 +136,6 @@ def remove_lines(n_rows, split):
     for i in idx2remove:
         index.pop(i)
     return index
-
-# TODO: renvoyer aussi les masks d'attentions
 
 # https://arxiv.org/abs/2004.04906
 # Loss with relevant passage and irrelevant passages
@@ -242,7 +352,7 @@ class DPRDataset(Dataset):
 #                        |  passage   |              |  question  |
 # je dois gérer à chaque |text + image| associé à du |text + image|
 # example positif prendre question réponse, et négatif on utilise juste le batch
-class CLIPlikeDataset(Dataset):
+class SimpleContrastiveDataset(Dataset):
     def __init__(
             self,
             passages_path,
@@ -372,8 +482,86 @@ class CLIPlikeDataset(Dataset):
             "context_image_boxes": context_boxes
         }
 
-def get_loader():
-    pass
+def get_loader(
+        cls,
+        mode,
+        batch_size,
+        gpu,
+        distributed,
+        workers,
+        tokenizer_path,
+        dataset_path,
+        kb_path, 
+        passages_path,
+        key_relevant,
+        key_text_question,
+        key_text_passage,
+        key_vision_features,
+        key_vision_boxes,
+        split,
+        key_irrelevant = None
+        ):
+    if cls == "dpr":
+        dataset = DPRDataset(
+            passages_path=passages_path,
+            dataset_path=dataset_path,
+            kb_path=kb_path,
+            tokenizer_path=tokenizer_path,
+            key_relevant=key_relevant,
+            key_irrelevant=key_irrelevant,
+            key_text_question=key_text_question,
+            key_text_passage=key_text_passage,
+            key_vision_features=key_vision_features,
+            key_vision_boxes=key_vision_boxes,
+            split=split,
+            
+        )
+    elif cls == "clip":
+        dataset = SimpleContrastiveDataset(passages_path,
+            dataset_path=dataset_path,
+            kb_path=kb_path,
+            tokenizer_path=tokenizer_path,
+            key_relevant= key_relevant,
+            key_text_question = key_text_question,
+            key_text_passage=key_text_passage,
+            key_vision_features=key_vision_features,
+            key_vision_boxes=key_vision_boxes,
+            split=split
+            )
+    else :
+        raise NotImplementedError("This dataset is not implemented")
+    
+    # we want datasampler to avoid to have duplicate question
+    if distributed and mode == 'train':
+        sampler = DistributedSampler(dataset)
+    elif distributed and mode == 'eval':
+        sampler = DistributedEvalSampler(dataset)
+    else:
+        sampler = None
+    if mode=='train':
+        loader = DataLoader(
+            dataset = dataset,
+            batch_size=batch_size,
+            shuffle=(sampler is None),
+            num_workers = workers,
+            pin_memory=True,
+            sampler=sampler,
+            collate_fn=dataset.collate_fn
+        )
+    elif mode=='eval':
+        loader = DataLoader(
+            dataset = dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers = workers,
+            pin_memory=True,
+            sampler=sampler,
+            collate_fn=dataset.collate_fn
+        )
+    else:
+        raise NotImplementedError('this mode is not implemented')
+    return loader
+    
 
 def test_dataloader():
     kwargs_clip = {
@@ -402,7 +590,7 @@ def test_dataloader():
         "key_irrelevant": 'BM25_irrelevant_indices'
     }
     batch_size = 2
-    dataset_clip = CLIPlikeDataset(**kwargs_clip)
+    dataset_clip = SimpleContrastiveDataset(**kwargs_clip)
     dataloader_clip = DataLoader(
         dataset_clip, batch_size=batch_size, collate_fn=dataset_clip.collate_fn)
     dataset_dpr = DPRDataset(**kwargs_dpr)

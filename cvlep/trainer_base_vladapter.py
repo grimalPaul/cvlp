@@ -35,11 +35,12 @@ from cvlep.CLIPT5.vis_encoder import CLIPResNetEncoder
 from cvlep.CLIPT5.clip.model import VisualAdapter
 from transformers.models.t5.modeling_t5 import T5LayerNorm
 from tqdm import tqdm
+from cvlep.viquae_data import get_loader
 
 
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
-    raise NotImplementedError("We do not implement apex")
+    raise NotImplementedError("We did not implement apex")
 else:
     _use_native_amp = True
     from torch.cuda.amp import autocast
@@ -801,7 +802,30 @@ class Trainer(object):
 
 
 def main_worker(gpu, config_question_path, config_passage_path, config_model_path, config_training_path):
-    # je lance le training avec DDP en précisant le local rank
+    args.gpu = gpu
+    args.rank = gpu
+    print(f'Process Launching at GPU {gpu}')
+
+    if args.distributed:
+        torch.cuda.set_device(args.gpu)
+        dist.init_process_group(backend='nccl')
+
+    train_loader = get_loader(
+        args,
+        split=args.train, mode='train', batch_size=args.batch_size,
+        distributed=args.distributed, gpu=args.gpu,
+        workers=args.num_workers,
+        topk=args.train_topk,
+    )
+
+    val_loader = get_loader(
+            args,
+            split=args.valid, mode='val', batch_size=valid_batch_size,
+            distributed=False, gpu=args.gpu,
+            workers=4,
+            topk=args.valid_topk,
+        )
+
     trainer = Trainer(
         config_question_path,
         config_passage_path,
