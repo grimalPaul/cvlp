@@ -826,6 +826,8 @@ def main_worker(gpu, config_question_path, config_passage_path, config_model_pat
             topk=args.valid_topk,
         )
 
+
+    # mettre en place le seed pour le datalaoder avec set_epoch
     trainer = Trainer(
         config_question_path,
         config_passage_path,
