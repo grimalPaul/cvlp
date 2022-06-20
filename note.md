@@ -499,7 +499,7 @@ vlbart_zs_imt_avg
 [load and init some part of the model](https://discuss.pytorch.org/t/load-part-model-with-pretrained-weights-other-part-reinit-xavier/41310)
 [load avec les keys du states dict](https://discuss.pytorch.org/t/how-to-load-part-of-pre-trained-model/1113)
 
-## Distribuer les calculs
+## Distribuer et entrainement
 
 
 [Lien utile](https://glassboxmedicine.com/2020/03/04/multi-gpu-training-in-pytorch-data-and-model-parallelism/)
@@ -531,6 +531,11 @@ if distributed:
 ```
 
 
+warmup ratio ou warmup_step, petit changement jusqu'à atteindre le learning rate
+
+appliquer une normalisation
+
+clip grad norm : garder le gradient dans certaine proportion.
 
 ## Arhictecture encoder decoder
 
