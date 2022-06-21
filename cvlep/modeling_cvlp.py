@@ -8,7 +8,6 @@ from transformers.modeling_outputs import ModelOutput, BaseModelOutputWithPoolin
 from cvlep.VLT5.modeling_t5 import JointEncoder as encoderT5
 from cvlep.VLT5.modeling_bart import JointEncoder as encoderBart
 from typing import Optional, Tuple, Any
-from cvlep.utils import device
 
 
 class CVLEP(nn.Module):
@@ -66,7 +65,8 @@ class CVLEP(nn.Module):
         return outputs_question, output_passage
 
     def train_step(self, batch):
-       return self.forward(
+        device = next(self.parameters()).device
+        return self.forward(
             question_input_ids=batch["input_ids_question"].to(device),
             question_attention_mask=batch["attention_mask_question"].to(device),
             question_vis_inputs=(batch["visual_feats_question"].to(device),batch["question_image_boxes"].to(device)),

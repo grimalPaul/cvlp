@@ -15,7 +15,7 @@ from cvlep.CLIPT5.modeling_bart import VLBart
 from cvlep.VLT5.param import Config
 from cvlep.CLIPT5 import modeling_bart, modeling_t5
 from cvlep.modeling_cvlp import CVLEP
-from cvlep.utils import device, set_global_logging_level
+from cvlep.utils import set_global_logging_level
 import random
 import numpy as np
 from cvlep.CLIPT5.adapters import (
@@ -133,9 +133,10 @@ class Trainer(object):
 
         # Create the model
         self.model = self.create_model(config_model)
-        self.model.to(device)
+        
         # GPU Options
-        print(f'Model Launching at GPU {self.args.gpu}')
+        self.model.to(self.args.local_rank)
+        print(f'Model Launching at GPU {self.args.local_rank}')
 
         # freeze whole parameters first
         self.freeze_whole_model(self.model.image_passage_encoder)
@@ -804,7 +805,7 @@ def main_worker(config_training, args):
     print(f'Process Launching at GPU {config_training.local_rank}')
 
     if config_training.distributed:
-        torch.cuda.set_device(args.gpu)
+        torch.cuda.set_device(config_training.local_rank)
         dist.init_process_group(backend='nccl')
 
     train_loader = get_loader(
@@ -829,7 +830,7 @@ def main_worker(config_training, args):
 
     val_loader = get_loader(
         cls="dpr",
-        mode='train',
+        mode='eval',
         batch_size=config_training.valid_batch_size,
         seed=config_training.seed,
         distributed=config_training.distributed,
@@ -843,7 +844,7 @@ def main_worker(config_training, args):
         key_text_passage=config_training.key_text_passage,
         key_vision_features=config_training.key_vision_features,
         key_vision_boxes=config_training.key_vision_boxes,
-        split='train',
+        split='validation',
         key_irrelevant=config_training.key_irrelevant
     )
 
