@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from cvlep.VLT5.param import Config
 from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
@@ -482,11 +483,16 @@ class SimpleContrastiveDataset(Dataset):
             "context_image_boxes": context_boxes
         }
 
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 def get_loader(
         cls,
         mode,
         batch_size,
-        gpu,
+        seed,
         distributed,
         workers,
         tokenizer_path,
@@ -530,14 +536,15 @@ def get_loader(
             )
     else :
         raise NotImplementedError("This dataset is not implemented")
-    
     # we want datasampler to avoid to have duplicate question
     if distributed and mode == 'train':
-        sampler = DistributedSampler(dataset)
+        sampler = DistributedSampler(dataset, drop_last=True)
     elif distributed and mode == 'eval':
         sampler = DistributedEvalSampler(dataset)
     else:
         sampler = None
+    g = torch.Generator()
+    g.manual_seed(seed)
     if mode=='train':
         loader = DataLoader(
             dataset = dataset,
@@ -546,7 +553,9 @@ def get_loader(
             num_workers = workers,
             pin_memory=True,
             sampler=sampler,
-            collate_fn=dataset.collate_fn
+            collate_fn=dataset.collate_fn,
+            worker_init_fn=seed_worker,
+            generator=g
         )
     elif mode=='eval':
         loader = DataLoader(
@@ -556,7 +565,9 @@ def get_loader(
             num_workers = workers,
             pin_memory=True,
             sampler=sampler,
-            collate_fn=dataset.collate_fn
+            collate_fn=dataset.collate_fn,
+            worker_init_fn=seed_worker,
+            generator=g
         )
     else:
         raise NotImplementedError('this mode is not implemented')

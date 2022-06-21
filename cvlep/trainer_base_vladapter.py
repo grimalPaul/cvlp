@@ -1,3 +1,4 @@
+import argparse
 from distutils.command.config import config
 import re
 from torch import nn
@@ -47,27 +48,18 @@ else:
 
 
 class Trainer(object):
-    def __init__(self, config_question_path, config_passage_path, config_model_path, config_training_path, train_loader=None, val_loader=None, test_loader=None, train=True):
-        # on aura deux configs car deux encoders
-        # on fait via deux fichiers séparés
-        # on ajoute si vl adapter ou non pour nous faciliter les choses
-
-        # trois fichier
-        # config de chaque encoder
-        # config du training
+    def __init__(self, config_question_path, config_passage_path, config_model_path, config_training, train_loader=None, val_loader=None, test_loader=None, train=True):
+        
+        # config of the two part of the model
         config_encoder_question = Config.load_json(config_question_path)
         config_encoder_passage = Config.load_json(config_passage_path)
+        
+        # config of the whole model (encoder question + encoder passage)
         config_model = Config.load_json(config_model_path)
-        config_training = Config.load_json(config_training_path)
-
+        
+        # train config
         self.args = config_training
 
-        # Set seeds
-        torch.manual_seed(self.args.seed)
-        random.seed(self.args.seed)
-        np.random.seed(self.args.seed)
-
-        # TODO:apply for contrastive learning
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
@@ -173,7 +165,7 @@ class Trainer(object):
         # cela veut dire sur tel ou tel gpu
         if self.args.multiGPU:
             if self.args.distributed:
-                self.model = DDP(self.model, device_ids=["#TODO"])
+                self.model = DDP(self.model, device_ids=[config_training.local_rank])
 
     def train(self):
         if self.verbose:
@@ -184,6 +176,8 @@ class Trainer(object):
             if self.verbose:
                 loss_meter = LossMeter()
             self.model.train()
+            if self.args.distributed:
+                self.train_loader.sampler.set_epoch(epoch)
             if self.verbose:
                 pbar = tqdm(total=len(self.train_loader), ncols=120)
             for step_i, batch in enumerate(self.train_loader):
@@ -255,6 +249,8 @@ class Trainer(object):
             if self.verbose:
                 pbar.close()
 
+            dist.barrier()
+
             # Validation
             if self.verbose and self.val_loader is not None:
                 self.model.eval()
@@ -285,6 +281,7 @@ class Trainer(object):
             elif epoch % 5 == 0:
                 self.save(f"e_{epoch}")
 
+            dist.barrier()
 
     def compute_loss(self, batch):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
@@ -292,7 +289,8 @@ class Trainer(object):
 
         local_labels = batch.pop("labels")  # N labels
         if self.args.distributed:
-            output_question, output_context = self.model.module.train_step(batch)
+            output_question, output_context = self.model.module.train_step(
+                batch)
         else:
             output_question, output_context = self.model.train_step(batch)
 
@@ -702,7 +700,8 @@ class Trainer(object):
                           lr=self.args.lr, eps=self.args.adam_eps)
 
         else:
-            raise NotImplementedError("We do not implement with other optimizer")
+            raise NotImplementedError(
+                "We do not implement with other optimizer")
 
         batch_per_epoch = len(self.train_loader)
         t_total = batch_per_epoch // self.args.gradient_accumulation_steps * self.args.epochs
@@ -764,14 +763,14 @@ class Trainer(object):
             os.makedirs(self.args.output, exist_ok=True)
         # save image question encoder
         torch.save(
-            self.model.image_question_encoder.state_dict(), 
+            self.model.image_question_encoder.state_dict(),
             os.path.join(self.args.output, f"{name}_question.pth")
-            )
+        )
         # save image passage encoder
         torch.save(
-            self.model.image_passage_encoder.state_dict(), 
+            self.model.image_passage_encoder.state_dict(),
             os.path.join(self.args.output, f"{name}_passage.pth")
-            )
+        )
 
     def load(self, path, loc=None):
         if loc is None and hasattr(self.args, 'gpu'):
@@ -801,42 +800,63 @@ class Trainer(object):
         return self.model.embed_image_question(**kwargs)
 
 
-def main_worker(gpu, config_question_path, config_passage_path, config_model_path, config_training_path):
-    args.gpu = gpu
-    args.rank = gpu
-    print(f'Process Launching at GPU {gpu}')
+def main_worker(config_training, args):
+    print(f'Process Launching at GPU {config_training.local_rank}')
 
-    if args.distributed:
+    if config_training.distributed:
         torch.cuda.set_device(args.gpu)
         dist.init_process_group(backend='nccl')
 
     train_loader = get_loader(
-        args,
-        split=args.train, mode='train', batch_size=args.batch_size,
-        distributed=args.distributed, gpu=args.gpu,
-        workers=args.num_workers,
-        topk=args.train_topk,
+        cls="dpr",
+        mode='train',
+        batch_size=config_training.batch_size,
+        seed=config_training.seed,
+        distributed=config_training.distributed,
+        workers=config_training.num_workers,
+        tokenizer_path=config_training.tokenizer_path,
+        dataset_path=config_training.dataset_path,
+        kb_path=config_training.kb_path,
+        passages_path=config_training.passages_path,
+        key_relevant=config_training.key_relevant,
+        key_text_question=config_training.key_text_question,
+        key_text_passage=config_training.key_text_passage,
+        key_vision_features=config_training.key_vision_features,
+        key_vision_boxes=config_training.key_vision_boxes,
+        split='train',
+        key_irrelevant=config_training.key_irrelevant
     )
 
     val_loader = get_loader(
-            args,
-            split=args.valid, mode='val', batch_size=valid_batch_size,
-            distributed=False, gpu=args.gpu,
-            workers=4,
-            topk=args.valid_topk,
-        )
+        cls="dpr",
+        mode='train',
+        batch_size=config_training.valid_batch_size,
+        seed=config_training.seed,
+        distributed=config_training.distributed,
+        workers=config_training.num_workers,
+        tokenizer_path=config_training.tokenizer_path,
+        dataset_path=config_training.dataset_path,
+        kb_path=config_training.kb_path,
+        passages_path=config_training.passages_path,
+        key_relevant=config_training.key_relevant,
+        key_text_question=config_training.key_text_question,
+        key_text_passage=config_training.key_text_passage,
+        key_vision_features=config_training.key_vision_features,
+        key_vision_boxes=config_training.key_vision_boxes,
+        split='train',
+        key_irrelevant=config_training.key_irrelevant
+    )
 
-
-    # mettre en place le seed pour le datalaoder avec set_epoch
     trainer = Trainer(
-        config_question_path,
-        config_passage_path,
-        config_model_path,
-        config_training_path,
-        train_loader=None,
-        val_loader=None,
+        config_question_path = args.encoder_question_path,
+        config_passage_path = args.encoder_passage_path,
+        config_model_path=args.model_path,
+        config_training=config_training,
+        train_loader=train_loader,
+        val_loader=val_loader,
         test_loader=None,
-        train=True)
+        train=True
+        )
     trainer.train()
 
 
@@ -853,6 +873,26 @@ if __name__ == '__main__':
         rank = 0
         local_rank = 0
         world_size = 0
-    # ajouter à ce moment là
-    # args.distributed (vladapter passe cette argument dans script) et
-    # args.multi_gpu
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--encoder_question_path', type=str, required=True)
+    parser.add_argument('--encoder_passage_path', type = str, required=True)
+    parser.add_argument('--model_path', type=str, required=True)
+    parser.add_argument('--training_path', type=str, required=True)
+    args = parser.parse_args()
+
+    # Creer config du training à ce moment là
+    config_training = Config.load_json(args.training_path)
+
+    if world_size > 1:
+        config_training.distributed = True
+        config_training.multiGPU = True
+        config_training.world_size = world_size
+        config_training.local_rank = local_rank
+    else:
+        config_training.distributed = False
+        config_training.multiGPU = False
+        config_training.world_size = world_size
+        config_training.local_rank = local_rank
+
+    main_worker(config_training, args.encoder_path)

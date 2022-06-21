@@ -18,6 +18,15 @@
     "train": "path_to_dataset/training",
     "valid": "path_to_dataset/validation",
     "valid_batch_size": 16,
-    "distributed": true,
-    "multiGPU": true
+
+    "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
+    "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
+    "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+    "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
+    "key_relevant": "provenance_indices",
+    "key_text_question": "input",
+    "key_text_passage": "passage",
+    "key_vision_features": "vlt5_features",
+    "key_vision_boxes": "vlt5_normalized_boxes",
+    "key_irrelevant": "BM25_irrelevant_indices"
 }
