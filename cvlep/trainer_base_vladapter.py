@@ -261,8 +261,8 @@ class Trainer(object):
                 with torch.no_grad():
                     loss_meter = LossMeter()
                     if self.verbose:
-                        pbar = tqdm(total=len(self.train_loader), ncols=120)
-                    for step_i, batch in enumerate(self.train_loader):
+                        pbar = tqdm(total=len(self.val_loader), ncols=120)
+                    for step_i, batch in enumerate(self.val_loader):
                         if self.args.fp16 and _use_native_amp:
                             with autocast():
                                 if self.args.distributed:
@@ -273,7 +273,8 @@ class Trainer(object):
                         desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
                         pbar.set_description(desc_str)
                         pbar.update(1)
-                    pbar.close()
+                    if self.verbose:
+                        pbar.close()
                 if loss_meter.val > best_valid or epoch == 0:
                     best_valid = loss_meter.val
                     best_epoch = epoch
