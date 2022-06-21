@@ -32,9 +32,7 @@ class CVLEP(nn.Module):
 
         self.image_question_encoder = image_question_encoder
         self.image_passage_encoder = image_passage_encoder
-
-        print(config)
-
+        
     def forward(
         self,
         question_input_ids=None,

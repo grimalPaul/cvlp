@@ -1,6 +1,7 @@
 import argparse
 from distutils.command.config import config
 import re
+from sqlalchemy import true
 from torch import nn
 import torch
 from cvlep.VLT5.utils import LossMeter, load_state_dict
@@ -64,6 +65,14 @@ class Trainer(object):
         self.val_loader = val_loader
         self.test_loader = test_loader
 
+        self.verbose = True
+        if self.args.distributed:
+            if self.args.local_rank != 0:
+                self.verbose = False
+
+        if not self.verbose:
+            set_global_logging_level(logging.ERROR, ["transformers"])
+        
         # create config
         ModelQuestionConfig = self.create_config(config_encoder_question)
         ModelPassageConfig = self.create_config(config_encoder_passage)
@@ -149,13 +158,7 @@ class Trainer(object):
         self.log_softmax = nn.LogSoftmax(1)
         self.loss_fct = nn.NLLLoss(reduction='mean')
 
-        self.verbose = True
-        if self.args.distributed:
-            if self.args.local_rank != 0:
-                self.verbose = False
-
-        if not self.verbose:
-            set_global_logging_level(logging.ERROR, ["transformers"])
+        
 
         if train:
             self.optim, self.lr_scheduler = self.create_optimizer_and_scheduler()
@@ -807,10 +810,17 @@ class Trainer(object):
 def main_worker(config_training, args):
     print(f'Process Launching at GPU {config_training.local_rank}')
 
+    if config_training.distributed and not dist.is_initialized():
+        dist.init_process_group(backend='nccl', world_size=config_training.world_size, rank=config_training.rank)
     if config_training.distributed:
-        torch.cuda.device(config_training.local_rank)
-        dist.init_process_group(backend='nccl')
-
+        torch.device("cuda", index = config_training.local_rank)
+    else:
+        torch.device("cpu")
+    
+    verbose = True
+    if config_training.distributed:
+            if config_training.local_rank != 0:
+                verbose = False
     train_loader = get_loader(
         cls="dpr",
         mode='train',
@@ -828,7 +838,8 @@ def main_worker(config_training, args):
         key_vision_features=config_training.key_vision_features,
         key_vision_boxes=config_training.key_vision_boxes,
         split='train',
-        key_irrelevant=config_training.key_irrelevant
+        key_irrelevant=config_training.key_irrelevant,
+        verbose=verbose
     )
 
     val_loader = get_loader(
@@ -848,7 +859,8 @@ def main_worker(config_training, args):
         key_vision_features=config_training.key_vision_features,
         key_vision_boxes=config_training.key_vision_boxes,
         split='validation',
-        key_irrelevant=config_training.key_irrelevant
+        key_irrelevant=config_training.key_irrelevant,
+        verbose=verbose
     )
 
     trainer = Trainer(
@@ -861,7 +873,7 @@ def main_worker(config_training, args):
         test_loader=None,
         train=True
         )
-    #trainer.train()
+    trainer.train()
 
 
 if __name__ == '__main__':
@@ -887,16 +899,14 @@ if __name__ == '__main__':
 
     # Training config
     config_training = Config.load_json(args.training_path)
-
+    config_training.world_size = world_size
+    config_training.rank = rank
+    config_training.local_rank = local_rank
     if world_size > 1:
         config_training.distributed = True
         config_training.multiGPU = True
-        config_training.world_size = world_size
-        config_training.local_rank = local_rank
     else:
         config_training.distributed = False
         config_training.multiGPU = False
-        config_training.world_size = world_size
-        config_training.local_rank = local_rank
 
     main_worker(config_training, args)

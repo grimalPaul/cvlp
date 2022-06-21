@@ -505,6 +505,7 @@ def get_loader(
         key_vision_features,
         key_vision_boxes,
         split,
+        verbose = False,
         key_irrelevant = None
         ):
     if cls == "dpr":
@@ -520,7 +521,7 @@ def get_loader(
             key_vision_features=key_vision_features,
             key_vision_boxes=key_vision_boxes,
             split=split,
-            
+            verbose=verbose
         )
     elif cls == "clip":
         dataset = SimpleContrastiveDataset(passages_path,
@@ -532,7 +533,8 @@ def get_loader(
             key_text_passage=key_text_passage,
             key_vision_features=key_vision_features,
             key_vision_boxes=key_vision_boxes,
-            split=split
+            split=split,
+            verbose=verbose
             )
     else :
         raise NotImplementedError("This dataset is not implemented")
