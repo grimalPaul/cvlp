@@ -291,12 +291,11 @@ class Trainer(object):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
         # From https://github.com/PaulLerner/ViQuAE/blob/e032dedc568c8a56b9a54ada6bb4dfa20c4301de/meerqat/train/trainer.py#L206
 
-        local_labels = batch.pop("labels")  # N labels
         if self.args.distributed:
-            output_question, output_context = self.model.module.train_step(
+            output_question, output_context, local_labels = self.model.module.train_step(
                 batch)
         else:
-            output_question, output_context = self.model.train_step(batch)
+            output_question, output_context, local_labels = self.model.train_step(batch)
 
         # N question in the batch * dim model = N * d
         local_question_representations = output_question
