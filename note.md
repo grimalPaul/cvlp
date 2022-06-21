@@ -537,6 +537,12 @@ appliquer une normalisation
 
 clip grad norm : garder le gradient dans certaine proportion.
 
+Si je fais la validation uniquement sur un processus je dois mettre un dist barrier a la fin de validation pour que les aitres attendent le gpu qui gere la validation
+
+Il y a possibilité d'ajoute un training à chaque fois
+
+Si on a distributed data et qu'on met un batch size, ce sera le batch size par device donc si b_s = 16 on aura 16 * N gpu
+
 ## Arhictecture encoder decoder
 
 J'ai mis en place très rapidement mon modèle. Peut être que j'auurai besoin de refactor à un moment.

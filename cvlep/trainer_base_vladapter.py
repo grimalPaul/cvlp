@@ -151,7 +151,7 @@ class Trainer(object):
 
         self.verbose = True
         if self.args.distributed:
-            if self.args.gpu != 0:
+            if self.args.local_rank != 0:
                 self.verbose = False
 
         if not self.verbose:
@@ -774,6 +774,8 @@ class Trainer(object):
         )
 
     def load(self, path, loc=None):
+        pass
+        """
         if loc is None and hasattr(self.args, 'gpu'):
             loc = f'cuda:{self.args.gpu}'
         state_dict = torch.load("%s.pth" % path, map_location=loc)
@@ -793,6 +795,7 @@ class Trainer(object):
         if self.verbose:
             print('Model loaded from ', path)
             pprint(results)
+        """
 
     def embedding_passage(self, **kwargs):
         return self.model.embed_image_passage(**kwargs)
@@ -805,7 +808,7 @@ def main_worker(config_training, args):
     print(f'Process Launching at GPU {config_training.local_rank}')
 
     if config_training.distributed:
-        torch.cuda.set_device(config_training.local_rank)
+        torch.cuda.device(config_training.local_rank)
         dist.init_process_group(backend='nccl')
 
     train_loader = get_loader(
@@ -858,7 +861,7 @@ def main_worker(config_training, args):
         test_loader=None,
         train=True
         )
-    trainer.train()
+    #trainer.train()
 
 
 if __name__ == '__main__':
@@ -882,7 +885,7 @@ if __name__ == '__main__':
     parser.add_argument('--training_path', type=str, required=True)
     args = parser.parse_args()
 
-    # Creer config du training à ce moment là
+    # Training config
     config_training = Config.load_json(args.training_path)
 
     if world_size > 1:
@@ -896,4 +899,4 @@ if __name__ == '__main__':
         config_training.world_size = world_size
         config_training.local_rank = local_rank
 
-    main_worker(config_training, args.encoder_path)
+    main_worker(config_training, args)

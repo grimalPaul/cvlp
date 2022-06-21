@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Any
 
 
 class CVLEP(nn.Module):
-    def __init__(self, config, image_question_encoder, image_passage_encoder, embedding_question=None, embedding_passage=None):
+    def __init__(self, config, image_question_encoder, image_passage_encoder):
 
         super().__init__()
         self.config = config
