@@ -1,6 +1,7 @@
 import argparse
 from distutils.command.config import config
 import re
+from attr import s
 from sqlalchemy import true
 from torch import nn
 import torch
@@ -50,14 +51,14 @@ else:
 
 class Trainer(object):
     def __init__(self, config_question_path, config_passage_path, config_model_path, config_training, train_loader=None, val_loader=None, test_loader=None, train=True):
-        
+
         # config of the two part of the model
         config_encoder_question = Config.load_json(config_question_path)
         config_encoder_passage = Config.load_json(config_passage_path)
-        
+
         # config of the whole model (encoder question + encoder passage)
         config_model = Config.load_json(config_model_path)
-        
+
         # train config
         self.args = config_training
 
@@ -72,7 +73,7 @@ class Trainer(object):
 
         if not self.verbose:
             set_global_logging_level(logging.ERROR, ["transformers"])
-        
+
         # create config
         ModelQuestionConfig = self.create_config(config_encoder_question)
         ModelPassageConfig = self.create_config(config_encoder_passage)
@@ -142,7 +143,7 @@ class Trainer(object):
 
         # Create the model
         self.model = self.create_model(config_model)
-        
+
         # GPU Options
         self.model.to(self.args.local_rank)
         print(f'Model Launching at GPU {self.args.local_rank}')
@@ -158,8 +159,6 @@ class Trainer(object):
         self.log_softmax = nn.LogSoftmax(1)
         self.loss_fct = nn.NLLLoss(reduction='mean')
 
-        
-
         if train:
             self.optim, self.lr_scheduler = self.create_optimizer_and_scheduler()
             if self.args.fp16 and _use_native_amp:
@@ -169,7 +168,8 @@ class Trainer(object):
         # cela veut dire sur tel ou tel gpu
         if self.args.multiGPU:
             if self.args.distributed:
-                self.model = DDP(self.model, device_ids=[config_training.local_rank])
+                self.model = DDP(self.model, device_ids=[
+                                 config_training.local_rank])
 
     def train(self):
         if self.verbose:
@@ -252,8 +252,8 @@ class Trainer(object):
 
             if self.verbose:
                 pbar.close()
-
-            dist.barrier()
+            if self.args.distributed:
+                dist.barrier()
 
             # Validation
             if self.verbose and self.val_loader is not None:
@@ -270,22 +270,30 @@ class Trainer(object):
                         else:
                             loss = self.compute_loss(batch)
                         loss_meter.update(loss.item())
-                        desc_str = f'Epoch {epoch} | LR {lr:.6f}'
-                        desc_str += f' | Loss {loss_meter.val:4f}'
+                        desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
                         pbar.set_description(desc_str)
                         pbar.update(1)
                     pbar.close()
                 if loss_meter.val > best_valid or epoch == 0:
                     best_valid = loss_meter.val
                     best_epoch = epoch
-                    self.save(f"best_{epoch}")
+                    if self.args.distributed:
+                        if self.args.local_rank == 0:
+                            self.save(f"best_{epoch}")
+                    else:
+                        self.save(f"best_{epoch}")
+                elif epoch % 5 == 0:
+                    if self.args.distributed:
+                        if self.args.local_rank == 0:
+                            self.save(f"e_{epoch}")
+                    else:
+                        self.save(f"best_{epoch}")
                 log_str = f"\nEpoch {epoch}: Valid Loss {loss_meter.val:4f}"
                 log_str += f"\nEpoch {best_epoch}: Best Loss {best_valid:4f}"
                 print(log_str)
-            elif epoch % 5 == 0:
-                self.save(f"e_{epoch}")
 
-            dist.barrier()
+            if self.args.distributed:
+                dist.barrier()
 
     def compute_loss(self, batch):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
@@ -295,7 +303,8 @@ class Trainer(object):
             output_question, output_context, local_labels = self.model.module.train_step(
                 batch)
         else:
-            output_question, output_context, local_labels = self.model.train_step(batch)
+            output_question, output_context, local_labels = self.model.train_step(
+                batch)
 
         # N question in the batch * dim model = N * d
         local_question_representations = output_question
@@ -764,16 +773,28 @@ class Trainer(object):
     def save(self, name):
         if not os.path.isdir(self.args.output):
             os.makedirs(self.args.output, exist_ok=True)
-        # save image question encoder
-        torch.save(
-            self.model.image_question_encoder.state_dict(),
-            os.path.join(self.args.output, f"{name}_question.pth")
-        )
-        # save image passage encoder
-        torch.save(
-            self.model.image_passage_encoder.state_dict(),
-            os.path.join(self.args.output, f"{name}_passage.pth")
-        )
+        if self.args.distributed:
+            # save image question encoder
+            torch.save(
+                self.module.model.image_question_encoder.state_dict(),
+                os.path.join(self.args.output, f"{name}_question.pth")
+            )
+            # save image passage encoder
+            torch.save(
+                self.module.model.image_passage_encoder.state_dict(),
+                os.path.join(self.args.output, f"{name}_passage.pth")
+            )
+        else:
+            # save image question encoder
+            torch.save(
+                self.model.image_question_encoder.state_dict(),
+                os.path.join(self.args.output, f"{name}_question.pth")
+            )
+            # save image passage encoder
+            torch.save(
+                self.model.image_passage_encoder.state_dict(),
+                os.path.join(self.args.output, f"{name}_passage.pth")
+            )
 
     def load(self, path, loc=None):
         pass
@@ -810,16 +831,17 @@ def main_worker(config_training, args):
     print(f'Process Launching at GPU {config_training.local_rank}')
 
     if config_training.distributed and not dist.is_initialized():
-        dist.init_process_group(backend='nccl', world_size=config_training.world_size, rank=config_training.rank)
+        dist.init_process_group(
+            backend='nccl', world_size=config_training.world_size, rank=config_training.rank)
     if config_training.distributed:
-        torch.device("cuda", index = config_training.local_rank)
+        torch.device("cuda", index=config_training.local_rank)
     else:
         torch.device("cpu")
-    
+
     verbose = True
     if config_training.distributed:
-            if config_training.local_rank != 0:
-                verbose = False
+        if config_training.local_rank != 0:
+            verbose = False
     train_loader = get_loader(
         cls="dpr",
         mode='train',
@@ -863,15 +885,15 @@ def main_worker(config_training, args):
     )
 
     trainer = Trainer(
-        config_question_path = args.encoder_question_path,
-        config_passage_path = args.encoder_passage_path,
+        config_question_path=args.encoder_question_path,
+        config_passage_path=args.encoder_passage_path,
         config_model_path=args.model_path,
         config_training=config_training,
         train_loader=train_loader,
         val_loader=val_loader,
         test_loader=None,
         train=True
-        )
+    )
     trainer.train()
 
 
@@ -891,7 +913,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--encoder_question_path', type=str, required=True)
-    parser.add_argument('--encoder_passage_path', type = str, required=True)
+    parser.add_argument('--encoder_passage_path', type=str, required=True)
     parser.add_argument('--model_path', type=str, required=True)
     parser.add_argument('--training_path', type=str, required=True)
     args = parser.parse_args()
