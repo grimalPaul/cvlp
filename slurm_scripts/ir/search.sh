@@ -10,9 +10,11 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
+echo "prompt"
+
 python -m search \
-    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset/test \
-    --config=experiments/ir/VL/zero_shot.json \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset/test \
+    --config=experiments/ir/VL/experiments/prompt_tuning/1test.json \
     --metrics_path=experiments/ir/VL \
     --k=100 \
     --batch_size=64
