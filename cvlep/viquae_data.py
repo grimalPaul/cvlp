@@ -508,6 +508,10 @@ def get_loader(
         verbose = False,
         key_irrelevant = None
         ):
+
+    g = torch.Generator()
+    g.manual_seed(seed)
+
     if cls == "dpr":
         dataset = DPRDataset(
             passages_path=passages_path,
@@ -540,13 +544,12 @@ def get_loader(
         raise NotImplementedError("This dataset is not implemented")
     # we want datasampler to avoid to have duplicate question
     if distributed and mode == 'train':
-        sampler = DistributedSampler(dataset, drop_last=True)
+        sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
     elif distributed and mode == 'eval':
-        sampler = DistributedEvalSampler(dataset)
+        sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
     else:
         sampler = None
-    g = torch.Generator()
-    g.manual_seed(seed)
+    
     if mode=='train':
         loader = DataLoader(
             dataset = dataset,

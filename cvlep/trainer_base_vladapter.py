@@ -175,15 +175,16 @@ class Trainer(object):
         if self.verbose:
             best_valid = 0.
             best_epoch = 0
-
+        if self.args.distributed:
+            # to always have the same validation loader
+            self.val_loader.sampler.set_epoch(0)
         for epoch in range(self.args.epochs):
             if self.verbose:
                 loss_meter = LossMeter()
+                pbar = tqdm(total=len(self.train_loader), ncols=120)
             self.model.train()
             if self.args.distributed:
                 self.train_loader.sampler.set_epoch(epoch)
-            if self.verbose:
-                pbar = tqdm(total=len(self.train_loader), ncols=120)
             for step_i, batch in enumerate(self.train_loader):
                 if self.args.fp16 and _use_native_amp:
                     with autocast():
@@ -250,17 +251,18 @@ class Trainer(object):
                     pbar.set_description(desc_str)
                     pbar.update(1)
 
-            if self.verbose:
-                pbar.close()
             if self.args.distributed:
                 dist.barrier()
-
+            
+            if self.verbose:
+                pbar.close()
+            
             # Validation
-            if self.verbose and self.val_loader is not None:
+            if self.val_loader is not None:
                 self.model.eval()
                 with torch.no_grad():
-                    loss_meter = LossMeter()
                     if self.verbose:
+                        loss_meter = LossMeter()
                         pbar = tqdm(total=len(self.val_loader), ncols=120)
                     for step_i, batch in enumerate(self.val_loader):
                         if self.args.fp16 and _use_native_amp:
@@ -269,29 +271,31 @@ class Trainer(object):
                                     loss = self.compute_loss(batch)
                         else:
                             loss = self.compute_loss(batch)
-                        loss_meter.update(loss.item())
-                        desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
-                        pbar.set_description(desc_str)
-                        pbar.update(1)
+                        if self.verbose:
+                            loss_meter.update(loss.item())
+                            desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
+                            pbar.set_description(desc_str)
+                            pbar.update(1)
                     if self.verbose:
                         pbar.close()
-                if loss_meter.val > best_valid or epoch == 0:
-                    best_valid = loss_meter.val
-                    best_epoch = epoch
-                    if self.args.distributed:
-                        if self.args.local_rank == 0:
+                if self.verbose:
+                    if loss_meter.val < best_valid or epoch == 0:
+                        best_valid = loss_meter.val
+                        best_epoch = epoch
+                        if self.args.distributed:
+                            if self.args.local_rank == 0:
+                                self.save(f"best_{epoch}")
+                        else:
                             self.save(f"best_{epoch}")
-                    else:
-                        self.save(f"best_{epoch}")
-                elif epoch % 5 == 0:
-                    if self.args.distributed:
-                        if self.args.local_rank == 0:
-                            self.save(f"e_{epoch}")
-                    else:
-                        self.save(f"best_{epoch}")
-                log_str = f"\nEpoch {epoch}: Valid Loss {loss_meter.val:4f}"
-                log_str += f"\nEpoch {best_epoch}: Best Loss {best_valid:4f}"
-                print(log_str)
+                    elif epoch % 5 == 0:
+                        if self.args.distributed:
+                            if self.args.local_rank == 0:
+                                self.save(f"e_{epoch}")
+                        else:
+                            self.save(f"best_{epoch}")
+                    log_str = f"\nEpoch {epoch}/{self.args.epochs}: Valid Loss {loss_meter.val:4f}"
+                    log_str += f"\nBest Epoch {best_epoch}: Best Valid Loss {best_valid:4f}"
+                    print(log_str)
 
             if self.args.distributed:
                 dist.barrier()
@@ -777,12 +781,12 @@ class Trainer(object):
         if self.args.distributed:
             # save image question encoder
             torch.save(
-                self.module.model.image_question_encoder.state_dict(),
+                self.model.module.image_question_encoder.state_dict(),
                 os.path.join(self.args.output, f"{name}_question.pth")
             )
             # save image passage encoder
             torch.save(
-                self.module.model.image_passage_encoder.state_dict(),
+                self.model.module.image_passage_encoder.state_dict(),
                 os.path.join(self.args.output, f"{name}_passage.pth")
             )
         else:

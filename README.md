@@ -154,6 +154,38 @@ python -m processing.irrelevant \
 
 TODO: MAYBE do the same things than before with DPR zero shot
 
+### Train VLT5
+
+#### Visual Encoder Faster CNN
+
+We train our model from the pretrain VLT5 model
+
+##### Prompt tuning
+
+TODO: add step
+freeze or not visual encoder
+
+##### Adapter
+
+TODO: add step
+freeze or not visual encoder
+
+#### Visual Encoder : CLIP
+
+We must pretrained the model on pretrained task(s). We use adapter for the pretraining.
+
+##### Pretraining
+
+##### Prompt tunning
+
+TODO: add step
+freeze or not visual encoder
+
+##### Adapter
+
+TODO: add step
+freeze or not visual encoder
+
 ## Aknowledgments
 
 Many thanks to following codes that help us a lot in building this codebase:
