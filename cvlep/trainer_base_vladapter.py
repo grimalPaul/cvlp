@@ -825,11 +825,11 @@ class Trainer(object):
             pprint(results)
         """
 
-    def embedding_passage(self, **kwargs):
-        return self.model.embed_image_passage(**kwargs)
+    def embedding_passage(self, batch):
+        return self.model.embed_image_passage(batch)
 
-    def embedding_question(self, **kwargs):
-        return self.model.embed_image_question(**kwargs)
+    def embedding_question(self, batch):
+        return self.model.embed_image_question(batch)
 
 
 def main_worker(config_training, args):

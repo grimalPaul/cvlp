@@ -79,12 +79,30 @@ class CVLEP(nn.Module):
         return outputs_question, output_passage, labels
 
     @torch.no_grad()
-    def embed_image_passage(self, **kwargs):
-        return self.image_passage_encoder.encode(**kwargs).pooler_output
+    def embed_image_passage(self, **batch):
+        device = next(self.parameters()).device
+
+        return self.image_passage_encoder.encode(
+            input_ids=batch["input_ids"].to(device),
+            attention_mask=batch["attention_mask"].to(device),
+            vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),
+            task=batch["task"],
+            return_pooled_output=True,
+            pool_strategy="avg"
+        ).pooler_output
 
     @torch.no_grad()
-    def embed_image_question(self, **kwargs):
-        return self.image_passage_encoder.encode(**kwargs).pooler_output
+    def embed_image_question(self, batch):
+        device = next(self.parameters()).device
+
+        return self.image_passage_encoder.encode(
+            input_ids=batch["input_ids"].to(device),
+            attention_mask=batch["attention_mask"].to(device),
+            vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),
+            task=batch["task"],
+            return_pooled_output=True,
+            pool_strategy="avg"
+        ).pooler_output
 
 
 def compute_loss_like_dpr(model1, model2, data, temperature):
