@@ -68,7 +68,7 @@ class Trainer(object):
 
         self.verbose = True
         if self.args.distributed:
-            if self.args.local_rank != 0:
+            if self.args.rank != 0:
                 self.verbose = False
 
         if not self.verbose:
@@ -181,7 +181,7 @@ class Trainer(object):
         for epoch in range(self.args.epochs):
             if self.verbose:
                 loss_meter = LossMeter()
-                pbar = tqdm(total=len(self.train_loader), ncols=120)
+                pbar = tqdm(total=len(self.train_loader), ncols=100)
             self.model.train()
             if self.args.distributed:
                 self.train_loader.sampler.set_epoch(epoch)
@@ -263,7 +263,7 @@ class Trainer(object):
                 with torch.no_grad():
                     if self.verbose:
                         loss_meter = LossMeter()
-                        pbar = tqdm(total=len(self.val_loader), ncols=120)
+                        pbar = tqdm(total=len(self.val_loader), ncols=100)
                     for step_i, batch in enumerate(self.val_loader):
                         if self.args.fp16 and _use_native_amp:
                             with autocast():
@@ -283,17 +283,17 @@ class Trainer(object):
                         best_valid = loss_meter.val
                         best_epoch = epoch
                         if self.args.distributed:
-                            if self.args.local_rank == 0:
+                            if self.args.rank == 0:
                                 self.save(f"best_{epoch}")
                         else:
                             self.save(f"best_{epoch}")
                     elif epoch % 5 == 0:
                         if self.args.distributed:
-                            if self.args.local_rank == 0:
+                            if self.args.rank == 0:
                                 self.save(f"e_{epoch}")
                         else:
                             self.save(f"best_{epoch}")
-                    log_str = f"\nEpoch {epoch}/{self.args.epochs}: Valid Loss {loss_meter.val:4f}"
+                    log_str = f"\nEpoch {epoch}/{self.args.epochs - 1}: Valid Loss {loss_meter.val:4f}"
                     log_str += f"\nBest Epoch {best_epoch}: Best Valid Loss {best_valid:4f}"
                     print(log_str)
 
@@ -343,7 +343,7 @@ class Trainer(object):
                             context_representations_gatherer, labels_gatherer)
             for i, (received_question_representations, received_context_representations, received_labels) in enumerate(gatherers):
                 # receiving representations from other GPUs
-                if i != self.args.local_rank:
+                if i != self.args.rank:
                     global_question_representations.append(
                         received_question_representations.to(local_question_representations.device))
                     global_context_representations.append(
@@ -833,7 +833,7 @@ class Trainer(object):
 
 
 def main_worker(config_training, args):
-    print(f'Process Launching at GPU {config_training.local_rank}')
+    print(f'Process Launching at GPU {config_training.local_rank} and rank is {config_training.rank}')
 
     if config_training.distributed and not dist.is_initialized():
         dist.init_process_group(
@@ -845,8 +845,11 @@ def main_worker(config_training, args):
 
     verbose = True
     if config_training.distributed:
-        if config_training.local_rank != 0:
+        if config_training.rank != 0:
             verbose = False
+    if verbose:
+        print(f"World size : {config_training.world_size}")
+    
     train_loader = get_loader(
         cls="dpr",
         mode='train',
@@ -867,7 +870,6 @@ def main_worker(config_training, args):
         key_irrelevant=config_training.key_irrelevant,
         verbose=verbose
     )
-
     val_loader = get_loader(
         cls="dpr",
         mode='eval',
