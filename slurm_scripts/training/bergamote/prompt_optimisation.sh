@@ -15,8 +15,8 @@ echo "CUDA devices : $CUDA_VISIBLE_DEVICES"
 export MASTER_ADDR="$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n1)"
 export MASTER_PORT=29700
 
-encoder_question_path=experiments/config_vladapter/bergamote/prompt/encoder_prompting.json
-encoder_passage_path=experiments/config_vladapter/bergamote/prompt/encoder_prompting.json
+encoder_question_path=experiments/config_vladapter/bergamote/trained_models/prompt/question_encoder_prompting.json
+encoder_passage_path=experiments/config_vladapter/bergamote/trained_models/prompt/passage_encoder_prompting.json
 model_path=experiments/config_vladapter/bergamote/prompt/config_model.json
 training_path=experiments/config_vladapter/bergamote/prompt/training_prompt.json
 

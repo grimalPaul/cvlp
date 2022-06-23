@@ -1,8 +1,5 @@
 import argparse
-from distutils.command.config import config
 import re
-from attr import s
-from sqlalchemy import true
 from torch import nn
 import torch
 from cvlep.VLT5.utils import LossMeter, load_state_dict
@@ -178,6 +175,8 @@ class Trainer(object):
         if self.args.distributed:
             # to always have the same validation loader
             self.val_loader.sampler.set_epoch(0)
+            
+
         for epoch in range(self.args.epochs):
             if self.verbose:
                 loss_meter = LossMeter()
@@ -253,10 +252,10 @@ class Trainer(object):
 
             if self.args.distributed:
                 dist.barrier()
-            
+
             if self.verbose:
                 pbar.close()
-            
+
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
@@ -299,6 +298,31 @@ class Trainer(object):
 
             if self.args.distributed:
                 dist.barrier()
+        
+        
+    
+    def test(self):      
+        if self.test_loader is not None:
+            if self.args.distributed:
+                self.test_loader.sampler.set_epoch(0)
+            self.model.eval()
+            if self.verbose:
+                loss_meter = LossMeter()
+                pbar = tqdm(total=len(self.test_loader), ncols=100)
+            for step_i, batch in enumerate(self.test_loader):
+                if self.args.fp16 and _use_native_amp:
+                    with autocast():
+                        if self.args.distributed:
+                            loss = self.compute_loss(batch)
+                else:
+                    loss = self.compute_loss(batch)
+                if self.verbose:
+                    loss_meter.update(loss.item())
+                    desc_str = f'Test Loss {loss_meter.val:4f}'
+                    pbar.set_description(desc_str)
+                    pbar.update(1)
+            if self.verbose:
+                pbar.close()
 
     def compute_loss(self, batch):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
@@ -801,29 +825,21 @@ class Trainer(object):
                 os.path.join(self.args.output, f"{name}_passage.pth")
             )
 
-    def load(self, path, loc=None):
-        pass
-        """
-        if loc is None and hasattr(self.args, 'gpu'):
-            loc = f'cuda:{self.args.gpu}'
-        state_dict = torch.load("%s.pth" % path, map_location=loc)
+    def load(self, epoch):
+        path_question = os.path.join(self.args.output, f"best_{epoch}_question.pth")
+        path_passage = os.path.join(self.args.output, f"best_{epoch}_passage.pth")
+        if self.args.distributed :
+            loc = self.args.rank
+        state_dict_question = torch.load(path_question, map_location=loc)
+        state_dict_passage = torch.load(path_passage, map_location=loc)
 
-        original_keys = list(state_dict.keys())
-        for key in original_keys:
-            if key.startswith("module.vis_encoder."):
-                new_key = 'module.encoder.' + key[len("module.vis_encoder."):]
-                state_dict[new_key] = state_dict.pop(key)
+        results_question = self.model.image_passage_encoder.load_state_dict(state_dict_passage,strict=False)
+        results_passage = self.model.image_question_encoder.load_state_dict(state_dict_question, strict=False)
 
-            if key.startswith("module.model.vis_encoder."):
-                new_key = 'module.model.encoder.' + \
-                    key[len("module.model.vis_encoder."):]
-                state_dict[new_key] = state_dict.pop(key)
-
-        results = self.model.load_state_dict(state_dict, strict=False)
         if self.verbose:
-            print('Model loaded from ', path)
-            pprint(results)
-        """
+            print(f'Model loaded from \n -{path_question}\n-{path_passage}')
+            pprint(results_question)
+            pprint(results_passage)
 
     def embedding_passage(self, batch):
         return self.model.embed_image_passage(batch)
@@ -833,7 +849,8 @@ class Trainer(object):
 
 
 def main_worker(config_training, args):
-    print(f'Process Launching at GPU {config_training.local_rank} and rank is {config_training.rank}')
+    print(
+        f'Process Launching at GPU {config_training.local_rank} and rank is {config_training.rank}')
 
     if config_training.distributed and not dist.is_initialized():
         dist.init_process_group(
@@ -849,47 +866,75 @@ def main_worker(config_training, args):
             verbose = False
     if verbose:
         print(f"World size : {config_training.world_size}")
-    
-    train_loader = get_loader(
-        cls="dpr",
-        mode='train',
-        batch_size=config_training.batch_size,
-        seed=config_training.seed,
-        distributed=config_training.distributed,
-        workers=config_training.num_workers,
-        tokenizer_path=config_training.tokenizer_path,
-        dataset_path=config_training.dataset_path,
-        kb_path=config_training.kb_path,
-        passages_path=config_training.passages_path,
-        key_relevant=config_training.key_relevant,
-        key_text_question=config_training.key_text_question,
-        key_text_passage=config_training.key_text_passage,
-        key_vision_features=config_training.key_vision_features,
-        key_vision_boxes=config_training.key_vision_boxes,
-        split='train',
-        key_irrelevant=config_training.key_irrelevant,
-        verbose=verbose
-    )
-    val_loader = get_loader(
-        cls="dpr",
-        mode='eval',
-        batch_size=config_training.valid_batch_size,
-        seed=config_training.seed,
-        distributed=config_training.distributed,
-        workers=config_training.num_workers,
-        tokenizer_path=config_training.tokenizer_path,
-        dataset_path=config_training.dataset_path,
-        kb_path=config_training.kb_path,
-        passages_path=config_training.passages_path,
-        key_relevant=config_training.key_relevant,
-        key_text_question=config_training.key_text_question,
-        key_text_passage=config_training.key_text_passage,
-        key_vision_features=config_training.key_vision_features,
-        key_vision_boxes=config_training.key_vision_boxes,
-        split='validation',
-        key_irrelevant=config_training.key_irrelevant,
-        verbose=verbose
-    )
+
+    if config_training.train:
+        train_loader = get_loader(
+            cls="dpr",
+            mode='train',
+            batch_size=config_training.batch_size,
+            seed=config_training.seed,
+            distributed=config_training.distributed,
+            workers=config_training.num_workers,
+            tokenizer_path=config_training.tokenizer_path,
+            dataset_path=config_training.dataset_path,
+            kb_path=config_training.kb_path,
+            passages_path=config_training.passages_path,
+            key_relevant=config_training.key_relevant,
+            key_text_question=config_training.key_text_question,
+            key_text_passage=config_training.key_text_passage,
+            key_vision_features=config_training.key_vision_features,
+            key_vision_boxes=config_training.key_vision_boxes,
+            split='train',
+            key_irrelevant=config_training.key_irrelevant,
+            verbose=verbose
+        )
+        val_loader = get_loader(
+            cls="dpr",
+            mode='eval',
+            batch_size=config_training.valid_batch_size,
+            seed=config_training.seed,
+            distributed=config_training.distributed,
+            workers=config_training.num_workers,
+            tokenizer_path=config_training.tokenizer_path,
+            dataset_path=config_training.dataset_path,
+            kb_path=config_training.kb_path,
+            passages_path=config_training.passages_path,
+            key_relevant=config_training.key_relevant,
+            key_text_question=config_training.key_text_question,
+            key_text_passage=config_training.key_text_passage,
+            key_vision_features=config_training.key_vision_features,
+            key_vision_boxes=config_training.key_vision_boxes,
+            split='validation',
+            key_irrelevant=config_training.key_irrelevant,
+            verbose=verbose
+        )
+    else :
+        train_loader=None
+        val_loader=None
+
+    if config_training.test:
+        test_loader = get_loader(
+            cls="dpr",
+            mode='test',
+            batch_size=config_training.test_batch_size,
+            seed=config_training.seed,
+            distributed=config_training.distributed,
+            workers=config_training.num_workers,
+            tokenizer_path=config_training.tokenizer_path,
+            dataset_path=config_training.dataset_path,
+            kb_path=config_training.kb_path,
+            passages_path=config_training.passages_path,
+            key_relevant=config_training.key_relevant,
+            key_text_question=config_training.key_text_question,
+            key_text_passage=config_training.key_text_passage,
+            key_vision_features=config_training.key_vision_features,
+            key_vision_boxes=config_training.key_vision_boxes,
+            split='test',
+            key_irrelevant=config_training.key_irrelevant,
+            verbose=verbose
+        )
+    else:
+        test_loader = None
 
     trainer = Trainer(
         config_question_path=args.encoder_question_path,
@@ -898,11 +943,14 @@ def main_worker(config_training, args):
         config_training=config_training,
         train_loader=train_loader,
         val_loader=val_loader,
-        test_loader=None,
-        train=True
+        test_loader=test_loader,
+        train=config_training.train
     )
-    trainer.train()
 
+    if config_training.train:
+        trainer.train()
+    elif config_training.test:
+        trainer.test()
 
 if __name__ == '__main__':
     if "RANK" in os.environ and "WORLD_SIZE" in os.environ:  # torchrun launch
