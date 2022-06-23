@@ -610,12 +610,14 @@ No jobs required :-), activate a conda environment with tensorboard on the front
 module load conda
 conda activate myenv
 tensorboard --logdir=. --port=6666  # change to any available port
+
+tensorboard --logdir=XXXXXXXX --port=AAAA
 ```
 
 From your local computer, redirect the port tensorboard is listening on:
 
 ```bash
-ssh -L 6666:localhost:6666 -N bergamote
+ssh -L AAAA:localhost:AAAA -N bergamote
 ssh -L 6666:localhost:6666 -N username@factoryia
 ```
 

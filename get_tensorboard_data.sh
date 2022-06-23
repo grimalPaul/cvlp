@@ -1,0 +1,1 @@
+rsync -az -v bergamote:/home/pgrimal/CVLEP/tensorboard/ /home/pgrimal/Documents/Projects/visual_language_representation/tensorboard/
