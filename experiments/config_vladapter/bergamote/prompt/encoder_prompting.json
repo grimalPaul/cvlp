@@ -26,7 +26,7 @@
     "add_adapter_cross_attn":false,
     "tasks":"IR",
     "use_single_prompt":true,
-    "encoder_prompt_len":20,
+    "encoder_prompt_len":40,
     "mid_dim":800,
     "decoder_prompt_len":0,
     "reduction_factor":null,

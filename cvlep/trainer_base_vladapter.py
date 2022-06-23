@@ -36,7 +36,7 @@ from cvlep.CLIPT5.clip.model import VisualAdapter
 from transformers.models.t5.modeling_t5 import T5LayerNorm
 from tqdm import tqdm
 from cvlep.viquae_data import get_loader
-
+from torch.utils.tensorboard import SummaryWriter
 
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
@@ -67,6 +67,8 @@ class Trainer(object):
         if self.args.distributed:
             if self.args.rank != 0:
                 self.verbose = False
+        if train and self.verbose:
+            self.writer = SummaryWriter(log_dir=self.args.log_tensorboard_path)
 
         if not self.verbose:
             set_global_logging_level(logging.ERROR, ["transformers"])
@@ -175,7 +177,6 @@ class Trainer(object):
         if self.args.distributed:
             # to always have the same validation loader
             self.val_loader.sampler.set_epoch(0)
-            
 
         for epoch in range(self.args.epochs):
             if self.verbose:
@@ -255,7 +256,9 @@ class Trainer(object):
 
             if self.verbose:
                 pbar.close()
-
+                self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
+                self.writer.add_scalar('lr', lr, epoch)
+                self.writer.flush()
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
@@ -277,6 +280,9 @@ class Trainer(object):
                             pbar.update(1)
                     if self.verbose:
                         pbar.close()
+                        self.writer.add_scalar(
+                            'Validation_loss', loss_meter.val, epoch)
+                        self.writer.flush()
                 if self.verbose:
                     if loss_meter.val < best_valid or epoch == 0:
                         best_valid = loss_meter.val
@@ -299,9 +305,10 @@ class Trainer(object):
             if self.args.distributed:
                 dist.barrier()
         
-        
-    
-    def test(self):      
+        if self.verbose:
+            self.writer.close()
+
+    def test(self):
         if self.test_loader is not None:
             if self.args.distributed:
                 self.test_loader.sampler.set_epoch(0)
@@ -826,15 +833,19 @@ class Trainer(object):
             )
 
     def load(self, epoch):
-        path_question = os.path.join(self.args.output, f"best_{epoch}_question.pth")
-        path_passage = os.path.join(self.args.output, f"best_{epoch}_passage.pth")
-        if self.args.distributed :
+        path_question = os.path.join(
+            self.args.output, f"best_{epoch}_question.pth")
+        path_passage = os.path.join(
+            self.args.output, f"best_{epoch}_passage.pth")
+        if self.args.distributed:
             loc = self.args.rank
         state_dict_question = torch.load(path_question, map_location=loc)
         state_dict_passage = torch.load(path_passage, map_location=loc)
 
-        results_question = self.model.image_passage_encoder.load_state_dict(state_dict_passage,strict=False)
-        results_passage = self.model.image_question_encoder.load_state_dict(state_dict_question, strict=False)
+        results_question = self.model.image_passage_encoder.load_state_dict(
+            state_dict_passage, strict=False)
+        results_passage = self.model.image_question_encoder.load_state_dict(
+            state_dict_question, strict=False)
 
         if self.verbose:
             print(f'Model loaded from \n -{path_question}\n-{path_passage}')
@@ -908,11 +919,9 @@ def main_worker(config_training, args):
             key_irrelevant=config_training.key_irrelevant,
             verbose=verbose
         )
-    else :
-        train_loader=None
-        val_loader=None
 
-    if config_training.test:
+        test_loader = None
+    elif config_training.test:
         test_loader = get_loader(
             cls="dpr",
             mode='test',
@@ -933,8 +942,8 @@ def main_worker(config_training, args):
             key_irrelevant=config_training.key_irrelevant,
             verbose=verbose
         )
-    else:
-        test_loader = None
+        train_loader = None
+        val_loader = None
 
     trainer = Trainer(
         config_question_path=args.encoder_question_path,
@@ -951,6 +960,7 @@ def main_worker(config_training, args):
         trainer.train()
     elif config_training.test:
         trainer.test()
+
 
 if __name__ == '__main__':
     if "RANK" in os.environ and "WORLD_SIZE" in os.environ:  # torchrun launch

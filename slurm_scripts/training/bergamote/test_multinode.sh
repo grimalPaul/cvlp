@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --time=0-02:00:00
+#SBATCH --time=7-00:00:00
 #SBATCH --nodes=2
 #SBATCH -J prompt
 #SBATCH --gres=gpu:4
 #SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=46G
 #SBATCH --nodelist=node7,node4
 

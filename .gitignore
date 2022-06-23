@@ -11,6 +11,7 @@ __pycache__/
 test.py
 /process_data
 /results
+/tensorboard
 
 # Distribution / packaging
 .Python

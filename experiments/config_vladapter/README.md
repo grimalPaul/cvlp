@@ -1,5 +1,63 @@
 # Help
 
+train set up
+
+```json
+{
+    "adam_eps": 1e-06,
+    "batch_size": 4,
+    "clip_grad_norm": -1.0,
+    "warmup_ratio": 0.00,
+    "weight_decay": 0.00,
+    "epochs": 1,
+    "fp16": true,
+    "gradient_accumulation_steps": 1,
+    "lr": 0.001,
+    "num_workers": 2,
+    "optim": "adamw",
+    "output": "snap/prompt_training_multinodes/",
+    "seed": 0,
+    "test_batch_size":2,
+    "valid_batch_size": 4,
+    "train":true,
+    "log_tensorboard_path":"tensorboard/prompt_optimisation/",
+    "tokenizer_path": "experiments/config_vladapter/bergamote/prompt/TokenizerConfig.json",
+    "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
+    "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+    "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+    "key_relevant": "provenance_indices",
+    "key_text_question": "input",
+    "key_text_passage": "passage",
+    "key_vision_features": "vlt5_features",
+    "key_vision_boxes": "vlt5_normalized_boxes",
+    "key_irrelevant": "BM25_irrelevant_indices"
+}
+```
+
+Test set up
+For the encoder config you have to precise a path that contain a trained model
+
+```json
+{
+    "fp16": true,
+    "num_workers": 2,
+    "seed": 0,
+    "test": true,
+    "test_batch_size":2,
+    "train":false,
+    "tokenizer_path": "experiments/config_vladapter/bergamote/prompt/TokenizerConfig.json",
+    "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
+    "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+    "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+    "key_relevant": "provenance_indices",
+    "key_text_question": "input",
+    "key_text_passage": "passage",
+    "key_vision_features": "vlt5_features",
+    "key_vision_boxes": "vlt5_normalized_boxes",
+    "key_irrelevant": "BM25_irrelevant_indices"
+}
+```
+
 All possible argument for config for a model
 Some arguments are not compatible with each others
 

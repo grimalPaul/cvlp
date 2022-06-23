@@ -88,18 +88,17 @@ Le sep pour T5 est `?`. Il parle d'un sep_token
 ### Tokenizer T5
 
 [doc hugging face](https://huggingface.co/docs/transformers/model_doc/t5#transformers.T5Tokenizer)
+No jobs required :-), activate a conda environment with tensorboard on the frontal server:
 
-Quand on fait tokenizer.encode() on ne génère pas de mask
+module load conda
+conda activate myenv
+tensorboard --logdir=. --port=6666  # change to any available port
 
-### Tokenizer Bart
+From your local computer, redirect the port tensorboard is listening on:
 
-[doc hugging face](https://huggingface.co/docs/transformers/model_doc/bart#transformers.BartTokenizer)
+ssh -L 6006:localhost:6006 -N username@factoryia
 
-## accéder aux images
-
-on enregistre le nom de l'image dans le dataset passage dans le cas ou on veut faire les embeddings des images à chaque fois
-
-dans le cas ou on a besoin d'enregistrer les features des images. Faire embeddings de la kb. Et trouver un moyen de transférer les embeddings avec le passage index
+And open tensorboard in your browser at <http://localhost:6006>
 
 ## similarity search dense vector FAISS
 
@@ -142,15 +141,17 @@ ou juste utiliser.numpy()
 
 ## Visual embedding de T5
 
-Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. Je pense qu'avec Clip on fournit une seule image et embedding d'une seule image.
+Fait un embedding dans une certaine dimension. Je pense que chaque box a une dimension. JeNo jobs required :-), activate a conda environment with tensorboard on the frontal server:
 
-embedding partagé pour visual et pour les tokens
+module load conda
+conda activate myenv
+tensorboard --logdir=. --port=6666  # change to any available port
 
-Voir VL adapter cr me sera très utile je pense pour train mon modèle et faire du finetuning.
+From your local computer, redirect the port tensorboard is listening on:
 
-Réussir mes premières expés.
+ssh -L 6006:localhost:6006 -N username@factoryia
 
-Pour visual content.Il y a une projection qui est apprise et appliquer sur embedding de l'image + on ajoute obj order embedding
+And open tensorboard in your browser at <http://localhost:6006>'image + on ajoute obj order embedding
 
 ```py
 VisualEmbedding(
@@ -501,7 +502,6 @@ vlbart_zs_imt_avg
 
 ## Distribuer et entrainement
 
-
 [Lien utile](https://glassboxmedicine.com/2020/03/04/multi-gpu-training-in-pytorch-data-and-model-parallelism/)
 
 [Distributed data vs distributeddataParallel](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html)
@@ -529,7 +529,6 @@ if distributed:
   dist.barrier()
 
 ```
-
 
 warmup ratio ou warmup_step, petit changement jusqu'à atteindre le learning rate
 
@@ -596,15 +595,31 @@ Comment se déroule un entrainement quand on partage des embeddings ?
 
 [why share embedding](https://arxiv.org/pdf/1608.05859.pdf)
 
-
 Voir pour initialiser prompt et adapter par défaut
 Mettre partage des infos
 
 probablement couplé à du random search
 
-https://arxiv.org/pdf/1711.09846.pdf
-https://medium.com/distributed-computing-with-ray/hyperparameter-optimization-for-transformers-a-guide-c4e32c6c989b
+<https://arxiv.org/pdf/1711.09846.pdf>
+<https://medium.com/distributed-computing-with-ray/hyperparameter-optimization-for-transformers-a-guide-c4e32c6c989b>
 
+## Tensorboard
+
+No jobs required :-), activate a conda environment with tensorboard on the frontal server:
+```bash
+module load conda
+conda activate myenv
+tensorboard --logdir=. --port=6666  # change to any available port
+```
+
+From your local computer, redirect the port tensorboard is listening on:
+
+```bash
+ssh -L 6666:localhost:6666 -N bergamote
+ssh -L 6666:localhost:6666 -N username@factoryia
+```
+
+And open tensorboard in your browser at <http://localhost:6666>
 
 ## multi image
 
