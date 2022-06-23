@@ -231,7 +231,6 @@ class KnowledgeBase:
                 es_index = self.dataset._indexes[index_name]
                 es_index_name = es_index.es_index_name
                 self.es_client.indices.close(index = es_index_name)
-                print("------\n s =",settings)
                 self.es_client.indices.put_settings(body = settings, index = es_index_name)
                 self.es_client.indices.open(index = es_index_name)
         else:

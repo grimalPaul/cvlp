@@ -152,7 +152,39 @@ python -m processing.irrelevant \
 
 ### Search relevant and irrelevant passages with DPR
 
-TODO: do the same things than before with DPR zero shot
+TODO: MAYBE do the same things than before with DPR zero shot
+
+### Train VLT5
+
+#### Visual Encoder Faster CNN
+
+We train our model from the pretrain VLT5 model
+
+##### Prompt tuning
+
+TODO: add step
+freeze or not visual encoder
+
+##### Adapter
+
+TODO: add step
+freeze or not visual encoder
+
+#### Visual Encoder : CLIP
+
+We must pretrained the model on pretrained task(s). We use adapter for the pretraining.
+
+##### Pretraining
+
+##### Prompt tunning
+
+TODO: add step
+freeze or not visual encoder
+
+##### Adapter
+
+TODO: add step
+freeze or not visual encoder
 
 ## Aknowledgments
 
@@ -166,5 +198,26 @@ Many thanks to following codes that help us a lot in building this codebase:
 
 ```py
 column = 'input'
+# Bart
+# Replace sep
 dataset = dataset.map(lambda x: {x[column]:x[column].replace('[SEP]','</s>')})
+# add classification token
+dataset = dataset.map(lambda x: {x[column]:'<s>'+x[column]})
+
+# T5
+# replace sep
+dataset = dataset.map(lambda x: {x[column]:x[column].replace('[SEP]','.')})
+# add classification token
+dataset = dataset.map(lambda x: {x[column]:'<pad>+'x[column]})
 ```
+
+cls_token bart : `<s>`
+
+sep token bart : `</s>`
+
+cls token T5, T5 use `<pad>` for classifier
+sep token T5 : dont have, use `.`, `,`, or `;` instead ?. Explore that in further works.
+
+## Methodology
+
+Quand je referai mes expés sur gros dataset, réfléchir à bien avoir juste les passages contenant les réponses dans passages.

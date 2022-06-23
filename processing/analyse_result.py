@@ -1,3 +1,4 @@
+from pathlib import Path
 from datasets import load_from_disk, disable_caching
 import argparse
 import json
@@ -22,6 +23,7 @@ def generate_doc(dataset, kb, passages, key, k=5):
                 {
                     'index': i,
                     'image_input': row['image'],
+                    # get only one wrong image corresponding to the first passage
                     'image_passage': kb[passages[indexes_passages[0]]['index']]['image'],
                     'input': row['input'],
                     'passages': passages[indexes_passages]['passage'][0:k]
@@ -55,6 +57,8 @@ if __name__ == '__main__':
     dataset = load_from_disk(arg.dataset_path)
     relevant, irrelevant = generate_doc(dataset, kb, passages, arg.key, arg.k)
     if arg.save_path is not None:
+        save_path = Path(arg.save_path)
+        save_path.mkdir(exist_ok=True)
         with open(f'{arg.save_path}/relevant.json', 'w') as f:
             json.dump(relevant, f, indent=4)
         with open(f'{arg.save_path}/irrelevant.json', 'w') as f:
