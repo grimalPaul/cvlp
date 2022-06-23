@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from cvlep.VLT5.param import Config
-from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
+from cvlep.CLIPT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
 from multiprocessing import context
 import warnings

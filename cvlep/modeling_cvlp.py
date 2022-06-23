@@ -5,8 +5,6 @@ import torch
 from torch import nn
 from transformers import T5Config
 from transformers.modeling_outputs import ModelOutput, BaseModelOutputWithPooling
-from cvlep.VLT5.modeling_t5 import JointEncoder as encoderT5
-from cvlep.VLT5.modeling_bart import JointEncoder as encoderBart
 from typing import Optional, Tuple, Any
 
 
