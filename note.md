@@ -603,6 +603,26 @@ probablement couplé à du random search
 <https://arxiv.org/pdf/1711.09846.pdf>
 <https://medium.com/distributed-computing-with-ray/hyperparameter-optimization-for-transformers-a-guide-c4e32c6c989b>
 
+## Normalization or not 
+
+Ajouter ou non une normalization sur les embeddings pour faire un cosine similarity
+
+ST5 ils font un cosine
+
+DPR disent que c'est nul
+
+Je pense que j'ai intérêt à normaliser
+
+A la fin de l'encoder il y a une T5 layer norm qqui va juste diviser par la variance pas de soustraction du mean. 
+
+Est ce que j'ajoute une L2 norm alors ? 
+
+A voir pour l'instant je peux faire les tests comme cela
+
+Peut être vaut le coup d'ajouter une couche de projection + normalisation comme CLIP et comme ST5 l'a fait !
+
+Cela veut dire moyen hidden states et couche de projection
+
 ## Tensorboard
 
 No jobs required :-), activate a conda environment with tensorboard on the frontal server:

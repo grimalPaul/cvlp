@@ -45,16 +45,12 @@ else:
     _use_native_amp = True
     from torch.cuda.amp import autocast
 
-
 class Trainer(object):
-    def __init__(self, config_question_path, config_passage_path, config_model_path, config_training, train_loader=None, val_loader=None, test_loader=None, train=True):
+    def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True):
 
         # config of the two part of the model
-        config_encoder_question = Config.load_json(config_question_path)
-        config_encoder_passage = Config.load_json(config_passage_path)
-
-        # config of the whole model (encoder question + encoder passage)
-        config_model = Config.load_json(config_model_path)
+        config_encoder_question = config_question
+        config_encoder_passage = config_passage
 
         # train config
         self.args = config_training
@@ -178,7 +174,7 @@ class Trainer(object):
             # to always have the same validation loader
             self.val_loader.sampler.set_epoch(0)
 
-        for epoch in range(self.args.epochs):
+        for epoch in tqdm(range(self.args.epochs)):
             if self.verbose:
                 loss_meter = LossMeter()
                 pbar = tqdm(total=len(self.train_loader), ncols=100)
@@ -944,11 +940,14 @@ def main_worker(config_training, args):
         )
         train_loader = None
         val_loader = None
+    config_encoder_question = Config.load_json(args.encoder_question_path)
+    config_encoder_passage = Config.load_json(args.encoder_passage_path)
+    config_model = Config.load_json(args.model_path)
 
     trainer = Trainer(
-        config_question_path=args.encoder_question_path,
-        config_passage_path=args.encoder_passage_path,
-        config_model_path=args.model_path,
+        config_question=config_encoder_question,
+        config_passage=config_encoder_passage,
+        config_model=config_model,
         config_training=config_training,
         train_loader=train_loader,
         val_loader=val_loader,

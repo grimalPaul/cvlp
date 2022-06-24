@@ -94,7 +94,10 @@ def get_trainer(config_question_path, config_passage_path, config_model_path):
         torch.device("cuda", index=config_training.local_rank)
     else:
         torch.device("cuda", index=config_training.local_rank)
-    return Trainer(config_question_path, config_passage_path, config_model_path, config_training, train=False)
+    config_encoder_question = Config.load_json(config_question_path)
+    config_encoder_passage = Config.load_json(config_passage_path)
+    config_model = Config.load_json(config_model_path)
+    return Trainer(config_encoder_question, config_encoder_passage, config_model, config_training, train=False)
 
 if __name__ == '__main__':
     # we consider that we have all we need to compute the embedding in the dataset

@@ -3,11 +3,11 @@
         "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages": {
             "device": "cpu",
             "index_kwargs": {
-                "prompt_tuning_embedding": {
-                    "key_kb": "prompt_tuning_embedding",
+                "adapter1_embedding": {
+                    "key_kb": "adapter1_embedding",
                     "index_load": false,
                     "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
-                    "string_factory": "Flat"
+                    "string_factory": "L2norm,Flat"
                 }
             }
         }

@@ -77,7 +77,7 @@ class CVLEP(nn.Module):
         return outputs_question, output_passage, labels
 
     @torch.no_grad()
-    def embed_image_passage(self, **batch):
+    def embed_image_passage(self, batch):
         device = next(self.parameters()).device
 
         return self.image_passage_encoder.encode(
@@ -243,27 +243,3 @@ class CVLEP_output(ModelOutput):
                                  "vision_model_output"] else getattr(self, k).to_tuple()
             for k in self.keys()
         )
-
-
-class ProjectionHead(nn.Module):
-    def __init__(
-        self,
-        embedding_dim,
-        projection_dim,
-        dropout
-    ):
-        super().__init__()
-        self.projection = nn.Linear(embedding_dim, projection_dim)
-        self.gelu = nn.GELU()
-        self.fc = nn.Linear(projection_dim, projection_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(projection_dim)
-
-    def forward(self, x):
-        projected = self.projection(x)
-        x = self.gelu(projected)
-        x = self.fc(x)
-        x = self.dropout(x)
-        x = x + projected
-        x = self.layer_norm(x)
-        return x

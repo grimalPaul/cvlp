@@ -188,6 +188,29 @@ class VisualEmbedding(nn.Module):
         return vis_embedding
 
 
+class ProjectionHead(nn.Module):
+    def __init__(
+        self,
+        embedding_dim,
+        projection_dim,
+        dropout
+    ):
+        super().__init__()
+        self.projection = nn.Linear(embedding_dim, projection_dim)
+        self.gelu = nn.GELU()
+        self.fc = nn.Linear(projection_dim, projection_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(projection_dim)
+
+    def forward(self, x):
+        projected = self.projection(x)
+        x = self.gelu(projected)
+        x = self.fc(x)
+        x = self.dropout(x)
+        x = x + projected
+        x = self.layer_norm(x)
+        return x
+
 class JointEncoder(T5Stack):
     def __init__(self, config, embed_tokens=None, task_embed=None):
         super().__init__(config, embed_tokens, task_embed)
@@ -213,6 +236,8 @@ class JointEncoder(T5Stack):
                 config.encoder_prompt_config)
         else:
             self.prompt_modules = None
+
+        # self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=projection_dim, dropout=)
 
         self.init_weights()
 
