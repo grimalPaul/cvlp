@@ -374,6 +374,19 @@ Topk semble juste être une proportion des données
 Dans multitask pour single adapter les dimensions sont d'après le paiper d=96
 donc un facteur de reduction de 8
 
+Chaque adapteur a :
+couche dense avec biais de 768 vers 768/facteur de reduction
+couche dense avec biais de 768/facteur de reduction
+
+Deux adapters présents par block de transformers
+
+Et 12 blocks
+
+Donc
+
+12 x 2 x (nb params des deux couches denses)
+
+
 ### Gestion des single adapters
 
 Il y a un objet AdapterConfig(object)

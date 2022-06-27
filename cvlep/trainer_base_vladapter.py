@@ -46,7 +46,7 @@ else:
     from torch.cuda.amp import autocast
 
 class Trainer(object):
-    def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True):
+    def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True, local = False):
 
         # config of the two part of the model
         config_encoder_question = config_question
@@ -139,32 +139,33 @@ class Trainer(object):
         # Create the model
         self.model = self.create_model(config_model)
 
-        # GPU Options
-        self.model.to(self.args.local_rank)
-        print(f'Model Launching at GPU {self.args.local_rank}')
+        if not local:
+            # GPU Options
+            self.model.to(self.args.local_rank)
+            print(f'Model Launching at GPU {self.args.local_rank}')
 
-        # freeze whole parameters first
-        self.freeze_whole_model(self.model.image_passage_encoder)
-        self.freeze_whole_model(self.model.image_question_encoder)
+            # freeze whole parameters first
+            self.freeze_whole_model(self.model.image_passage_encoder)
+            self.freeze_whole_model(self.model.image_question_encoder)
 
-        # unfreeze selected parameters
-        self.unfreeze_parameters(self.model.image_passage_encoder)
-        self.unfreeze_parameters(self.model.image_question_encoder)
+            # unfreeze selected parameters
+            self.unfreeze_parameters(self.model.image_passage_encoder)
+            self.unfreeze_parameters(self.model.image_question_encoder)
 
-        self.log_softmax = nn.LogSoftmax(1)
-        self.loss_fct = nn.NLLLoss(reduction='mean')
+            self.log_softmax = nn.LogSoftmax(1)
+            self.loss_fct = nn.NLLLoss(reduction='mean')
 
-        if train:
-            self.optim, self.lr_scheduler = self.create_optimizer_and_scheduler()
-            if self.args.fp16 and _use_native_amp:
-                self.scaler = torch.cuda.amp.GradScaler()
+            if train:
+                self.optim, self.lr_scheduler = self.create_optimizer_and_scheduler()
+                if self.args.fp16 and _use_native_amp:
+                    self.scaler = torch.cuda.amp.GradScaler()
 
-        # on instantie plusieurs modèle que l'on va placer sur tel ou tel rank
-        # cela veut dire sur tel ou tel gpu
-        if self.args.multiGPU:
-            if self.args.distributed:
-                self.model = DDP(self.model, device_ids=[
-                                 config_training.local_rank])
+            # on instantie plusieurs modèle que l'on va placer sur tel ou tel rank
+            # cela veut dire sur tel ou tel gpu
+            if self.args.multiGPU:
+                if self.args.distributed:
+                    self.model = DDP(self.model, device_ids=[
+                                    config_training.local_rank])
 
     def train(self):
         if self.verbose:
@@ -592,7 +593,7 @@ class Trainer(object):
     def create_tokenizer(self, config_model, **kwargs):
 
         from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
-        from cvlep.VLT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
+        from cvlep.CLIPT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 
         if 't5' in config_model.tokenizer:
             if config_model.use_vision:

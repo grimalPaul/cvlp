@@ -268,8 +268,9 @@ class optimizeTrainer(Trainer):
 
             if self.args.distributed:
                 dist.barrier()
-            
-            trial.report(loss_meter.val, epoch)
+            if self.verbose:
+                trial.report(loss_meter.val, epoch)
+             
              # Handle pruning based on the intermediate value.
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
