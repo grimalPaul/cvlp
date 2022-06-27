@@ -403,6 +403,11 @@ class Trainer(object):
 
         config_encoder.n_boxes = args.n_boxes  # VL adapter
 
+        config_encoder.add_projectionHead = args.add_projectionHead
+        if config_encoder.add_projectionHead:
+            config_encoder.dim_projectionHead = args.dim_projectionHead
+            config_encoder.dropout_projection = args.dropout_projection
+
         # for ExpandVisualEmbedding
         config_encoder.expand_vis_embedding = args.expand_vis_embedding  # VL adapter
         config_encoder.n_image_tokens = args.n_image_tokens  # VL adapter
@@ -493,14 +498,7 @@ class Trainer(object):
         else:
             config_encoder.encoder_prompt_config = None
 
-        if args.decoder_prompt_len > 0:
-            config_encoder.decoder_prompt_config = DecoderPromptConfig()
-            config_encoder.decoder_prompt_config.prompt_len = args.decoder_prompt_len
-            config_encoder.decoder_prompt_config.tasks = tasks
-            config_encoder.decoder_prompt_config.use_single_prompt = args.use_single_prompt
-            config_encoder.decoder_prompt_config.mid_dim = args.mid_dim
-        else:
-            config_encoder.decoder_prompt_config = None
+        config_encoder.decoder_prompt_config = None
 
         # for lora
         if args.use_lora:
@@ -520,9 +518,6 @@ class Trainer(object):
         config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
         #config_encoder.losses = args.losses
         config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
-
-        # TODO: add a way to use only the decoder
-        config_encoder.embed_with_decoder = True
 
         # unfreeze or freeze
         config_encoder.use_lora = args.use_lora

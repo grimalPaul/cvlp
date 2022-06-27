@@ -241,8 +241,9 @@ class JointEncoder(T5Stack):
                 config.encoder_prompt_config)
         else:
             self.prompt_modules = None
-
-        # self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=projection_dim, dropout=)
+        
+        if config.add_projectionHead:
+            self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=config.dim_projectionHead, dropout=config.dropout_projection)
 
         self.init_weights()
 
@@ -433,6 +434,8 @@ class JointEncoder(T5Stack):
 
         if return_pooled_output:
             pooled_output = get_pool(pool_strategy, hidden_states)
+            if self.config.add_projectionHead :
+                pooled_output = self.projection(pooled_output)
             return BaseModelOutputWithPoolingAndCrossAttentions(
                 last_hidden_state=hidden_states,
                 past_key_values=present_key_value_states,
