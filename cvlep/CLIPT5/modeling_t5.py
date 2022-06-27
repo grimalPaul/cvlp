@@ -213,6 +213,12 @@ class ProjectionHead(nn.Module):
 
 class JointEncoder(T5Stack):
     def __init__(self, config, embed_tokens=None, task_embed=None):
+        
+        
+        #self.embed_tokens = embed_tokens
+
+        # self.task_embed = task_embed
+        
         super().__init__(config, embed_tokens, task_embed)
         self.config = config
 
