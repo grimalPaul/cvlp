@@ -5,7 +5,7 @@
     "pos_dim": 4,
 
     "add_projectionHead":true,
-    "dim_projectionHead":512,
+    "dim_projectionHead":768,
     "dropout_projection":0.1,
 
     "use_vision": true,
