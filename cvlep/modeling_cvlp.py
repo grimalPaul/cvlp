@@ -16,16 +16,16 @@ class CVLEP(nn.Module):
         self.share_visual_embedding = None
         self.share_embedding = None
         if config.share_vis_embedding:
-            self.share_visual_embedding = image_question_encoder.encoder.visual_embedding
-            image_question_encoder.encoder.set_vis_embedding(
+            self.share_visual_embedding = image_question_encoder.visual_embedding
+            image_question_encoder.set_vis_embedding(
                 self.share_visual_embedding)
-            image_passage_encoder.encoder.set_vis_embedding(
+            image_passage_encoder.set_vis_embedding(
                 self.share_visual_embedding)
         if config.share_embedding:
-            self.share_embedding = image_question_encoder.encoder.embed_tokens
-            image_question_encoder.encoder.set_input_embeddings(
+            self.share_embedding = image_question_encoder.embed_tokens
+            image_question_encoder.set_input_embeddings(
                 self.share_embedding)
-            image_passage_encoder.encoder.set_input_embeddings(
+            image_passage_encoder.set_input_embeddings(
                 self.share_embedding)
 
         self.image_question_encoder = image_question_encoder
@@ -41,7 +41,7 @@ class CVLEP(nn.Module):
         passage_vis_inputs=None,
         task="IR",
     ):
-        outputs_question = self.image_question_encoder.encode(
+        outputs_question = self.image_question_encoder(
             input_ids=question_input_ids,
             attention_mask=question_attention_mask,
             vis_inputs=question_vis_inputs,
@@ -49,7 +49,7 @@ class CVLEP(nn.Module):
             return_pooled_output=True,
             pool_strategy="avg"
         ).pooler_output
-        output_passage = self.image_passage_encoder.encode(
+        output_passage = self.image_passage_encoder(
             input_ids=passage_input_ids,
             attention_mask=passage_attention_mask,
             vis_inputs=passage_vis_inputs,
@@ -80,7 +80,7 @@ class CVLEP(nn.Module):
     def embed_image_passage(self, batch):
         device = next(self.parameters()).device
 
-        return self.image_passage_encoder.encode(
+        return self.image_passage_encoder(
             input_ids=batch["input_ids"].to(device),
             attention_mask=batch["attention_mask"].to(device),
             vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),
@@ -93,7 +93,7 @@ class CVLEP(nn.Module):
     def embed_image_question(self, batch):
         device = next(self.parameters()).device
 
-        return self.image_passage_encoder.encode(
+        return self.image_passage_encoder(
             input_ids=batch["input_ids"].to(device),
             attention_mask=batch["attention_mask"].to(device),
             vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),

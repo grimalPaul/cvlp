@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from errno import EMEDIUMTYPE
+import torch.nn.functional as F
 
 from .my_transformers.modeling_t5 import (
     T5Stack, T5Block, T5LayerNorm, T5LayerSelfAttention, T5LayerFF, T5LayerCrossAttention,
@@ -187,44 +188,40 @@ class VisualEmbedding(nn.Module):
 
         return vis_embedding
 
-
 class ProjectionHead(nn.Module):
     def __init__(
         self,
         embedding_dim,
         projection_dim,
-        dropout
+        # dropout
     ):
         super().__init__()
-        self.projection = nn.Linear(embedding_dim, projection_dim)
-        self.gelu = nn.GELU()
-        self.fc = nn.Linear(projection_dim, projection_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(projection_dim)
+        self.projection = nn.Linear(embedding_dim, projection_dim, bias=False)
+        self.activation_function = nn.modules.linear.Identity()
+        # self.dropout = nn.Dropout(dropout)
+        self.normalize = F.normalize
 
     def forward(self, x):
         projected = self.projection(x)
-        x = self.gelu(projected)
-        x = self.fc(x)
-        x = self.dropout(x)
-        x = x + projected
-        x = self.layer_norm(x)
+        x = self.activation_function(projected)
+        #x = self.dropout(x)
+        # x = x + projected
+        x = self.normalize(x,p=2, dim=1)
         return x
 
 class JointEncoder(T5Stack):
     def __init__(self, config, embed_tokens=None, task_embed=None):
         
-        
-        #self.embed_tokens = embed_tokens
-
-        # self.task_embed = task_embed
+        if embed_tokens is None:
+            embed_tokens = nn.Embedding(config.vocab_size, config.d_model)
         
         super().__init__(config, embed_tokens, task_embed)
+        
         self.config = config
 
         assert self.config.is_decoder is False
 
-        self.visual_embedding = VisualEmbedding(self.config, embed_tokens)
+        self.visual_embedding = VisualEmbedding(self.config, self.embed_tokens)
 
         self.downsample = None
         self.sparse_sample = None
@@ -242,8 +239,9 @@ class JointEncoder(T5Stack):
                 config.encoder_prompt_config)
         else:
             self.prompt_modules = None
-
-        # self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=projection_dim, dropout=)
+        
+        if config.add_projectionHead:
+            self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=config.dim_projectionHead)
 
         self.init_weights()
 
@@ -434,6 +432,8 @@ class JointEncoder(T5Stack):
 
         if return_pooled_output:
             pooled_output = get_pool(pool_strategy, hidden_states)
+            if self.config.add_projectionHead :
+                pooled_output = self.projection(pooled_output)
             return BaseModelOutputWithPoolingAndCrossAttentions(
                 last_hidden_state=hidden_states,
                 past_key_values=present_key_value_states,

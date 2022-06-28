@@ -1,12 +1,12 @@
 {
-    "backbone": "data_model/t5_pretrained",
-    "tokenizer": "data_model/tokenizer/t5-base",
+    "backbone": "/scratch_global/stage_pgrimal/data/CVLP/data/t5_pretrained",
+    "tokenizer": "/scratch_global/stage_pgrimal/data/CVLP/data/tokenizer/t5-base",
     "feat_dim": 2048,
     "pos_dim": 4,
 
     "add_projectionHead":true,
     "dim_projectionHead":768,
-
+    
     "use_vision": true,
     "use_vis_order_embedding": true,
     "additional_visual_embedding_layers":0,
@@ -37,7 +37,7 @@
     "use_lora":false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path": "data_model/jointEncoder/state_dict/VLT5epoch30",
+    "load_path": "/scratch_global/stage_pgrimal/data/CVLP/data/vlt5/VLT5Epoch30",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,

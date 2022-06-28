@@ -9,10 +9,9 @@ import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import distributed as dist
-from cvlep.CLIPT5.modeling_t5 import VLT5
-from cvlep.CLIPT5.modeling_bart import VLBart
+from cvlep.CLIPT5.modeling_t5 import JointEncoder as encoderVLT5
 from cvlep.VLT5.param import Config
-from cvlep.CLIPT5 import modeling_bart, modeling_t5
+from cvlep.CLIPT5 import modeling_t5
 from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import set_global_logging_level
 import random
@@ -78,29 +77,7 @@ class Trainer(object):
         self.tokenizer_question = self.create_tokenizer(
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
-
-        # modify tokenizer
-        if 'bart' in config_encoder_question.tokenizer:
-            if ModelQuestionConfig.use_vis_order_embedding:
-                additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
-                    [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
-                special_tokens_dict = {
-                    'additional_special_tokens': additional_special_tokens}
-                num_added_toks_question = self.tokenizer_question.add_special_tokens(
-                    special_tokens_dict)
-                ModelQuestionConfig.default_obj_order_ids = self.tokenizer_question.convert_tokens_to_ids(
-                    [f'<vis_extra_id_{i}>' for i in range(100)])
-
-        if 'bart' in config_encoder_passage.tokenizer:
-            if ModelPassageConfig.use_vis_order_embedding:
-                additional_special_tokens = [f'<extra_id_{i}>' for i in range(100-1, -1, -1)] + \
-                    [f'<vis_extra_id_{i}>' for i in range(100-1, -1, -1)]
-                special_tokens_dict = {
-                    'additional_special_tokens': additional_special_tokens}
-                num_added_toks_passage = self.tokenizer_passage.add_special_tokens(
-                    special_tokens_dict)
-                ModelPassageConfig.default_obj_order_ids = self.tokenizer_passage.convert_tokens_to_ids(
-                    [f'<vis_extra_id_{i}>' for i in range(100)])
+    
 
         self.encoder_question = self.create_encoder(ModelQuestionConfig)
         self.encoder_passage = self.create_encoder(ModelPassageConfig)
@@ -108,16 +85,10 @@ class Trainer(object):
         if 't5' in config_encoder_question.tokenizer:
             self.encoder_question.resize_token_embeddings(
                 self.tokenizer_question.vocab_size)
-        elif 'bart' in config_encoder_question.tokenizer:
-            self.encoder_question.resize_tokCVLPDen_embeddings(
-                self.encoder_question.model.shared.num_embeddings + num_added_toks_question)
 
         if 't5' in config_encoder_passage.tokenizer:
             self.encoder_passage.resize_token_embeddings(
                 self.tokenizer_passage.vocab_size)
-        elif 'bart' in config_encoder_passage.tokenizer:
-            self.encoder_passage.resize_token_embeddings(
-                self.encoder_passage.model.shared.num_embeddings + num_added_toks_passage)
 
         # Load Checkpoint encoder question
         self.start_epoch = None
@@ -414,12 +385,10 @@ class Trainer(object):
         return self.loss_fct(log_probs, global_labels)
 
     def create_config(self, config_model):
-        from transformers import T5Config, BartConfig
+        from transformers import T5Config
 
         if 't5' in config_model.backbone:
             config_class = T5Config
-        elif 'bart' in config_model.backbone:
-            config_class = BartConfig
         else:
             return None
 
@@ -432,6 +401,10 @@ class Trainer(object):
         config_encoder.n_images = 2
 
         config_encoder.n_boxes = args.n_boxes  # VL adapter
+
+        config_encoder.add_projectionHead = args.add_projectionHead
+        if config_encoder.add_projectionHead:
+            config_encoder.dim_projectionHead = args.dim_projectionHead
 
         # for ExpandVisualEmbedding
         config_encoder.expand_vis_embedding = args.expand_vis_embedding  # VL adapter
@@ -523,14 +496,7 @@ class Trainer(object):
         else:
             config_encoder.encoder_prompt_config = None
 
-        if args.decoder_prompt_len > 0:
-            config_encoder.decoder_prompt_config = DecoderPromptConfig()
-            config_encoder.decoder_prompt_config.prompt_len = args.decoder_prompt_len
-            config_encoder.decoder_prompt_config.tasks = tasks
-            config_encoder.decoder_prompt_config.use_single_prompt = args.use_single_prompt
-            config_encoder.decoder_prompt_config.mid_dim = args.mid_dim
-        else:
-            config_encoder.decoder_prompt_config = None
+        config_encoder.decoder_prompt_config = None
 
         # for lora
         if args.use_lora:
@@ -550,9 +516,6 @@ class Trainer(object):
         config_encoder.individual_vis_layer_norm = args.individual_vis_layer_norm
         #config_encoder.losses = args.losses
         config_encoder.share_vis_lang_layer_norm = args.share_vis_lang_layer_norm
-
-        # TODO: add a way to use only the decoder
-        config_encoder.embed_with_decoder = True
 
         # unfreeze or freeze
         config_encoder.use_lora = args.use_lora
@@ -577,10 +540,10 @@ class Trainer(object):
     def create_encoder(self, config_model):
 
         if 't5' in config_model._name_or_path:
-            model_class = VLT5
+            model_class = encoderVLT5
 
-        elif 'bart' in config_model._name_or_path:
-            model_class = VLBart
+        else:
+            raise NotImplementedError("Thys type of encoder is not implemented")
 
         model_name = config_model._name_or_path
 
@@ -592,7 +555,7 @@ class Trainer(object):
 
     def create_tokenizer(self, config_model, **kwargs):
 
-        from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
+        from transformers import T5Tokenizer, T5TokenizerFast
         from cvlep.CLIPT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
 
         if 't5' in config_model.tokenizer:
@@ -602,9 +565,6 @@ class Trainer(object):
             else:
                 # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
-        elif 'bart' in config_model.tokenizer:
-            tokenizer_class = BartTokenizer
-            # tokenizer_class = BartTokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
@@ -638,7 +598,7 @@ class Trainer(object):
                     print(f"{n} is trainable...")
             for name, sub_module in model.named_modules():
 
-                if isinstance(sub_module, (modeling_bart.JointEncoder, modeling_bart.BartDecoder, modeling_t5.T5Stack, modeling_t5.JointEncoder)):
+                if isinstance(sub_module, (modeling_t5.T5Stack, modeling_t5.JointEncoder)):
                     print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
