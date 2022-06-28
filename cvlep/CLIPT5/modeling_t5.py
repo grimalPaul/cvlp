@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from errno import EMEDIUMTYPE
+import torch.nn.functional as F
 
 from .my_transformers.modeling_t5 import (
     T5Stack, T5Block, T5LayerNorm, T5LayerSelfAttention, T5LayerFF, T5LayerCrossAttention,
@@ -187,28 +188,25 @@ class VisualEmbedding(nn.Module):
 
         return vis_embedding
 
-
 class ProjectionHead(nn.Module):
     def __init__(
         self,
         embedding_dim,
         projection_dim,
-        dropout
+        # dropout
     ):
         super().__init__()
-        self.projection = nn.Linear(embedding_dim, projection_dim)
-        self.gelu = nn.GELU()
-        self.fc = nn.Linear(projection_dim, projection_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(projection_dim)
+        self.projection = nn.Linear(embedding_dim, projection_dim, bias=False)
+        self.activation_function = nn.modules.linear.Identity()
+        # self.dropout = nn.Dropout(dropout)
+        self.normalize = F.normalize
 
     def forward(self, x):
         projected = self.projection(x)
-        x = self.gelu(projected)
-        x = self.fc(x)
-        x = self.dropout(x)
-        x = x + projected
-        x = self.layer_norm(x)
+        x = self.activation_function(projected)
+        #x = self.dropout(x)
+        # x = x + projected
+        x = self.normalize(x,p=2, dim=1)
         return x
 
 class JointEncoder(T5Stack):
@@ -243,7 +241,7 @@ class JointEncoder(T5Stack):
             self.prompt_modules = None
         
         if config.add_projectionHead:
-            self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=config.dim_projectionHead, dropout=config.dropout_projection)
+            self.projection = ProjectionHead(embedding_dim=config.d_model, projection_dim=config.dim_projectionHead)
 
         self.init_weights()
 

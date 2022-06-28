@@ -41,7 +41,7 @@ class CVLEP(nn.Module):
         passage_vis_inputs=None,
         task="IR",
     ):
-        outputs_question = self.image_question_encoder.encode(
+        outputs_question = self.image_question_encoder(
             input_ids=question_input_ids,
             attention_mask=question_attention_mask,
             vis_inputs=question_vis_inputs,
@@ -49,7 +49,7 @@ class CVLEP(nn.Module):
             return_pooled_output=True,
             pool_strategy="avg"
         ).pooler_output
-        output_passage = self.image_passage_encoder.encode(
+        output_passage = self.image_passage_encoder(
             input_ids=passage_input_ids,
             attention_mask=passage_attention_mask,
             vis_inputs=passage_vis_inputs,

@@ -9,7 +9,6 @@ import logging
 from packaging import version
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import distributed as dist
-from cvlep.CLIPT5.modeling_t5 import VLT5
 from cvlep.CLIPT5.modeling_t5 import JointEncoder as encoderVLT5
 from cvlep.VLT5.param import Config
 from cvlep.CLIPT5 import modeling_t5
@@ -406,7 +405,6 @@ class Trainer(object):
         config_encoder.add_projectionHead = args.add_projectionHead
         if config_encoder.add_projectionHead:
             config_encoder.dim_projectionHead = args.dim_projectionHead
-            config_encoder.dropout_projection = args.dropout_projection
 
         # for ExpandVisualEmbedding
         config_encoder.expand_vis_embedding = args.expand_vis_embedding  # VL adapter
