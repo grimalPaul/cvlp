@@ -518,6 +518,10 @@ def test_dataloader():
     return dataloader_clip, dataloader_dpr
 
 
+
+
+
+
 """
 def compute_loss_like_dpr(model1, model2, data, temperature):
     # fake function to implement after in the model

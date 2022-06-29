@@ -30,3 +30,12 @@ sans L2 norm (FLAT)
 ---  ------------------  -------  -------  --------  --------  ---------  -----  -----  ------  ------  -------  ------------  ---------  -------------  -------------  --------------
 a    adapter1_embedding    0.006    0.012     0.015     0.018      0.023  0.006  0.005   0.005   0.006    0.009         0.006      0.026          0.044          0.094           0.319
 
+
+### Adapter avec projecction en fin d'encoder
+    "share_vis_embedding":true,
+    "share_embedding":true
+    "reduction_factor":8,
+"unfreeze_visual_embedding": true
+"unfreeze_layer_norms": true
+utilise normalization de Sentence T5
+

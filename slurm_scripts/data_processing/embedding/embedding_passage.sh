@@ -15,9 +15,9 @@ source activate cvlp
 dataset=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset
 kb=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb
 passages=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages
-config_passage_path=experiments/config_vladapter/bergamote/trained_models/adapter/passage_encoder_simple_adapter.json
-config_question_path=experiments/config_vladapter/bergamote/trained_models/adapter/question_encoder_simple_adapter.json
-config_model_path=experiments/config_vladapter/bergamote/trained_models/adapter/config_model.json
+config_passage_path=experiments/config_vladapter/bergamote/trained_models/adapter_projection/passage_encoder_adapter_projection.json
+config_question_path=experiments/config_vladapter/bergamote/trained_models/adapter_projection/question_encoder_adapter_projection.json
+config_model_path=experiments/config_vladapter/bergamote/trained_models/adapter_projection/config_model.json
 batch_size=64
 
 echo "Passage"
@@ -30,7 +30,7 @@ python -m processing.embedding_dataset \
     --key_boxes=vlt5_normalized_boxes \
     --key_vision_features=vlt5_features \
     --key_text=passage \
-    --key_embedding=adapter1_embedding \
+    --key_embedding=adapter_projection_embedding \
     --kb_path=${kb} \
     --batch_size=${batch_size}
 

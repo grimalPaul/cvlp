@@ -138,7 +138,7 @@ def uniform_passages(paragraphs, tokenizer, n=100, title=None):
         Number of tokens in each passage (excluding title)
         Defaults to 100
     title: str, optional
-        To prepend at the beginning of each passage like "<title> [SEP] <passage>"
+        To prepend at the beginning of each passage like "<title> <sep_token> <passage>"
         Defaults to None (only "<passage>")
 
     Returns
@@ -162,7 +162,7 @@ def uniform_passages(paragraphs, tokenizer, n=100, title=None):
     return passages
 
 
-def uniform_passages_of_sentences(paragraphs, model, n=100, title=None, sep_token='[SEP]'):
+def uniform_passages_of_sentences(paragraphs, model, n=100, title=None, sep_token='.'):
     """
     N. B. unlike uniform_passages which is based on transformers PreTrainedTokenizer
     here we're able to get back the un-processed text corresponding to the tokens
@@ -179,11 +179,11 @@ def uniform_passages_of_sentences(paragraphs, model, n=100, title=None, sep_toke
         There can actually be more tokens than this if the passage is a single sentence (with more tokens than n)
         Defaults to 100
     title: str, optional
-        To prepend at the beginning of each passage like "<title> [SEP] <passage>"
+        To prepend at the beginning of each passage like "<title> <sep_token> <passage>"
         Defaults to None (only "<passage>")
     sep_token: str, optional
         To separate title and passages (no effect if title is None)
-        Defaults to '[SEP]'
+        Defaults to '.'
 
     Returns
     -------
