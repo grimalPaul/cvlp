@@ -112,7 +112,7 @@ python -m meerqat.data.loading map path/to/kb passage_index path/to/save/article
 Find relevant passages in the linked wikipedia article
 
 ```bash
-python -m meerqat.ir.metrics relevant path/to/viquae_dataset path/to/passages viquae_passages path/to/title2index.json path/to/article2passage.json
+python -m meerqat.ir.metrics relevant path/to/viquae_dataset path/to/passages path/to/title2index.json path/to/article2passage.json
 ```
 
 ### Search relevant and irrelevant passages with BM25
@@ -134,7 +134,7 @@ Thus, apply them on the whole dataset with :
 
 ```bash
 python -m meerqat.ir.search \
-    /scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset \
+    path/to/viquae_dataset \
     experiments/ir/viquae/bm25/config.json --k=100 \
     --metrics=experiments/ir/viquae/bm25/metrics
 ```
@@ -185,14 +185,10 @@ We need to download the kilt dataset filtered on viquae question.
 from datasets import load_dataset
 
 dataset = load_dataset("PaulLerner/triviaqa_for_viquae")
+dataset.save_to_disk("path/triviaqa_for_viquae")
 ```
 
-We need to mine passage with bm25. We will use the dataset `kilt_wikipedia`. We need to preprocess the data like we do previously for BM25.
-```py
-
-```
-
-And apply
+We need to mine passage with bm25. We will use the dataset `kilt_wikipedia`. We need to preprocess the data like we did previously.
 
 ```bash
 python -m meerqat.data.loading passages path/to/kilt_wikipedia path/to/save/passages experiments/passages/config.json
@@ -207,12 +203,18 @@ python -m meerqat.data.loading map path/to/kilt_wikipedia passage_index path/to/
 Find relevant passages in the linked wikipedia article
 
 ```bash
-python -m meerqat.ir.metrics relevant path/to/viquae_dataset path/to/passages viquae_passages path/to/title2index.json path/to/article2passage.json
+python -m meerqat.ir.metrics relevant path/to/triviaqa_for_viquae path/to/passages path/to/title2index.json path/to/article2passage.json
 ```
 
-After that you an run BM25 to get provenance indices. We do not tune this time and directly use paramter from this [study](https://github.com/castorini/pyserini/blob/master/docs/experiments-dpr.md). b=0.4 k=0.9 
+After that you an run BM25 to get provenance indices. We do not tune this time and directly use parameter from DPR[LINK] (b =0.4, k1=0.9).
 
-
+```bash
+python -m meerqat.ir.search \
+    path/to/triviaqa_for_viquae \
+    experiments/ir/triviaqa_for_viquae/config.json \
+    --k=100 \
+    --metrics=experiments/ir/triviaqa_for_viquae/metrics
+```
 
 ###### Prompt tunning
 

@@ -4,6 +4,8 @@
 #SBATCH -J process_kilt
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
+#SBATCH -w node5
+#SBATCH --mem=90G
 
 source /home/pgrimal/.bashrc
 source activate cvlp

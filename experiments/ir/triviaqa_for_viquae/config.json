@@ -8,14 +8,14 @@
                     "es": true,
                     "kind_str": "TEXT",
                     "key": "input",
-                    "load": true,
+                    "load": false,
                     "normalization": {
                         "method": "normalize",
                         "mean": 20.1111,
                         "std": 5.85003
                     },
                     "interpolation_weight": null,
-                    "es_index_name": "bm25",
+                    "es_index_name": "bm25_triviaqa_for_viquae",
                     "es_index_config": {
                         "settings": {
                             "similarity": {

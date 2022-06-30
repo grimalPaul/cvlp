@@ -5,7 +5,7 @@
             "index_kwargs": {
                 "prompt_tuning_embedding": {
                     "key_kb": "prompt_tuning_embedding",
-                    "index_load": false,
+                    "index_load": true,
                     "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
                     "string_factory": "Flat"
                 }

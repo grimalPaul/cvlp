@@ -4,8 +4,7 @@
 #SBATCH -J process_kilt
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
-#SBATCH -w node4
-#SBATCH --mem=50G
+#SBATCH --mem=120G
 
 source /home/pgrimal/.bashrc
 source activate cvlp
@@ -24,12 +23,13 @@ python -m meerqat.data.loading map \
     /scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/title2index.json \
     --inverse
 
+com
 
 echo 'article2passage'
 python -m meerqat.data.loading map \
     /scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/kilt_trivia \
     passage_index \
     /scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/article2passage.json
-com
+
 
 echo 'done'
