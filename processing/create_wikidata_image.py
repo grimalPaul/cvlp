@@ -19,10 +19,12 @@ class Searcher(object):
 
 def create_query(keys):
     sparql_values = list(map(lambda id: "wd:" + id,keys))
-    query = """SELECT * WHERE {
-        VALUES ?item { %s }
-        ?item wdt:P18 ?image.
-    }""".join(sparql_values)
+    query = '''
+    SELECT * WHERE{ 
+        VALUES ?item { %s } 
+        ?item wdt:P18 ?image. }
+        ''' % " ".join(sparql_values)
+    print(query)
     return query
 
 def format_results(elements, results):
@@ -30,7 +32,7 @@ def format_results(elements, results):
         index = item['item']['value']
         url_image = item['image']['value']
         wikidata_id = index.split('/')[-1]
-        if not elements.has_key(wikidata_id):
+        if wikidata_id not in elements:
             elements[wikidata_id] = []
         elements[wikidata_id].append(url_image)
     return elements
@@ -39,6 +41,7 @@ def worker(keys, step_size = 10000):
     size = len(keys)
     nb_iteration =  size//step_size
     remaining_elements = size%step_size
+    print(f'size {size}, iter {nb_iteration}, remaining elements {remaining_elements}')
     data = {}
     searcher = Searcher()
     for i in range(nb_iteration):
@@ -69,4 +72,15 @@ if __name__ == '__main__':
     path_dataset = "data/wikimage"
     dataset = load_from_disk(path_dataset)
     keys = dataset["wikidata_id"]
+
+    keys = [
+        "Q2453276",
+        "Q157986",
+        "Q25173",
+        "Q76",
+        "Q39476",
+        "Q312",
+        "Q19837",
+        "Q36301"
+    ]
     worker(keys)
