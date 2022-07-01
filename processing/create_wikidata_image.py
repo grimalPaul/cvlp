@@ -1,17 +1,72 @@
-# take wikipedia commons
+import json 
+from datasets import load_from_disk, disable_caching
+import sys
+from SPARQLWrapper import SPARQLWrapper, JSON
 
-# get_pictures of wikipedia knowledge base 
-# recup tous les wikipedia commons
+disable_caching()
 
-# scrapp 3 ou 4 images par datasets
+class Searcher(object):
+    def __init__(self):
+        user_agent = "WDQS-example Python/%s.%s" % (sys.version_info[0], sys.version_info[1])
+        endpoint_url = "https://query.wikidata.org/sparql"
+        self.sparql = SPARQLWrapper(endpoint_url, agent=user_agent)
+        
 
-# utiliser ce qu on a dans wikidata info
-# pour récuperer des images en scrapant
+    def request(self,query):
+        self.sparql.setQuery(query)
+        self.sparql.setReturnFormat(JSON)
+        return self.sparql.query().convert()
 
-# on récupère code wikidata
-# on récupère deux images avec nom différents
-# qu'on enregistre dans un dossier
-# on sauvegarde le nom dans des champs images
+def create_query(keys):
+    sparql_values = list(map(lambda id: "wd:" + id,keys))
+    query = """SELECT * WHERE {
+        VALUES ?item { %s }
+        ?item wdt:P18 ?image.
+    }""".join(sparql_values)
+    return query
 
+def format_results(elements, results):
+    for item in results["results"]["bindings"]:
+        index = item['item']['value']
+        url_image = item['image']['value']
+        wikidata_id = index.split('/')[-1]
+        if not elements.has_key(wikidata_id):
+            elements[wikidata_id] = []
+        elements[wikidata_id].append(url_image)
+    return elements
 
+def worker(keys, step_size = 10000):
+    size = len(keys)
+    nb_iteration =  size//step_size
+    remaining_elements = size%step_size
+    data = {}
+    searcher = Searcher()
+    for i in range(nb_iteration):
+        query = create_query(keys[:step_size])
+        keys = keys[step_size:]
+        r = searcher.request(query)
+        data = format_results(data, r)
 
+    if remaining_elements > 0:
+        query = create_query(keys)
+        r = searcher.request(query)
+        data = format_results(data, r)
+    
+    # check if at least 2 images
+    dataset = {}
+    cpt = 0
+    for id,l in data.items():
+        if len(l) > 1:
+            r[id] = l
+            cpt+=1
+    print(cpt)
+
+    # save dataset
+    with open('data/wikimage.json', 'w') as fp:
+        json.dump(dataset, fp)
+
+if __name__ == '__main__':
+    path_dataset = "data/wikimage"
+    dataset = load_from_disk(path_dataset)
+    keys = dataset["wikidata_id"]
+    worker(keys)
