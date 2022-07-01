@@ -12,7 +12,7 @@ source activate cvlp
 
 python -m processing.irrelevant \
     --indice=BM25 \
-    --passages_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages \
+    --passages_path=_global/stage_pgrimal/data/CVLP/data/datasets/passages \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset
 
 echo "DONE"

@@ -216,6 +216,15 @@ python -m meerqat.ir.search \
     --metrics=experiments/ir/triviaqa_for_viquae/metrics
 ```
 
+Then, generate irrelevant passage indices
+
+```bash
+python -m processing.irrelevant \
+    --indice=BM25 \
+    --passages_path= path/to/passages \
+    --dataset_path=path/to/triviaqa_for_viquae
+```
+
 ###### Prompt tunning
 
 TODO: add step
