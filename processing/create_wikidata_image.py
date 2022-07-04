@@ -61,7 +61,7 @@ def worker(keys, step_size = 10000):
     cpt = 0
     for id,l in data.items():
         if len(l) > 1:
-            r[id] = l
+            dataset[id] = l
             cpt+=1
     print(cpt)
 

@@ -341,22 +341,24 @@ class JointEncoder(T5Stack):
                 prefix_attention_mask = torch.ones(
                     B, prefix_embeds.shape[1], dtype=inputs_embeds.dtype, device=inputs_embeds.device
                 )
-
-            attention_mask = torch.cat(
-                [prefix_attention_mask, attention_mask], dim=1)
+                attention_mask = torch.cat(
+                    [prefix_attention_mask, attention_mask], dim=1)
         else:
             attention_mask = None
         
         if vis_inputs is not None:
-            if vis_attention_mask is None:
+            if vis_attention_mask is None and attention_mask is not None:
+                # TODO: init vis attention mask when input is not None
                 vis_attention_mask = attention_mask.new_ones(B, V_L)
+            elif vis_attention_mask is None:
+                vis_attention_mask = torch.ones(B,V_L, dtype=inputs_embeds.dtype, device=inputs_embeds.device)
         else:
             vis_attention_mask = None
 
-        if inputs_embeds is None:
+        if input_ids is None:
             # vis only
             attention_mask =vis_attention_mask
-        elif vis_embeds is None:
+        elif vis_inputs is None:
             # text only
             attention_mask = attention_mask
         else:

@@ -27,7 +27,7 @@ def load_img_preprocessor(frcnn_cfg):
 # CLIP
 # from cvlep.CLIPT5.vis_encoder import get_vis_encoder, _transform
 # model = get_vis_encoder(backbone='RN50', adapter_type=None, image_size=eval("(224,224)")[0])
-
+# model.eval() # je pense pour ne pas avoir de gradient
 
 def item_visual_embedding(item, key_image, key_image_embedding, image_process, image_path, frcnn, frcnn_cfg, **kwargs):
     images, sizes, scales_yx = image_process(f'{image_path}{item[key_image]}')
