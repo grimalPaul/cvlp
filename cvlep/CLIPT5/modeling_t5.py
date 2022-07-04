@@ -276,56 +276,92 @@ class JointEncoder(T5Stack):
         return_pooled_output=False,
         pool_strategy="avg"
     ):
+        # text only
+        # image only
+        # both
+        if input_ids is None and inputs_embeds is None and vis_inputs is None:
+            raise ValueError("You have to provide inputs")
 
+        if input_ids is not None:
+            if inputs_embeds is None:
+                assert self.embed_tokens is not None, "You have to initialize the model with valid token embeddings"
+                inputs_embeds = self.embed_tokens(input_ids)
+
+        if inputs_embeds is not None:
+            if self.prompt_modules is not None:
+                prefix_embeds = self.prompt_modules(
+                    inputs_embeds.shape[0], inputs_embeds.device, task)
+                inputs_embeds = torch.cat([prefix_embeds, inputs_embeds], dim=1)
+
+            B, L = inputs_embeds.size()[:-1]
+        else:
+            inputs_embeds = None
+            L = 0
+
+        if vis_inputs is not None:
+            if self.downsample is not None:
+                vis_inputs = self.downsample(vis_inputs)
+
+            vis_feats = vis_inputs[0]
+            boxes = vis_inputs[1]
+            img_order_ids = None
+            obj_order_ids = None
+            if len(vis_inputs) >= 3:
+                img_order_ids = vis_inputs[2]
+            if len(vis_inputs) == 4:
+                obj_order_ids = vis_inputs[3]
+
+            vis_embeds = self.visual_embedding(
+                vis_feats, boxes, img_order_ids, obj_order_ids)
+
+            if self.sparse_sample is not None:
+                vis_embeds = self.sparse_sample(vis_embeds)
+
+            V_L = vis_embeds.size(1)
+            B, _ = vis_feats.size()[:-1]
+        else:
+            vis_embeds = None
+            V_L = 0
+        
         if inputs_embeds is None:
-            assert self.embed_tokens is not None, "You have to initialize the model with valid token embeddings"
-            inputs_embeds = self.embed_tokens(input_ids)
+            # vis only
+            inputs_embeds = vis_embeds
+        elif vis_embeds is None:
+            # text only
+            inputs_embeds = inputs_embeds
+        else:
+            # both
+            inputs_embeds = torch.cat([inputs_embeds, vis_embeds], dim=1)
 
-        if self.prompt_modules is not None:
-            prefix_embeds = self.prompt_modules(
-                inputs_embeds.shape[0], inputs_embeds.device, task)
-            inputs_embeds = torch.cat([prefix_embeds, inputs_embeds], dim=1)
-
-        B, L = inputs_embeds.size()[:-1]
-
-        if self.downsample is not None:
-            vis_inputs = self.downsample(vis_inputs)
-
-        vis_feats = vis_inputs[0]
-        boxes = vis_inputs[1]
-        img_order_ids = None
-        obj_order_ids = None
-        if len(vis_inputs) >= 3:
-            img_order_ids = vis_inputs[2]
-        if len(vis_inputs) == 4:
-            obj_order_ids = vis_inputs[3]
-
-        vis_embeds = self.visual_embedding(
-            vis_feats, boxes, img_order_ids, obj_order_ids)
-
-        if self.sparse_sample is not None:
-            vis_embeds = self.sparse_sample(vis_embeds)
-
-        V_L = vis_embeds.size(1)
-
-        inputs_embeds = torch.cat([inputs_embeds, vis_embeds], dim=1)
-
-        if attention_mask is None:
-            attention_mask = input_ids.ne(self.config.pad_token_id).to(
-                dtype=inputs_embeds.dtype, device=inputs_embeds.device)
-
-        if vis_attention_mask is None:
-            vis_attention_mask = attention_mask.new_ones(B, V_L)
-
-        if self.prompt_modules is not None:
-            prefix_attention_mask = torch.ones(
-                B, prefix_embeds.shape[1], dtype=inputs_embeds.dtype, device=inputs_embeds.device
-            )
+        if input_ids is not None:
+            if attention_mask is None:
+                attention_mask = input_ids.ne(self.config.pad_token_id).to(
+                    dtype=inputs_embeds.dtype, device=inputs_embeds.device)
+            if self.prompt_modules is not None:
+                prefix_attention_mask = torch.ones(
+                    B, prefix_embeds.shape[1], dtype=inputs_embeds.dtype, device=inputs_embeds.device
+                )
 
             attention_mask = torch.cat(
                 [prefix_attention_mask, attention_mask], dim=1)
+        else:
+            attention_mask = None
+        
+        if vis_inputs is not None:
+            if vis_attention_mask is None:
+                vis_attention_mask = attention_mask.new_ones(B, V_L)
+        else:
+            vis_attention_mask = None
 
-        attention_mask = torch.cat([attention_mask, vis_attention_mask], dim=1)
+        if inputs_embeds is None:
+            # vis only
+            attention_mask =vis_attention_mask
+        elif vis_embeds is None:
+            # text only
+            attention_mask = attention_mask
+        else:
+            # both
+            attention_mask = torch.cat([attention_mask, vis_attention_mask], dim=1)
 
         # ourselves in which case we just need to make it broadcastable to all heads.
         extended_attention_mask = self.get_extended_attention_mask(
