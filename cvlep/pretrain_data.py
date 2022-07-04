@@ -36,39 +36,47 @@ def remove_lines(n_rows, split):
 # "kb": "data/kilt_passages"
 # # Entity image wikipedia image
 
-# même chose que DPR sauf qu'on ne passera pas d'image
+# TODO:check si besoin d'enlever des lignes sans réponses
+# Il y a des questions sans réponses mais elles sont gérés dans collate
 class KiltDataset(Dataset):
     def __init__(
             self,
             passages_path,
             dataset_path,
             tokenizer_path,
-            n_irrelevant_passages=1,
             key_relevant='provenance_indices',
             key_irrelevant='BM25_irrelevant_indices',
             key_text_question='input',
             key_text_passage='passage',
             split='train',
+            topk=-1,
             verbose=True
     ) -> None:
         super().__init__()
         self.verbose = verbose
-        self.split = split
+        if split == "validation":
+            self.split = "with_viquae_validation"
+        elif split == "train":
+            self.split = "without_viquae"
+        else:
+            raise NotImplementedError("This split is not implemented")
         self.n_relevant_passages = 1
-        self.n_irrelevant_passages = n_irrelevant_passages
+        self.n_irrelevant_passages = 1
+        self.topk = topk
         if self.verbose:
             print('Data sources: ', self.split)
             print(
                 f'Number of passages per question in a batch :\
                 {self.n_relevant_passages + self.n_irrelevant_passages} \
-                nb relevants : {self.n_relevant_passages} \
-                nb irrelevants : {self.n_irrelevant_passages}'
+                \nnb relevants : {self.n_relevant_passages} \
+                \nnb irrelevants : {self.n_irrelevant_passages}'
             )
         self.passages = load_from_disk(passages_path)
         self.dataset = load_from_disk(dataset_path)[self.split]
-        # TODO:check si besoin d'enlever des lignes sans réponses
-        index = remove_lines(self.dataset.num_rows, self.split)
-        self.dataset = self.dataset.select(index)
+        if self.topk != -1 and 0 < self.topk <= 1:
+            self.len = int(self.dataset.num_rows * self.topk)
+        else:
+            self.len = self.dataset.num_rows
         self.key_index_relevant_passages = key_relevant
         self.key_index_irrelevant_passages = key_irrelevant
         self.key_text_question = key_text_question
@@ -91,13 +99,13 @@ class KiltDataset(Dataset):
         )
 
     def __len__(self):
-        return self.dataset.num_rows
+        return self.len
 
     def __getitem__(self, index):
         item = {}
         # question features
         item['question_text'] = self.dataset[index][self.key_text_question]
-    
+
         # relevant and irrelevant passage features
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
         irrelevant_index = self.dataset[index][self.key_index_irrelevant_passages]
@@ -122,8 +130,8 @@ class KiltDataset(Dataset):
         B = len(batch)
         relevant_text, irrelevant_text, question_text, labels = list(), list(), list(), list()
         for i, item in enumerate(batch):
-            # TODO: voir si besoin de changer gestion pour le text, car a un impact sur attention mask
-            
+            # TODO: voir si besoin de changer gesti/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/trivaqa_for_viquaen pour le text, car a un impact sur attention mask
+
             if item['passage_relevant_text'] is None:
                 labels.append(-100)  # ignore index when computing the loss
                 relevant_text.append('')
@@ -133,7 +141,7 @@ class KiltDataset(Dataset):
             if item['passage_irrelevant_text'] is None:
                 irrelevant_text.append('')
             else:
-                irrelevant_text.append(item['passage_irrelevant_text']) 
+                irrelevant_text.append(item['passage_irrelevant_text'])
             question_text.append(item['question_text'])
         question_input = self.tokenizer(
             question_text, padding='max_length', truncation=True, return_tensors="pt")
@@ -153,9 +161,10 @@ class wikiImage(Dataset):
     def __init__(
         self,
         dataset_path
-        ):
+    ):
         super().__init__()
         self.dataset = load_from_disk(dataset_path)
+
     def __len__(self):
         self.dataset.num_rows
 
@@ -166,12 +175,12 @@ class wikiImage(Dataset):
         B = len(batch)
 
         return {
-            "image_question":None,
-            "image_passage":None
+            "image_question": None,
+            "image_passage": None
         }
 
 
-# passage avec relevant passage 
+# passage avec relevant passage
 # juste relevant passage pour l'instant
 # pas d'irrelevant
 class multimedia(Dataset):
@@ -226,8 +235,9 @@ class multimedia(Dataset):
 
     def collate_fn(self, batch):
         return {
-            
+
         }
+
 
 class ImageCaption(Dataset):
     # return image embedding and a link caption
@@ -238,11 +248,10 @@ class ImageCaption(Dataset):
 
     ):
         super().__init__()
-        
 
     def __len__(self):
         return self
-    
+
     def __getitem__(self, index):
         pass
 
@@ -250,6 +259,7 @@ class ImageCaption(Dataset):
         return{
 
         }
+
 
 """
 
@@ -326,33 +336,18 @@ def get_loader(
         dataset = KiltDataset(
             passages_path=passages_path,
             dataset_path=dataset_path,
-            kb_path=kb_path,
             tokenizer_path=tokenizer_path,
-            key_relevant=key_relevant,
-            key_irrelevant=key_irrelevant,
-            key_text_question=key_text_question,
-            key_text_passage=key_text_passage,
-            key_vision_features=key_vision_features,
-            key_vision_boxes=key_vision_boxes,
-            split=split,
-            verbose=verbose
+            key_relevant='provenance_indices',
+            key_irrelevant='BM25_irrelevant_indices',
+            key_text_question='input',
+            key_text_passage='passage',
+            split='train',
+            verbose=True
         )
     elif cls == "clip":
-        dataset = SimpleContrastiveDataset(passages_path,
-                                           dataset_path=dataset_path,
-                                           kb_path=kb_path,
-                                           tokenizer_path=tokenizer_path,
-                                           key_relevant=key_relevant,
-                                           key_text_question=key_text_question,
-                                           key_text_passage=key_text_passage,
-                                           key_vision_features=key_vision_features,
-                                           key_vision_boxes=key_vision_boxes,
-                                           split=split,
-                                           verbose=verbose
-                                           )
+        dataset = ImageCaption()
     else:
         raise NotImplementedError("This dataset is not implemented")
-    # we want datasampler to avoid to have duplicate question
     if distributed:
         sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
     else:
@@ -364,7 +359,7 @@ def get_loader(
             batch_size=batch_size,
             shuffle=(sampler is None),
             num_workers=workers,
-            pin_memory=True,
+            pin_memory=(sampler is not None),
             sampler=sampler,
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
@@ -376,7 +371,7 @@ def get_loader(
             batch_size=batch_size,
             shuffle=False,
             num_workers=workers,
-            pin_memory=True,
+            pin_memory=(sampler is not None),
             sampler=sampler,
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
@@ -388,7 +383,7 @@ def get_loader(
             batch_size=batch_size,
             shuffle=False,
             num_workers=workers,
-            pin_memory=True,
+            pin_memory=(sampler is not None),
             sampler=sampler,
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
@@ -398,40 +393,24 @@ def get_loader(
         raise NotImplementedError('this mode is not implemented')
     return loader
 
+
 def test_dataloader():
-    kwargs_clip = {
+    kwargs_triviaqa = {
         "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
-        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
-        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
-        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
+        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/triviaqa_for_viquae",
+        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/passages",
         "key_relevant": 'provenance_indices',
         "key_text_question": 'input',
         "key_text_passage": 'passage',
-        "key_vision_features": 'vlt5_features',
-        "key_vision_boxes": 'vlt5_normalized_boxes',
-        "split": 'train'
-    }
-    kwargs_dpr = {
-        "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
-        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
-        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
-        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages",
-        "key_relevant": 'provenance_indices',
-        "key_text_question": 'input',
-        "key_text_passage": 'passage',
-        "key_vision_features": 'vlt5_features',
-        "key_vision_boxes": 'vlt5_normalized_boxes',
         "split": 'train',
-        "key_irrelevant": 'BM25_irrelevant_indices'
+        "topk": 0.8
     }
-    batch_size = 2
-    dataset_clip = SimpleContrastiveDataset(**kwargs_clip)
-    dataloader_clip = DataLoader(
-        dataset_clip, batch_size=batch_size, collate_fn=dataset_clip.collate_fn)
-    dataset_dpr = DPRDataset(**kwargs_dpr)
-    dataloader_dpr = DataLoader(
-        dataset_dpr, batch_size=batch_size, collate_fn=dataset_dpr.collate_fn)
-    return dataloader_clip, dataloader_dpr
+    batch_size = 4
+    dataset_kilt = KiltDataset(**kwargs_triviaqa)
+    dataloader_kilt = DataLoader(
+        dataset_kilt, batch_size=batch_size, collate_fn=dataset_kilt.collate_fn)
+
+    return dataloader_kilt
 
 
 if __name__ == '__main__':

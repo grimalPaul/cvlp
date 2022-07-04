@@ -2,6 +2,7 @@ import json
 from datasets import load_from_disk, disable_caching
 import sys
 from SPARQLWrapper import SPARQLWrapper, JSON
+from tqdm import tqdm
 
 disable_caching()
 
@@ -24,7 +25,7 @@ def create_query(keys):
         VALUES ?item { %s } 
         ?item wdt:P18 ?image. }
         ''' % " ".join(sparql_values)
-    print(query)
+    #print(query)
     return query
 
 def format_results(elements, results):
@@ -44,7 +45,7 @@ def worker(keys, step_size = 10000):
     print(f'size {size}, iter {nb_iteration}, remaining elements {remaining_elements}')
     data = {}
     searcher = Searcher()
-    for i in range(nb_iteration):
+    for i in tqdm(range(nb_iteration)):
         query = create_query(keys[:step_size])
         keys = keys[step_size:]
         r = searcher.request(query)
@@ -72,15 +73,4 @@ if __name__ == '__main__':
     path_dataset = "data/wikimage"
     dataset = load_from_disk(path_dataset)
     keys = dataset["wikidata_id"]
-
-    keys = [
-        "Q2453276",
-        "Q157986",
-        "Q25173",
-        "Q76",
-        "Q39476",
-        "Q312",
-        "Q19837",
-        "Q36301"
-    ]
-    worker(keys)
+    worker(keys, step_size=100)
