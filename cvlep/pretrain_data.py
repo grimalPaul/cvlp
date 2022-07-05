@@ -153,37 +153,90 @@ class KiltDataset(Dataset):
             "attention_mask_question": question_input.attention_mask,
             "input_ids_context": context_input.input_ids,
             "attention_mask_context": context_input.attention_mask,
+            "vis_inputs":None,
             "labels": labels
         }
 
 
-class wikiImage(Dataset):
+#TODO:split possibility ?
+class WikiImage(Dataset):
     def __init__(
         self,
-        dataset_path
+        dataset_path,
+        key_image
     ):
         super().__init__()
         self.dataset = load_from_disk(dataset_path)
+        self.key_image = key_image
 
     def __len__(self):
         self.dataset.num_rows
 
     def __getitem__(self, index):
-        pass
+        item={}
+        list_images = self.dataset[index][self.key_image]
+        # tirer aléatoirement deux embeddings
+        # avec remise ?
+        size = len(list_images)
+        if True:
+            fct = random.choice
+        else: 
+            fct = random.sample
+        index = fct(range(len(list_images)), k=2)
+        # TODO:define when I ll be sure of the structure
+        boxes_question = None
+        boxes_context = None 
+        item['image_features_question'] = list_images[index[0]]
+        item['image_features_context'] = list_images[index[1]]
+        item['image_boxes_question'] = boxes_question[index[0]]
+        item['image_boxes_context'] = boxes_context[index[1]]
+        item['n_boxes_question'] = item[''].size()[0]
+        item['n_boxes_context'] = item[''].size()[0]
+
+        return item
 
     def collate_fn(self, batch):
         B = len(batch)
-
+        V_L_question = max(item['n_boxes_question'] for item in batch)
+        V_L_context = max(item['n_boxes_context'] for item in batch)
+        feat_dim = batch[0]['image_features_question'].shape[-1]
+        # boxes are represented by 4 points
+        question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
+        question_vis_feats = torch.zeros(
+            B, V_L_question, feat_dim, dtype=torch.float)
+        context_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+        context_vis_feats = torch.zeros(
+            B, V_L_context, feat_dim, dtype=torch.float)
+        labels = list()
+        for i, item in enumerate(batch):           
+            n_boxes_context = item['n_boxes_context'] 
+            n_boxes_question = item['n_boxes_question']
+            question_boxes[i,
+                            :n_boxes_question] = item['question_image_boxes']
+            question_vis_feats[i,
+                                :n_boxes_question] = item['image_features_question']
+            context_boxes[i,
+                            :n_boxes_context] =item['image_boxes_context']
+            context_vis_feats[i,
+                                :n_boxes_context] = item['image_features_context']
+            labels.append(i)                
+        labels = torch.tensor(labels)
         return {
-            "image_question": None,
-            "image_passage": None
+            "input_ids_question": None,
+            "attention_mask_question": None,
+            "input_ids_context": None,
+            "attention_mask_context": None,
+            "labels": labels,
+            "visual_feats_question": question_vis_feats,
+            "visual_feats_context": context_vis_feats,
+            "question_image_boxes": question_boxes,
+            "context_image_boxes": context_boxes
         }
-
 
 # passage avec relevant passage
 # juste relevant passage pour l'instant
 # pas d'irrelevant
-class multimedia(Dataset):
+class Multimedia(Dataset):
     def __init__(
         self,
         passages_path,

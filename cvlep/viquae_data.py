@@ -167,23 +167,22 @@ class DPRDataset(Dataset):
 
     def collate_fn(self, batch):
         B = len(batch)
-        if self.TokenizerConfig.use_vision:
 
-            V_L_question = max(item['n_boxes_question'] for item in batch)
-            V_L_context = max(max(item['n_boxes_passage_relevant'],
-                              item['n_boxes_passage_irrelevant']) for item in batch)
-            feat_dim = batch[0]['question_image_features'].shape[-1]
-            # boxes are represented by 4 points
-            question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
-            question_vis_feats = torch.zeros(
-                B, V_L_question, feat_dim, dtype=torch.float)
-            relevant_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
-            relevant_vis_feats = torch.zeros(
-                B, V_L_context, feat_dim, dtype=torch.float)
-            irrelevant_boxes = torch.zeros(
-                B, V_L_context, 4, dtype=torch.float)
-            irrelevant_vis_feats = torch.zeros(
-                B, V_L_context, feat_dim, dtype=torch.float)
+        V_L_question = max(item['n_boxes_question'] for item in batch)
+        V_L_context = max(max(item['n_boxes_passage_relevant'],
+                            item['n_boxes_passage_irrelevant']) for item in batch)
+        feat_dim = batch[0]['question_image_features'].shape[-1]
+        # boxes are represented by 4 points
+        question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
+        question_vis_feats = torch.zeros(
+            B, V_L_question, feat_dim, dtype=torch.float)
+        relevant_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+        relevant_vis_feats = torch.zeros(
+            B, V_L_context, feat_dim, dtype=torch.float)
+        irrelevant_boxes = torch.zeros(
+            B, V_L_context, 4, dtype=torch.float)
+        irrelevant_vis_feats = torch.zeros(
+            B, V_L_context, feat_dim, dtype=torch.float)
 
         relevant_text, irrelevant_text, question_text, labels = list(), list(), list(), list()
         for i, item in enumerate(batch):
@@ -191,22 +190,21 @@ class DPRDataset(Dataset):
             question_text.append(item['question_text'])
             relevant_text.append(item['passage_relevant_text'])
             irrelevant_text.append(item['passage_irrelevant_text'])
-            if self.TokenizerConfig.use_vision:
-                n_boxes_relevant = item['n_boxes_passage_relevant']
-                n_boxes_irrelevant = item['n_boxes_passage_irrelevant']
-                n_boxes_question = item['n_boxes_question']
-                question_boxes[i,
-                               :n_boxes_question] = item['question_image_boxes']
-                question_vis_feats[i,
-                                   :n_boxes_question] = item['question_image_features']
-                relevant_boxes[i,
-                               :n_boxes_relevant] = item['passage_relevant_image_boxes']
-                relevant_vis_feats[i,
-                                   :n_boxes_relevant] = item['passage_relevant_image_features']
-                irrelevant_boxes[i,
-                                 :n_boxes_irrelevant] = item['passage_irrelevant_image_boxes']
-                irrelevant_vis_feats[i,
-                                     :n_boxes_irrelevant] = item['passage_irrelevant_image_features']
+            n_boxes_relevant = item['n_boxes_passage_relevant']
+            n_boxes_irrelevant = item['n_boxes_passage_irrelevant']
+            n_boxes_question = item['n_boxes_question']
+            question_boxes[i,
+                            :n_boxes_question] = item['question_image_boxes']
+            question_vis_feats[i,
+                                :n_boxes_question] = item['question_image_features']
+            relevant_boxes[i,
+                            :n_boxes_relevant] = item['passage_relevant_image_boxes']
+            relevant_vis_feats[i,
+                                :n_boxes_relevant] = item['passage_relevant_image_features']
+            irrelevant_boxes[i,
+                                :n_boxes_irrelevant] = item['passage_irrelevant_image_boxes']
+            irrelevant_vis_feats[i,
+                                    :n_boxes_irrelevant] = item['passage_irrelevant_image_features']
             if item['passage_relevant_text'] is None:
                 labels.append(-100)  # ignore index when computing the loss
             else:

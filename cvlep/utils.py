@@ -42,20 +42,51 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-def get_setup():
-    if "RANK" in os.environ and "WORLD_SIZE" in os.environ:  # torchrun launch
-        rank = int(os.environ["RANK"])
-        local_rank = int(os.environ["LOCAL_RANK"])
-        world_size = int(os.environ["WORLD_SIZE"])
-    elif int(os.environ.get('SLURM_NPROCS', 1)) > 1:  # slurm launch
-        rank = int(os.environ["SLURM_PROCID"])
-        local_rank = int(os.environ["SLURM_LOCALID"])
-        world_size = int(os.environ["SLURM_NPROCS"])
-    else:  # single gpu & process launch
-        rank = 0
-        local_rank = 0
-        world_size = 0
-    return rank, local_rank, world_size
 
-
+def retrieval(eval_prediction, ignore_index=-100):
+    """
+    Computes metric for retrieval training (at the batch-level)
     
+    Parameters
+    ----------
+    eval_prediction: EvalPrediction (dict-like)
+        predictions: np.ndarray
+            shape (dataset_size, N*M)
+            This corresponds to the log-probability of the relevant passages per batch (N*M == batch size)
+        label_ids: np.ndarray
+            shape (dataset_size, )
+            Label at the batch-level (each value should be included in [0, N-1] inclusive)
+    ignore_index: int, optional
+        Labels with this value are not taken into account when computing metrics.
+        Defaults to -100
+    """
+    print(f"eval_prediction.predictions.shape: {eval_prediction.predictions.shape}")
+    print(f"               .label_ids.shape: {eval_prediction.label_ids.shape}")
+    metrics = {}
+
+    log_probs = eval_prediction.predictions
+    dataset_size, N_times_M = log_probs.shape
+    # use argsort to rank the passages w.r.t. their log-probability (`-` to sort in desc. order)
+    rankings = (-log_probs).argsort(axis=1)
+    mrr, ignored_predictions = 0, 0
+    for ranking, label in zip(rankings, eval_prediction.label_ids):
+        if label == ignore_index:
+            ignored_predictions += 1
+            continue
+        # +1 to count from 1 instead of 0
+        rank = (ranking == label).nonzero()[0].item() + 1
+        mrr += 1/rank
+    mrr /= (dataset_size-ignored_predictions)
+    # print(f"dataset_size: {dataset_size}, ignored_predictions: {ignored_predictions}")
+    metrics["MRR@N*M"] = mrr
+
+    # argmax to get index of prediction (equivalent to `log_probs.argmax(axis=1)`)
+    predictions = rankings[:, 0]
+    # print(f"predictions[:100] {predictions.shape}:\n{predictions[:100]}")
+    # print(f"eval_prediction.label_ids[:100] {eval_prediction.label_ids.shape}:\n{eval_prediction.label_ids[:100]}")
+    # hits@1
+    where = eval_prediction.label_ids != ignore_index
+    metrics["hits@1"] = (predictions[where] == eval_prediction.label_ids[where]).mean()
+
+    return metrics
+
