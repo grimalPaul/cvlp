@@ -9,3 +9,7 @@
 217 are in multimedia and wikimage
 
 Should I delete this data  ?
+
+I dont think so, bc different tasks
+
+voir combien de question sont impliqués

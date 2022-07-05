@@ -1,4 +1,4 @@
-import math
+import json
 import numpy as np
 from cvlep.VLT5.param import Config
 from cvlep.CLIPT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
@@ -10,7 +10,6 @@ import random
 import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
 
 disable_caching()
 
@@ -175,24 +174,23 @@ class WikiImage(Dataset):
     def __getitem__(self, index):
         item={}
         list_images = self.dataset[index][self.key_image]
-        # tirer aléatoirement deux embeddings
-        # avec remise ?
-        size = len(list_images)
+        # tirer aléatoirement deux index de features d'images
         if True:
-            fct = random.choice
+            # avec remise
+            fct = random.choices
         else: 
+            #sans remise
             fct = random.sample
-        index = fct(range(len(list_images)), k=2)
+        index_images = fct(range(len(list_images)), k=2)
         # TODO:define when I ll be sure of the structure
         boxes_question = None
         boxes_context = None 
-        item['image_features_question'] = list_images[index[0]]
-        item['image_features_context'] = list_images[index[1]]
-        item['image_boxes_question'] = boxes_question[index[0]]
-        item['image_boxes_context'] = boxes_context[index[1]]
+        item['image_features_question'] = list_images[index_images[0]]
+        item['image_features_context'] = list_images[index_images[1]]
+        item['image_boxes_question'] = boxes_question[index_images[0]]
+        item['image_boxes_context'] = boxes_context[index_images[1]]
         item['n_boxes_question'] = item[''].size()[0]
         item['n_boxes_context'] = item[''].size()[0]
-
         return item
 
     def collate_fn(self, batch):
@@ -236,12 +234,13 @@ class WikiImage(Dataset):
 # passage avec relevant passage
 # juste relevant passage pour l'instant
 # pas d'irrelevant
-class Multimedia(Dataset):
+class MultimediaDataset(Dataset):
     def __init__(
         self,
         passages_path,
         topk,
         kb_path,
+        article2index_path,
         tokenizer_path,
         key_index_article='index',
         key_text_passage='passage',
@@ -250,19 +249,23 @@ class Multimedia(Dataset):
         verbose=True
     ):
         super().__init__()
-        self.dataset = load_from_disk(passages_path)
+        self.passages = load_from_disk(passages_path)
         self.tokp = topk
         self.verbose = verbose
-        if isinstance(self.topk, float) and (0 < self.topk <= 1):
-            used_samples = int(self.topk * len(data))
-            data = random.sample(data, used_samples)
-            if self.verbose:
-                print(f"Use only {len(data)} data")
         self.kb = load_from_disk(kb_path)
+        if isinstance(self.topk, float) and (0 < self.topk <= 1):
+            used_samples = int(self.topk * self.kb.num_rows)
+            self.kb = self.kb[:used_samples]
+            if self.verbose:
+                print(f"Use only {used_samples} data")
         self.key_index_article = key_index_article
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
         self.key_vision_boxes = key_vision_boxes
+
+        with open(article2index_path, 'r') as f:
+            self.article2index = json.load(f) 
+
         # we use the same tokenizer for question and passage
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
@@ -284,7 +287,11 @@ class Multimedia(Dataset):
         return self.dataset.num_rows
 
     def __getitem__(self, index):
-        pass
+        #read index
+        list_passages = self.article2index[str(index)]
+        index_passages = random.sample(len(list_passages), k=2)
+        index_images = random.sample(len)
+
 
     def collate_fn(self, batch):
         return {

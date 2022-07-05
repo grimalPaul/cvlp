@@ -176,8 +176,7 @@ We must pretrained the model on pretrained task(s). We use adapter for the pretr
 
 ##### Pretraining
 
-
-###### Download and preprocess data
+###### Kilt trivia
 
 We need to download the kilt dataset filtered on viquae question.
 
@@ -224,6 +223,40 @@ python -m processing.irrelevant \
     --passages_path= path/to/passages \
     --dataset_path=path/to/triviaqa_for_viquae
 ```
+
+###### Wikimage
+
+To develop entities representation of our model, we create a dataset from the knwoledge base of viquae. We take `wikidata_id` and get from wikidata image's entity for entities who have more than one image.
+
+TODO :We release the dataset and the image.
+
+Speak about overlapp
+
+###### Multimedia
+
+We developed a multimedia training which consist to match differents passages of a same article with different illustrative images. We take the above dataset to create this one.
+
+TODO: We release the dataset and the image
+
+Speak about overlapp
+
+You have to create passages from the kb.
+
+To do that run the folowing command :
+
+```bash
+python -m meerqat.data.loading passages path/to/multimedia path/to/save/passages experiments/passages/config.json
+
+# Extract some columns from the dataset to allow quick (and string) indexing:
+
+python -m meerqat.data.loading map path/to/multimedia wikipedia_title path/to/save/title2index.json --inverse
+
+python -m meerqat.data.loading map path/to/multimedia passage_index path/to/save/article2passage.json
+```
+
+###### Image caption
+
+TODO
 
 ###### Prompt tunning
 
