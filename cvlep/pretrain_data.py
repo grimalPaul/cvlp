@@ -65,10 +65,8 @@ class KiltDataset(Dataset):
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
-                # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
@@ -255,10 +253,8 @@ class MultimediaDataset(Dataset):
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
-                # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')

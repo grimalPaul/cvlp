@@ -142,7 +142,7 @@ class Trainer(object):
         if self.verbose:
             best_valid = 0.
             best_epoch = 0
-        if self.args.distributed:
+        if self.args.distributed and self.val_loader is not None:
             # to always have the same validation loader
             self.val_loader.sampler.set_epoch(0)
 
