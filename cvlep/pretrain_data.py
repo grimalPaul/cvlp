@@ -13,30 +13,11 @@ from torch.utils.data.distributed import DistributedSampler
 
 disable_caching()
 
-
-def remove_lines(n_rows, split):
-    index = [_ for _ in range(n_rows)]
-    if split == 'train':
-        idx2remove = [201, 388, 428, 677, 1077]
-    elif split == 'validation':
-        idx2remove = [43, 121, 473, 582, 688, 1075, 1099]
-    elif split == 'test':
-        idx2remove = [578, 643, 904, 1056]
-    # reverse the list to pop without shift index
-    idx2remove = idx2remove[::-1]
-    for i in idx2remove:
-        index.pop(i)
-    return index
-
-
 # Kilt dataset
 # "train_dataset": "data/triviaqa/without_viquae"
 # "eval_dataset": "data/triviaqa/with_viquae_validation"
 # "kb": "data/kilt_passages"
 # # Entity image wikipedia image
-
-# TODO:check si besoin d'enlever des lignes sans réponses
-# Il y a des questions sans réponses mais elles sont gérés dans collate
 class KiltDataset(Dataset):
     def __init__(
             self,
@@ -152,12 +133,16 @@ class KiltDataset(Dataset):
             "attention_mask_question": question_input.attention_mask,
             "input_ids_context": context_input.input_ids,
             "attention_mask_context": context_input.attention_mask,
-            "vis_inputs":None,
-            "labels": labels
+            "labels": labels,
+            "visual_feats_question": None,
+            "visual_feats_context": None,
+            "question_image_boxes": None,
+            "context_image_boxes": None
         }
 
 
-#TODO:split possibility ?
+# TODO:split possibility
+# TODO: image embedding
 class WikiImage(Dataset):
     def __init__(
         self,
@@ -172,19 +157,19 @@ class WikiImage(Dataset):
         self.dataset.num_rows
 
     def __getitem__(self, index):
-        item={}
+        item = {}
         list_images = self.dataset[index][self.key_image]
         # tirer aléatoirement deux index de features d'images
         if True:
             # avec remise
             fct = random.choices
-        else: 
-            #sans remise
+        else:
+            # sans remise
             fct = random.sample
         index_images = fct(range(len(list_images)), k=2)
         # TODO:define when I ll be sure of the structure
         boxes_question = None
-        boxes_context = None 
+        boxes_context = None
         item['image_features_question'] = list_images[index_images[0]]
         item['image_features_context'] = list_images[index_images[1]]
         item['image_boxes_question'] = boxes_question[index_images[0]]
@@ -206,18 +191,18 @@ class WikiImage(Dataset):
         context_vis_feats = torch.zeros(
             B, V_L_context, feat_dim, dtype=torch.float)
         labels = list()
-        for i, item in enumerate(batch):           
-            n_boxes_context = item['n_boxes_context'] 
+        for i, item in enumerate(batch):
+            n_boxes_context = item['n_boxes_context']
             n_boxes_question = item['n_boxes_question']
             question_boxes[i,
-                            :n_boxes_question] = item['question_image_boxes']
+                           :n_boxes_question] = item['question_image_boxes']
             question_vis_feats[i,
-                                :n_boxes_question] = item['image_features_question']
+                               :n_boxes_question] = item['image_features_question']
             context_boxes[i,
-                            :n_boxes_context] =item['image_boxes_context']
+                          :n_boxes_context] = item['image_boxes_context']
             context_vis_feats[i,
-                                :n_boxes_context] = item['image_features_context']
-            labels.append(i)                
+                              :n_boxes_context] = item['image_features_context']
+            labels.append(i)
         labels = torch.tensor(labels)
         return {
             "input_ids_question": None,
@@ -231,19 +216,20 @@ class WikiImage(Dataset):
             "context_image_boxes": context_boxes
         }
 
-# passage avec relevant passage
-# juste relevant passage pour l'instant
-# pas d'irrelevant
+# TODO : use with image embedding
 class MultimediaDataset(Dataset):
+    # match differents passages paired with illustrative image
+    #  of one article
     def __init__(
         self,
         passages_path,
         topk,
         kb_path,
-        article2index_path,
+
         tokenizer_path,
-        key_index_article='index',
+        key_passage_index='passage_index',
         key_text_passage='passage',
+        key_list_images="list_images",
         key_vision_features='fastrcnn_features',
         key_vision_boxes='fastrcnn_boxes',
         verbose=True
@@ -258,13 +244,12 @@ class MultimediaDataset(Dataset):
             self.kb = self.kb[:used_samples]
             if self.verbose:
                 print(f"Use only {used_samples} data")
-        self.key_index_article = key_index_article
+
+        self.key_passage_index = key_passage_index
+        self.key_list_images = key_list_images
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
         self.key_vision_boxes = key_vision_boxes
-
-        with open(article2index_path, 'r') as f:
-            self.article2index = json.load(f) 
 
         # we use the same tokenizer for question and passage
         self.TokenizerConfig = Config.load_json(tokenizer_path)
@@ -284,18 +269,85 @@ class MultimediaDataset(Dataset):
         )
 
     def __len__(self):
-        return self.dataset.num_rows
+        return self.kb.num_rows
 
     def __getitem__(self, index):
-        #read index
-        list_passages = self.article2index[str(index)]
-        index_passages = random.sample(len(list_passages), k=2)
-        index_images = random.sample(len)
+        # We use 'question' and 'context'
+        # 'question' is intented for encoder_question
+        # 'context' is intented for encoder_passage
 
+        list_passages = self.kb[str(index)][self.key_passage_index]
+        index_passages = random.sample(len(list_passages), k=2)
+        list_images = self.kb[index][self.key_list_images]
+        # TODO:pour index images avec ou sans remise ?
+        index_images = random.sample(range(len(list_images)), k=2)
+        item = {}
+
+        # passage for question encoder
+        item['question_text'] = self.passages[index_passages[0]
+                                              ][self.key_text_passage]
+        # passage for passage encoder
+        item['passage_text'] = self.passages[index_passages[1]
+                                             ][self.key_text_passage]
+
+        boxes_question = None
+        boxes_context = None
+        item['image_features_question'] = list_images[index_images[0]]
+        item['image_features_context'] = list_images[index_images[1]]
+        item['image_boxes_question'] = boxes_question[index_images[0]]
+        item['image_boxes_context'] = boxes_context[index_images[1]]
+        item['n_boxes_question'] = item[''].size()[0]
+        item['n_boxes_context'] = item[''].size()[0]
+        return item
 
     def collate_fn(self, batch):
-        return {
 
+        B = len(batch)
+
+        V_L_question = max(item['n_boxes_question'] for item in batch)
+        V_L_context = max(item['n_boxes_context'] for item in batch)
+        feat_dim = batch[0]['image_features_question'].shape[-1]
+        # boxes are represented by 4 points
+        question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
+        question_vis_feats = torch.zeros(
+            B, V_L_question, feat_dim, dtype=torch.float)
+        context_boxes = torch.zeros(B, V_L_context, 4, dtype=torch.float)
+        context_vis_feats = torch.zeros(
+            B, V_L_context, feat_dim, dtype=torch.float)
+
+        question_text, context_text, labels = list(), list(), list()
+        for i, item in enumerate(batch):
+            question_text.append(item['question_text'])
+            context_text.append(item['passage_text'])
+            n_boxes_context = item['n_boxes_context']
+            n_boxes_question = item['n_boxes_question']
+            question_boxes[i,
+                           :n_boxes_question] = item['image_boxes_question']
+            question_vis_feats[i,
+                               :n_boxes_question] = item['image_features_question']
+            context_boxes[i,
+                          :n_boxes_context] = item['image_boxes_context']
+            context_vis_feats[i,
+                              :n_boxes_context] = item['image_features_context']
+
+            labels.append(i)
+
+        question_input = self.tokenizer(
+            question_text, padding='max_length', truncation=True, return_tensors="pt")
+        context_input = self.tokenizer(
+            context_text, padding='max_length', truncation=True, return_tensors="pt")
+        labels = torch.tensor(labels)
+
+        return {
+            "input_ids_question": question_input.input_ids,
+            "attention_mask_question": question_input.attention_mask,
+            "input_ids_context": context_input.inputs_ids,
+            "attention_mask_context": context_input.attention_mask,
+            "labels": labels,
+            "visual_feats_question": question_vis_feats,
+            "visual_feats_context": context_vis_feats,
+            "question_image_boxes": question_boxes,
+            "context_image_boxes": context_boxes
         }
 
 

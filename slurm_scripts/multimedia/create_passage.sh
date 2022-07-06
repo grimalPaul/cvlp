@@ -9,7 +9,7 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
-path_kb=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/multimedia
+path_kb=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/multimedia_filter
 
 echo 'create passage dataset'
 python -m meerqat.data.loading passages \
