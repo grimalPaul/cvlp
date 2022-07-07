@@ -24,13 +24,15 @@
             "key_irrelevant": "BM25_irrelevant_indices",
             "key_text_question": "input",
             "key_text_passage": "passage",
-            "topk": -1
+            "topk": -1,
+            "split":"train,validation"
         },
         "match_image": {
             "batch_size": 4,
             "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split",
             "topk":-1,
-            "key_image":""
+            "key_image":"",
+            "split":"train,validation"
         },
         "match_article": {
             "batch_size": 4,
@@ -42,7 +44,22 @@
             "key_list_images": "list_images",
             "key_vision_features": "fastrcnn_features",
             "key_vision_boxes": "fastrcnn_boxes",
-            "topk": -1
+            "topk": -1,
+            "split":"train,validation"
+        },
+        "viquae":{
+            "batch_size":4,
+            "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+            "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae",
+            "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+            "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+            "key_relevant": "provenance_indices",
+            "key_text_question": "input",
+            "key_text_passage": "passage",
+            "key_vision_features": "_features",
+            "key_vision_boxes": "_boxes",
+            "key_irrelevant": "BM25_irrelevant_indices",
+            "split":"validation"
         }
     }
 }

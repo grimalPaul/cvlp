@@ -309,31 +309,33 @@ def main_worker(config_training, datasets_config, args):
     if config_training.train:
         training_loaders = []
         validation_loaders = []
-        for task, args in datasets_config.items():
-            validation_loaders.append(
-                get_loader(
-                    task=task,
-                    mode="eval",
-                    seed=config_training.seed,
-                    workers=config_training.num_workers,
-                    verbose=verbose,
-                    split="validation",
-                    distributed=config_training.distributed,
-                    **args
+        for task, args_dataset in datasets_config.items():
+            if "validation" in args_dataset['split']:
+                validation_loaders.append(
+                    get_loader(
+                        task=task,
+                        mode="eval",
+                        seed=config_training.seed,
+                        workers=config_training.num_workers,
+                        verbose=verbose,
+                        split="validation",
+                        distributed=config_training.distributed,
+                        **args_dataset
+                    )
                 )
-            )
-            training_loaders.append(
-                get_loader(
-                    task=task,
-                    mode="eval",
-                    split="train",
-                    seed=config_training.seed,
-                    workers=config_training.num_workers,
-                    verbose=verbose,
-                    distributed=config_training.distributed,
-                    **args
+            if 'train' in args_dataset['split']:
+                training_loaders.append(
+                    get_loader(
+                        task=task,
+                        mode="eval",
+                        split="train",
+                        seed=config_training.seed,
+                        workers=config_training.num_workers,
+                        verbose=verbose,
+                        distributed=config_training.distributed,
+                        **args_dataset
+                    )
                 )
-            )
         val_loader = get_val_loader(validation_loaders)
         train_loader = get_multitask_loader(training_loaders, verbose)
         test_loader = None
