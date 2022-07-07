@@ -6,6 +6,7 @@ import torch
 from cvlep.VLT5.utils import LossMeter
 from torch import distributed as dist
 from cvlep.VLT5.param import Config
+import os
 
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
@@ -195,29 +196,6 @@ class Trainer_Multitask(Trainer):
         
         if self.verbose:
             self.writer.close()
-
-    def test(self):
-        if self.test_loader is not None:
-            if self.args.distributed:
-                self.test_loader.sampler.set_epoch(0)
-            self.model.eval()
-            if self.verbose:
-                loss_meter = LossMeter()
-                pbar = tqdm(total=len(self.test_loader), ncols=100)
-            for step_i, batch in enumerate(self.test_loader):
-                if self.args.fp16 and _use_native_amp:
-                    with autocast():
-                        if self.args.distributed:
-                            loss = self.compute_loss(batch)
-                else:
-                    loss = self.compute_loss(batch)
-                if self.verbose:
-                    loss_meter.update(loss.item())
-                    desc_str = f'Test Loss {loss_meter.val:4f}'
-                    pbar.set_description(desc_str)
-                    pbar.update(1)
-            if self.verbose:
-                pbar.close()
 
     def compute_loss(self, batch):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.

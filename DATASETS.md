@@ -1,5 +1,10 @@
 # Datasets
 
+"triviaqa"
+"match_image"
+"match_article"
+"viquae"
+
 ## multimedia and wikimage
 
 961 entities in test
@@ -24,3 +29,46 @@ Pas d'entités en communs avec le dataset Viquae
 
 - Pour Multimedia : on a 36361 entités avec des passages
 - Pour Wikimage: on a 43525 entités avec au moins deux images
+
+Puis je shuffle et split wikimage
+Je recupéère les clés du split
+et je filtre multimedia pour avoir les mêmes entités dans validation et dans train que dans wikimage(pas le même nombre car on a enlevé les articles ou on avait qu'un unique passage)
+
+```java
+{
+    '2': 36938,
+    '3': 4205, 
+    '4': 1356, 
+    '6': 198, 
+    '9': 40, 
+    '5': 478, 
+    '7': 110, 
+    '12': 15, 
+    '8': 76, 
+    '11': 23, 
+    '19': 3, 
+    '10': 31, 
+    '17': 7, 
+    '22': 4, 
+    '16': 10, 
+    '15': 7, 
+    '14': 6, 
+    '23': 2, 
+    '27': 1, 
+    '41': 2, 
+    '18': 4, 
+    '24': 2, 
+    '13': 5, 
+    '26': 1, 
+    '40': 1
+    }
+```
+
+après split on a
+multimedia :
+train :  num_rows: 33871
+validation :  num_rows: 2490
+
+wikimage:
+train:40525
+validation:3000

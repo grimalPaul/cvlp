@@ -231,28 +231,16 @@ To develop entities representation of our model, we create a dataset from the kn
 TODO :We release the dataset and the image.
 
 Speak about overlapp
+on a enlevé entité commune avec le viquae
 
 ###### Multimedia
 
 We developed a multimedia training which consist to match differents passages of a same article with different illustrative images. We take the above dataset to create this one.
 
 TODO: We release the dataset and the image
+and the passage
 
-Speak about overlapp
-
-You have to create passages from the kb.
-
-To do that run the folowing command :
-
-```bash
-python -m meerqat.data.loading passages path/to/multimedia path/to/save/passages experiments/passages/config.json
-
-# Extract some columns from the dataset to allow quick (and string) indexing:
-
-python -m meerqat.data.loading map path/to/multimedia wikipedia_title path/to/save/title2index.json --inverse
-
-python -m meerqat.data.loading map path/to/multimedia passage_index path/to/save/article2passage.json
-```
+pas d'overlapp avec viquae
 
 ###### Image caption
 

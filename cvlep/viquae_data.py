@@ -41,7 +41,7 @@ other questions in the batch as negative examples. Each question is paired
 with 1 relevant passage and 1 irrelevant passage mined with BM25."""
 
 
-class DPRDataset(Dataset):
+class Viquae(Dataset):
     def __init__(
             self,
             passages_path,
@@ -405,7 +405,7 @@ def get_loader(
     g.manual_seed(seed)
 
     if cls == "dpr":
-        dataset = DPRDataset(
+        dataset = Viquae(
             passages_path=passages_path,
             dataset_path=dataset_path,
             kb_path=kb_path,

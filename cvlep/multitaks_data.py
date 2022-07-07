@@ -7,27 +7,23 @@ import random
 #         verbose=gpu==0)
 
 class MultitaskLoader(object):
-    def __init__(self, loaders, shuffle=True, drop_last=False, sampling='roundrobin', n_batches=None, verbose=True):
+    def __init__(self, loaders, shuffle=True, sampling='roundrobin', n_batches=None, verbose=True):
         self.loaders = loaders
         self.verbose = verbose
-        # self.loader_lens = [len(loader) for loader in self.loaders]
+
         self.task2len = {loader.task: len(loader) for loader in self.loaders}
         if self.verbose:
             print('Task2len:', self.task2len)
         self.task2loader = {loader.task: loader for loader in self.loaders}
 
         self.shuffle = shuffle
-        self.drop_last = drop_last
         self.sampling = sampling
         self.epoch_tasks = None
         self.n_batches = n_batches
         self.set_epoch(0)
-        # print('loader indices:', self.loader_indices)
 
     def __iter__(self):
         self.task2iter = {loader.task: iter(loader) for loader in self.loaders}
-        # self.loader_iters = [iter(loader) for loader in self.loaders]
-
         return self
 
     def set_epoch(self, epoch):
@@ -66,3 +62,15 @@ class MultitaskLoader(object):
 
     def __len__(self):
         return len(self.epoch_tasks)
+
+def get_loader(loaders :list, verbose):
+    return MultitaskLoader(loaders, verbose=verbose)
+
+def get_val_loader(loaders:list):
+    val_loader = {}
+    for loader in loaders:
+        val_loader[loader.task] = loader
+    return val_loader
+
+if __name__ == '__main__':
+    pass

@@ -1,8 +1,8 @@
 import json
 import numpy as np
 from cvlep.VLT5.param import Config
-from cvlep.CLIPT5.tokenization import VLT5Tokenizer, VLT5TokenizerFast
-from transformers import T5Tokenizer, BartTokenizer, T5TokenizerFast, BartTokenizerFast
+from cvlep.CLIPT5.tokenization import VLT5TokenizerFast
+from transformers import T5TokenizerFast
 from multiprocessing import context
 import warnings
 from datasets import disable_caching, load_from_disk
@@ -10,6 +10,7 @@ import random
 import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
+from cvlep.viquae_data import Viquae
 
 disable_caching()
 
@@ -18,6 +19,8 @@ disable_caching()
 # "eval_dataset": "data/triviaqa/with_viquae_validation"
 # "kb": "data/kilt_passages"
 # # Entity image wikipedia image
+
+
 class KiltDataset(Dataset):
     def __init__(
             self,
@@ -215,6 +218,8 @@ class WikiImage(Dataset):
         }
 
 # TODO : use with image embedding
+
+
 class MultimediaDataset(Dataset):
     # match differents passages paired with illustrative image
     #  of one article
@@ -417,54 +422,53 @@ def seed_worker(worker_id):
 
 
 def get_loader(
-        cls,
+        task,
         mode,
-        batch_size,
+        # tokenizer_path,
+        # dataset_path,
+        # kb_path,
+        # passages_path,
+        # key_relevant,
+        # key_text_question,
+        # key_text_passage,
+        # key_vision_features,
+        # key_vision_boxes,
+        # batch_size
+        # split,
         seed,
         distributed,
         workers,
-        tokenizer_path,
-        dataset_path,
-        kb_path,
-        passages_path,
-        key_relevant,
-        key_text_question,
-        key_text_passage,
-        key_vision_features,
-        key_vision_boxes,
-        split,
         verbose=False,
-        key_irrelevant=None
+        #key_irrelevant=None
+        **dataset_args,
 ):
-
+    # TODO: ajouter loader.task
     g = torch.Generator()
     g.manual_seed(seed)
 
-    if cls == "":
-        dataset = KiltDataset(
-            passages_path=passages_path,
-            dataset_path=dataset_path,
-            tokenizer_path=tokenizer_path,
-            key_relevant='provenance_indices',
-            key_irrelevant='BM25_irrelevant_indices',
-            key_text_question='input',
-            key_text_passage='passage',
-            split='train',
-            verbose=True
-        )
-    elif cls == "clip":
-        dataset = ImageCaption()
+    if task == "triviaqa":
+        dataset_class = KiltDataset
+    elif task == "match_image":
+        dataset_class = WikiImage
+    elif task == "match_article":
+        dataset_class = MultimediaDataset
+    elif task == "viquae":
+        dataset_class == Viquae
     else:
-        raise NotImplementedError("This dataset is not implemented")
+        raise NotImplementedError("dataset about this task is not implemented")
+    dataset = dataset_class(
+        verbose=verbose,
+        **dataset_args
+    )
     if distributed:
         sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
     else:
         sampler = None
-
+    dataset_args['batch_size']
     if mode == 'train':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=batch_size,
+            batch_size=dataset_args['batch_size'],
             shuffle=(sampler is None),
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -476,7 +480,7 @@ def get_loader(
     elif mode == 'eval':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=batch_size,
+            batch_size=dataset_args['batch_size'],
             shuffle=False,
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -488,7 +492,7 @@ def get_loader(
     elif mode == 'test':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=batch_size,
+            batch_size=dataset_args['batch_size'],
             shuffle=False,
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -499,6 +503,7 @@ def get_loader(
         )
     else:
         raise NotImplementedError('this mode is not implemented')
+    loader.task = task
     return loader
 
 
