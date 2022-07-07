@@ -56,10 +56,11 @@ class KiltDataset(Dataset):
             )
         self.passages = load_from_disk(passages_path)
         self.dataset = load_from_disk(dataset_path)[self.split]
-        if self.topk != -1 and 0 < self.topk <= 1:
-            self.len = int(self.dataset.num_rows * self.topk)
-        else:
-            self.len = self.dataset.num_rows
+        if isinstance(self.topk, float) and (0 < self.topk <= 1):
+            used_samples = int(self.topk * self.dataset.num_rows)
+            self.dataset = self.dataset.select(range(used_samples))
+            if self.verbose:
+                print(f"Use only {used_samples} data")
         self.key_index_relevant_passages = key_relevant
         self.key_index_irrelevant_passages = key_irrelevant
         self.key_text_question = key_text_question
@@ -80,7 +81,7 @@ class KiltDataset(Dataset):
         )
 
     def __len__(self):
-        return self.len
+        return self.dataset.num_rows
 
     def __getitem__(self, index):
         item = {}
@@ -148,10 +149,24 @@ class WikiImage(Dataset):
     def __init__(
         self,
         dataset_path,
-        key_image
+        key_image,
+        split = 'train',
+        topk=-1
     ):
         super().__init__()
-        self.dataset = load_from_disk(dataset_path)
+        if split == "validation":
+            self.split = "validation"
+        elif split == "train":
+            self.split = "train"
+        else:
+            raise NotImplementedError("This split is not implemented")
+        self.dataset = load_from_disk(dataset_path)[self.split]
+        self.topk = topk
+        if isinstance(self.topk, float) and (0 < self.topk <= 1):
+            used_samples = int(self.topk * self.dataset.num_rows)
+            self.dataset = self.dataset.select(range(used_samples))
+            if self.verbose:
+                print(f"Use only {used_samples} data")
         self.key_image = key_image
 
     def __len__(self):
@@ -226,25 +241,32 @@ class MultimediaDataset(Dataset):
     def __init__(
         self,
         passages_path,
-        topk,
+        
         kb_path,
-
         tokenizer_path,
+        split='train',
         key_passage_index='passage_index',
         key_text_passage='passage',
         key_list_images="list_images",
         key_vision_features='fastrcnn_features',
         key_vision_boxes='fastrcnn_boxes',
+        topk=-1,
         verbose=True
     ):
         super().__init__()
         self.passages = load_from_disk(passages_path)
         self.tokp = topk
         self.verbose = verbose
-        self.kb = load_from_disk(kb_path)
+        if split == "validation":
+            self.split = "validation"
+        elif split == "train":
+            self.split = "train"
+        else:
+            raise NotImplementedError("This split is not implemented")
+        self.kb = load_from_disk(kb_path)[self.split]
         if isinstance(self.topk, float) and (0 < self.topk <= 1):
             used_samples = int(self.topk * self.kb.num_rows)
-            self.kb = self.kb[:used_samples]
+            self.kb = self.kb.select(range(used_samples))
             if self.verbose:
                 print(f"Use only {used_samples} data")
 
@@ -434,7 +456,7 @@ def get_loader(
         # key_vision_features,
         # key_vision_boxes,
         # batch_size
-        # split,
+        split,
         seed,
         distributed,
         workers,
@@ -458,6 +480,7 @@ def get_loader(
         raise NotImplementedError("dataset about this task is not implemented")
     dataset = dataset_class(
         verbose=verbose,
+        split=split,
         **dataset_args
     )
     if distributed:

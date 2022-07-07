@@ -1,4 +1,6 @@
 import argparse
+from cvlep.multitask_data import get_multitask_loader, get_val_loader
+from cvlep.pretrain_data import get_loader
 from cvlep.trainer_base_vladapter import Trainer
 from tqdm import tqdm
 from packaging import version
@@ -7,6 +9,7 @@ from cvlep.VLT5.utils import LossMeter
 from torch import distributed as dist
 from cvlep.VLT5.param import Config
 import os
+import json
 
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
@@ -15,10 +18,11 @@ else:
     _use_native_amp = True
     from torch.cuda.amp import autocast
 
+
 class Trainer_Multitask(Trainer):
     def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True, local=False):
-        super().__init__(config_question, config_passage, config_model, config_training, train_loader, val_loader, test_loader, train, local)
-
+        super().__init__(config_question, config_passage, config_model,
+                         config_training, train_loader, val_loader, test_loader, train, local)
 
     def train(self):
         if self.verbose:
@@ -28,24 +32,23 @@ class Trainer_Multitask(Trainer):
             for task_name in self.val_loader.keys():
                 self.val_loader[task_name].set_epoch(0)
 
-        # TODO : init counter for class        
+        # TODO : init counter for class
         task_counter = {}
-        
+
         for epoch in tqdm(range(self.args.epochs)):
             if self.verbose:
                 tasks_loss = {}
                 for task in task_counter.keys():
-                    tasks_loss[task] = LossMeter()    
+                    tasks_loss[task] = LossMeter()
                 loss_meter = LossMeter()
                 pbar = tqdm(total=len(self.train_loader), ncols=100)
             self.model.train()
             if self.args.distributed:
                 self.train_loader.set_epoch(epoch)
 
-
             for step_i, batch in enumerate(self.train_loader):
                 task = batch['task']
-                task_counter[task] +=1
+                task_counter[task] += 1
 
                 if self.args.fp16 and _use_native_amp:
                     with autocast():
@@ -106,7 +109,7 @@ class Trainer_Multitask(Trainer):
                         lr = self.args.lr
 
                 if self.verbose:
-                    tasks_loss[task].update(loss.item())  
+                    tasks_loss[task].update(loss.item())
                     loss_meter.update(loss.item())
                     desc_str = f'Epoch {epoch} | LR {lr:.6f}'
                     for task_name, nb in task_counter.items():
@@ -127,11 +130,11 @@ class Trainer_Multitask(Trainer):
                 for task_name, l in tasks_loss.items():
                     self.writer.add_scalar(f'{task_name}_loss', l.val, epoch)
                 self.writer.flush()
-            
+
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
-                # val loader 
+                # val loader
                 # {
                 # task:val_loader,
                 # task:val_loader,
@@ -141,7 +144,7 @@ class Trainer_Multitask(Trainer):
                     if self.verbose:
                         tasks_loss = {}
                         for task in task_counter.keys():
-                            tasks_loss[task] = LossMeter()    
+                            tasks_loss[task] = LossMeter()
                         loss_meter = LossMeter()
                         size = 0
                         for loader in self.val_loader.values():
@@ -159,7 +162,7 @@ class Trainer_Multitask(Trainer):
                             if self.verbose:
                                 tasks_loss[task].update(loss.item())
                                 loss_meter.update(loss.item())
-                                desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}' 
+                                desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
                                 for task_name, l in tasks_loss.items():
                                     if l.val > 0:
                                         desc_str += f'| {task_name}_loss : {l.val:4f}'
@@ -168,7 +171,8 @@ class Trainer_Multitask(Trainer):
                     if self.verbose:
                         pbar.close()
                         for task_name, l in tasks_loss.items():
-                            self.writer.add_scalar(f'Validation_{task_name}_loss', l.val, epoch)
+                            self.writer.add_scalar(
+                                f'Validation_{task_name}_loss', l.val, epoch)
                         self.writer.add_scalar(
                             'Validation_loss', loss_meter.val, epoch)
                         self.writer.flush()
@@ -193,7 +197,7 @@ class Trainer_Multitask(Trainer):
 
             if self.args.distributed:
                 dist.barrier()
-        
+
         if self.verbose:
             self.writer.close()
 
@@ -283,7 +287,7 @@ class Trainer_Multitask(Trainer):
         return self.loss_fct(log_probs, global_labels)
 
 
-def main_worker(config_training, args):
+def main_worker(config_training, datasets_config, args):
     print(
         f'Process Launching at GPU {config_training.local_rank} and rank is {config_training.rank}')
 
@@ -303,17 +307,38 @@ def main_worker(config_training, args):
         print(f"World size : {config_training.world_size}")
 
     if config_training.train:
-        train_loader = ...
-        val_loader = {
-            "task" : ...,
-            "task2":...
-        }
-
+        training_loaders = []
+        validation_loaders = []
+        for task, args in datasets_config.items():
+            validation_loaders.append(
+                get_loader(
+                    task=task,
+                    mode="eval",
+                    seed=config_training.seed,
+                    workers=config_training.num_workers,
+                    verbose=verbose,
+                    split="validation",
+                    distributed=config_training.distributed,
+                    **args
+                )
+            )
+            training_loaders.append(
+                get_loader(
+                    task=task,
+                    mode="eval",
+                    split="train",
+                    seed=config_training.seed,
+                    workers=config_training.num_workers,
+                    verbose=verbose,
+                    distributed=config_training.distributed,
+                    **args
+                )
+            )
+        val_loader = get_val_loader(validation_loaders)
+        train_loader = get_multitask_loader(training_loaders, verbose)
         test_loader = None
     elif config_training.test:
-        test_loader = ...
-        train_loader = None
-        val_loader = None
+        pass
     config_encoder_question = Config.load_json(args.encoder_question_path)
     config_encoder_passage = Config.load_json(args.encoder_passage_path)
     config_model = Config.load_json(args.model_path)
@@ -328,9 +353,6 @@ def main_worker(config_training, args):
         test_loader=test_loader,
         train=config_training.train
     )
-
-
-
 
     if config_training.train:
         trainer.train()
@@ -360,7 +382,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Training config
-    config_training = Config.load_json(args.training_path)
+    with open(args.training_path, 'r') as f:
+        config_training_json = json.load(f)
+    datasets_config = config_training_json.pop("datasets")
+    config_training_json['tasks'] = [t for t in datasets_config.keys()]
+    config_training = Config(config_training_json)
     config_training.world_size = world_size
     config_training.rank = rank
     config_training.local_rank = local_rank
@@ -371,4 +397,4 @@ if __name__ == '__main__':
         config_training.distributed = False
         config_training.multiGPU = False
 
-    main_worker(config_training, args)
+    main_worker(config_training, datasets_config, args)
