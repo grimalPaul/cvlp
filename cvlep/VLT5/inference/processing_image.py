@@ -107,6 +107,7 @@ class Preprocess:
                 if isinstance(images[i], torch.Tensor):
                     images.insert(i, images.pop(i).to(self.device).float())
                 elif not isinstance(images[i], torch.Tensor):
+                    print(images[i])
                     images.insert(
                         i,
                         torch.as_tensor(img_tensorize(images.pop(i), input_format=self.input_format))

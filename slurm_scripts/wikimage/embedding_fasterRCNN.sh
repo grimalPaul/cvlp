@@ -15,7 +15,7 @@ python -m processing.embedding_image \
     --type=FasterRCNN \
     --model_config_path=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/config.yaml \
     --model=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/pytorch_model.bin \
-    --image_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/dataset/miniCommons/ \
+    --image_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/Commons_wikimage \
     --key_image=list_images \
     --key_image_embedding=fastrcnn
 

@@ -5,7 +5,7 @@ python -m ir.embedding_image --type=encode_image --dataset_path=<path> --model_c
     --key_image=<key_text> --key_image_embedding=<key_token> --image_path=<image_path> --model=<pytorch_model.bin>
 """
 
-from traitlets import default
+from pathlib import Path
 from cvlep.VLT5.inference.modeling_frcnn import GeneralizedRCNN
 from cvlep.VLT5.inference.processing_image import Preprocess
 from cvlep.VLT5.inference.utils import Config
@@ -15,7 +15,8 @@ from processing.utils import create_kwargs
 from PIL import Image
 import torch
 from cvlep.CLIPT5.vis_encoder import get_vis_encoder, _transform
-
+from cairosvg import svg2png
+from io import BytesIO
 
 disable_caching()
 
@@ -32,19 +33,24 @@ def load_img_preprocessor(frcnn_cfg):
 # CLIP
 # model = get_vis_encoder(backbone='RN50', adapter_type=None, image_size=eval("(224,224)")[0])
 # model.eval() # je pense pour ne pas avoir de gradient
-
+def open_image(path):
+    if path[-4:] == ".svg":
+        png = svg2png(file_obj=open(path,'r'))
+        return Image.open(BytesIO(png))
+    else:
+        return Image.open(path)
 def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transform, vis_encoder):
     # mapping function to embed images with clip
     # can embed single image or list of image
     list_images = item[key_image]
-    if isinstance(list_images):
+    if isinstance(list_images, list):
         images = list()
         for image_name in list_images:
-            image = transform(Image.open(f'{image_path}{image_name}'))
+            image = transform(open_image(Path(image_path)/image_name))
             images.append(image)
         images = torch.stack(images)
     else:
-        images = transform(Image.open(f'{image_path}{list_images}'))
+        images = transform(open_image(f'{image_path}{list_images}'))
     #TODO : fake batch size for single images ?
     #TODO : witch output ?
     _,_ = vis_encoder(images)
@@ -62,13 +68,13 @@ def embed_with_CLIP(dataset_path, backbone, **kwargs):
 
 def item_fasterRCNN_embedding(item, key_image, key_image_embedding, image_process, image_path, frcnn, frcnn_cfg, **kwargs):
     list_images = item[key_image]
-    if isinstance(list_images):
+    if isinstance(list_images,list):
         images = list()
         for image_name in list_images:
-            images.append(f'{image_path}{image_name}')
+            images.append(str(Path(image_path) / image_name))
         images, sizes, scales_yx = image_process(images)
     else:
-        images, sizes, scales_yx = image_process(f'{image_path}{list_images}')
+        images, sizes, scales_yx = image_process(str(Path(image_path)/list_images))
     output_dict = frcnn(
         images,
         sizes,

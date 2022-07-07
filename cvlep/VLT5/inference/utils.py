@@ -15,7 +15,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.import copy
  """
-
+from cairosvg import svg2png
 import copy
 import fnmatch
 from http.client import IM_USED
@@ -555,7 +555,10 @@ def img_tensorize(im, input_format="RGB"):
         # We use gif2numpy
         if im[-4:] == ".gif":
             img = np.array(Image.open(im).convert('RGB'))
-        else:    
+        elif im[-4:] == ".svg":
+            png = svg2png(file_obj=open(im,'r'))
+            img = np.array(Image.open(BytesIO(png)).convert('RGB'))
+        else:
             img = cv2.imread(im)
         #print(f'{type(img)}:{im}')
     else:
