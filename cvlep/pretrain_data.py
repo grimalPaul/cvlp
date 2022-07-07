@@ -14,13 +14,17 @@ from cvlep.viquae_data import Viquae
 
 disable_caching()
 
+# if args.boxe is None:
+#     # clip  create boxes
+# else tteke box from index
+
+
+
 # Kilt dataset
 # "train_dataset": "data/triviaqa/without_viquae"
 # "eval_dataset": "data/triviaqa/with_viquae_validation"
 # "kb": "data/kilt_passages"
 # # Entity image wikipedia image
-
-
 class KiltDataset(Dataset):
     def __init__(
             self,

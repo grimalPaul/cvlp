@@ -63,7 +63,7 @@ class MultitaskLoader(object):
     def __len__(self):
         return len(self.epoch_tasks)
 
-def get_loader(loaders :list, verbose):
+def get_multitask_loader(loaders :list, verbose):
     return MultitaskLoader(loaders, verbose=verbose)
 
 def get_val_loader(loaders:list):

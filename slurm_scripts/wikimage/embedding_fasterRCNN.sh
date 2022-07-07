@@ -11,12 +11,12 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m processing.embedding_image \
-    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_viquae_dataset \
-    --type=embedding_image \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split/validation \
+    --type=FasterRCNN \
     --model_config_path=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/config.yaml \
     --model=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/pytorch_model.bin \
     --image_path=/scratch_global/stage_pgrimal/data/miniViQuAE/data/dataset/miniCommons/ \
-    --key_image=image \
-    --key_image_embedding=vlt5
+    --key_image=list_images \
+    --key_image_embedding=fastrcnn
 
 echo "done"

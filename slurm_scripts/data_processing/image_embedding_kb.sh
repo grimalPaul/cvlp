@@ -10,7 +10,7 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
-python -m ir.embedding_image \
+python -m processing.embedding_image \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
     --type=embedding_image \
     --model_config_path=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/config.yaml \
