@@ -1,8 +1,22 @@
 """embed image
 
 Usage:
-python -m ir.embedding_image --type=encode_image --dataset_path=<path> --model_config_path=<path_to_config_model> \
-    --key_image=<key_text> --key_image_embedding=<key_token> --image_path=<image_path> --model=<pytorch_model.bin>
+python -m ir.embedding_image \
+    --type=CLIP/FasterRCNN \
+    --batch_size=4
+    # FasterRCNN
+    --model_config_path=path/to/config.yaml
+    --model=path/to/model.bin
+
+    # CLIP
+    --backbone=RN101
+
+    # Dataset
+    --dataset_path=path/to/dataset
+    --key_image=key_image
+    --key_image_embedding =key_image_embedding
+    --image_path=path/to/image
+    --log_path=path/to/save_error
 """
 
 from pathlib import Path
@@ -46,19 +60,33 @@ def open_image(path):
 def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transform, vis_encoder, batch_size):
     # mapping function to embed images with clip
     # can embed single image or list of image
+    global log_file
     list_images = item[key_image]
-    if isinstance(list_images, list):
-        images = list()
-        for image_name in list_images:
-            image = transform(open_image(Path(image_path)/image_name))
-            images.append(image)
-        images = torch.stack(images)
-    else:
-        images = transform(open_image(f'{image_path}{list_images}'))
-    #TODO : fake batch size for single images ?
-    #TODO : witch output ?
-    output,_ = vis_encoder(images)
-    item[f"{key_image_embedding}_features"] = output
+    try:
+        if isinstance(list_images, list):
+            images = list()
+            for image_name in list_images:
+                image = transform(open_image(Path(image_path)/image_name))
+                images.append(image)
+            images = torch.stack(images)
+            if images.shape[0] > batch_size:
+                nb_batch = images.shape[0] // batch_size
+                remainder= images.shape[0] % batch_size
+                features = torch.empty((images.shape[0],49,2048))
+                for i in range(0, nb_batch*batch_size, batch_size):
+                    features[i:batch_size+i,:,:],_=vis_encoder(images[i:batch_size+i,:,:,:])
+                if remainder > 0:
+                    features[-remainder:,:,:],_ =vis_encoder(
+                        images[-remainder:,:,:,:]
+                    )
+                item[f'{key_image_embedding}_features'] = features
+        else:
+            images = transform(open_image(f'{image_path}{list_images}'))
+            item[f"{key_image_embedding}_features"],_ = vis_encoder(images)
+    except:
+        item[f'{key_image_embedding}_features'] = None
+        log_file.append(item['wikipedia_title'])
+        print(item['wikipedia_title'])
     return item
 
 def embed_with_CLIP(dataset_path, backbone, **kwargs):

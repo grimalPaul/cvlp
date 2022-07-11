@@ -40,6 +40,8 @@ To download fastercnn, click to the links below :
 
 Place the downloaded files in `data/frcnn_model/`.
 
+To download visuale encoder, click [here](https://openaipublic.azureedge.net/clip/models/8fa8567bab74a42d41c5915025a8e4538c3bdbe8804a470a72f30b0d94fab599/RN101.pt) and place the downloaded file in `data/clip/`
+
 ### Download visual model
 
 `TODO`

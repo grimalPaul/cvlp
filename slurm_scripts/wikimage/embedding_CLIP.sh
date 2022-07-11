@@ -13,10 +13,11 @@ source activate cvlp
 python -m processing.embedding_image \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_no_filter \
     --type=CLIP \
-    --backbone=RN50 \
+    --backbone=/scratch_global/stage_pgrimal/data/CVLP/data/clip/RN101.pt \
     --image_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/Commons_wikimage \
     --key_image=list_images \
     --key_image_embedding=clip \
-    --batch_size=4
+    --batch_size=4 \
+    --log_path=/home/pgrimal/CVLEP/error_embedding_clip.json
 
 echo "done"
