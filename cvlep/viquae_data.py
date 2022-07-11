@@ -81,19 +81,16 @@ class Viquae(Dataset):
         self.key_text_question = key_text_question
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
-        self.key_boxes = key_vision_boxes
-        # we use the same tokenizer for question and passage
+        if "clip" in self.key_vision_features.lower():
+            self.key_boxes = None
+        else:
+            self.key_boxes = key_vision_boxes
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
-                # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
-        elif 'bart' in self.TokenizerConfig.tokenizer:
-            tokenizer_class = BartTokenizer
-            # tokenizer_class = BartTokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
@@ -111,12 +108,16 @@ class Viquae(Dataset):
         item['question_text'] = self.dataset[index][self.key_text_question]
         question_image_features = torch.Tensor(
             self.dataset[index][self.key_vision_features])
-        question_image_boxes = torch.Tensor(
-            self.dataset[index][self.key_boxes])
         item['question_image_features'] = torch.squeeze(
             question_image_features, dim=0)
-        item['question_image_boxes'] = torch.squeeze(
-            question_image_boxes, dim=0)
+        if self.key_boxes is not None:
+            question_image_boxes = torch.Tensor(
+                self.dataset[index][self.key_boxes])
+            item['question_image_boxes'] = torch.squeeze(
+                question_image_boxes, dim=0)
+        else:
+            item['question_image_boxes'] = torch.zeros(
+               item['question_image_features'].shape[0], 4)
         item['n_boxes_question'] = item['question_image_boxes'].size()[0]
 
         # relevant and irrelevant passage features
@@ -134,12 +135,17 @@ class Viquae(Dataset):
             item[f'passage_relevant_text'] = self.passages[relevant_index][self.key_text_passage]
             passage_image_features = torch.Tensor(
                 self.kb[kb_index][self.key_vision_features])
-            passage_image_boxes = torch.Tensor(
-                self.kb[kb_index][self.key_boxes])
-            item[f'passage_relevant_image_boxes'] = torch.squeeze(
-                passage_image_boxes, dim=0)
             item[f'passage_relevant_image_features'] = torch.squeeze(
                 passage_image_features, dim=0)
+            if self.key_boxes is not None:
+                passage_image_boxes = torch.Tensor(
+                self.kb[kb_index][self.key_boxes])
+                item[f'passage_relevant_image_boxes'] = torch.squeeze(
+                    passage_image_boxes, dim=0)
+            else:
+                item[f'passage_relevant_image_boxes'] = torch.zeros(
+                    item['passage_relevant_image_features'].shape[0], 4)
+           
             item['n_boxes_passage_relevant'] = item['passage_relevant_image_boxes'].size()[
                 0]
 
@@ -155,12 +161,16 @@ class Viquae(Dataset):
             item[f'passage_irrelevant_text'] = self.passages[irrelevant_index][self.key_text_passage]
             passage_image_features = torch.Tensor(
                 self.kb[kb_index][self.key_vision_features])
-            passage_image_boxes = torch.Tensor(
-                self.kb[kb_index][self.key_boxes])
-            item[f'passage_irrelevant_image_boxes'] = torch.squeeze(
-                passage_image_boxes, dim=0)
             item[f'passage_irrelevant_image_features'] = torch.squeeze(
                 passage_image_features, dim=0)
+            if self.key_boxes is not None:
+                passage_image_boxes = torch.Tensor(
+                    self.kb[kb_index][self.key_boxes])
+                item[f'passage_irrelevant_image_boxes'] = torch.squeeze(
+                    passage_image_boxes, dim=0)
+            else:
+                item[f'passage_irrelevant_image_boxes'] = torch.zeros(
+                    item['passage_irrelevant_image_features'].shape[0], 4)
             item['n_boxes_passage_irrelevant'] = item['passage_irrelevant_image_boxes'].size()[
                 0]
         return item
@@ -170,7 +180,7 @@ class Viquae(Dataset):
 
         V_L_question = max(item['n_boxes_question'] for item in batch)
         V_L_context = max(max(item['n_boxes_passage_relevant'],
-                            item['n_boxes_passage_irrelevant']) for item in batch)
+                              item['n_boxes_passage_irrelevant']) for item in batch)
         feat_dim = batch[0]['question_image_features'].shape[-1]
         # boxes are represented by 4 points
         question_boxes = torch.zeros(B, V_L_question, 4, dtype=torch.float)
@@ -194,17 +204,17 @@ class Viquae(Dataset):
             n_boxes_irrelevant = item['n_boxes_passage_irrelevant']
             n_boxes_question = item['n_boxes_question']
             question_boxes[i,
-                            :n_boxes_question] = item['question_image_boxes']
+                           :n_boxes_question] = item['question_image_boxes']
             question_vis_feats[i,
-                                :n_boxes_question] = item['question_image_features']
+                               :n_boxes_question] = item['question_image_features']
             relevant_boxes[i,
-                            :n_boxes_relevant] = item['passage_relevant_image_boxes']
+                           :n_boxes_relevant] = item['passage_relevant_image_boxes']
             relevant_vis_feats[i,
-                                :n_boxes_relevant] = item['passage_relevant_image_features']
+                               :n_boxes_relevant] = item['passage_relevant_image_features']
             irrelevant_boxes[i,
-                                :n_boxes_irrelevant] = item['passage_irrelevant_image_boxes']
+                             :n_boxes_irrelevant] = item['passage_irrelevant_image_boxes']
             irrelevant_vis_feats[i,
-                                    :n_boxes_irrelevant] = item['passage_irrelevant_image_features']
+                                 :n_boxes_irrelevant] = item['passage_irrelevant_image_features']
             if item['passage_relevant_text'] is None:
                 labels.append(-100)  # ignore index when computing the loss
             else:
@@ -272,20 +282,16 @@ class SimpleContrastiveDataset(Dataset):
         self.key_text_question = key_text_question
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
-        self.key_boxes = key_vision_boxes
-
-        # we use the same tokenizer for question and passage
+        if "clip" in self.key_vision_features.lower():
+            self.key_boxes = None
+        else:
+            self.key_boxes = key_vision_boxes
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
-                # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
-        elif 'bart' in self.TokenizerConfig.tokenizer:
-            tokenizer_class = BartTokenizer
-            # tokenizer_class = BartTokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
@@ -303,12 +309,16 @@ class SimpleContrastiveDataset(Dataset):
         item['question_text'] = self.dataset[index][self.key_text_question]
         question_image_features = torch.Tensor(
             self.dataset[index][self.key_vision_features])
-        question_image_boxes = torch.Tensor(
-            self.dataset[index][self.key_boxes])
         item['question_image_features'] = torch.squeeze(
             question_image_features, dim=0)
-        item['question_image_boxes'] = torch.squeeze(
-            question_image_boxes, dim=0)
+        if self.key_boxes is not None:
+            question_image_boxes = torch.Tensor(
+                self.dataset[index][self.key_boxes])
+            item['question_image_boxes'] = torch.squeeze(
+                question_image_boxes, dim=0)
+        else:
+            item['question_image_boxes'] = torch.zeros(
+                question_image_features.shape[0], 4) 
         item['n_boxes_question'] = item['question_image_boxes'].size()[0]
 
         # passage features
@@ -322,10 +332,14 @@ class SimpleContrastiveDataset(Dataset):
         item['passage_text'] = self.passages[relevant_index][self.key_text_passage]
         passage_image_features = torch.Tensor(
             self.kb[kb_index][self.key_vision_features])
-        passage_image_boxes = torch.Tensor(self.kb[kb_index][self.key_boxes])
-        item['passage_image_boxes'] = torch.squeeze(passage_image_boxes, dim=0)
         item['passage_image_features'] = torch.squeeze(
             passage_image_features, dim=0)
+        if self.key_boxes is not None:
+            passage_image_boxes = torch.Tensor(self.kb[kb_index][self.key_boxes])
+            item['passage_image_boxes'] = torch.squeeze(passage_image_boxes, dim=0)
+        else:
+            item['passage_image_boxes'] = torch.zeros(
+                passage_image_features.shape[0], 4) 
         item['n_boxes_passage'] = item['passage_image_boxes'].size()[0]
 
         return item
@@ -344,7 +358,7 @@ class SimpleContrastiveDataset(Dataset):
             context_vis_feats = torch.zeros(
                 B, V_L_context, feat_dim, dtype=torch.float)
 
-        context_text, question_text = list(), list()
+        context_text, question_text, labels = list(), list(), list()
         for i, item in enumerate(batch):
             # TODO: voir si besoin changer facon de gérer le text car impact sur le mask
             question_text.append(item['question_text'])
@@ -360,17 +374,22 @@ class SimpleContrastiveDataset(Dataset):
                               :n_boxes_context] = item['passage_image_boxes']
                 context_vis_feats[i,
                                   :n_boxes_context] = item['passage_image_features']
+                labels.append(i)
         question_input = self.tokenizer(
             question_text, padding='max_length', truncation=True, return_tensors="pt")
         context_input = self.tokenizer(
             context_text, padding='max_length', truncation=True, return_tensors="pt")
+        labels = torch.Tensor(labels)
         return {
-            "input_ids_question": question_input,
-            "input_ids_context": context_input,
+            "input_ids_question": question_input.input_ids,
+            "input_ids_context": context_input.input_ids,
+            "attention_mask_question": question_input.attention_mask,
+            "attention_mask_context": context_input.attention_mask,
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": context_vis_feats,
             "question_image_boxes": question_boxes,
-            "context_image_boxes": context_boxes
+            "context_image_boxes": context_boxes,
+            "labels":labels
         }
 
 
@@ -480,6 +499,7 @@ def get_loader(
         raise NotImplementedError('this mode is not implemented')
     return loader
 
+
 def test_dataloader():
     kwargs_clip = {
         "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
@@ -514,10 +534,6 @@ def test_dataloader():
     dataloader_dpr = DataLoader(
         dataset_dpr, batch_size=batch_size, collate_fn=dataset_dpr.collate_fn)
     return dataloader_clip, dataloader_dpr
-
-
-
-
 
 
 """

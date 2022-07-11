@@ -176,7 +176,7 @@ class WikiImage(Dataset):
                 print(f"Use only {used_samples} data")
         self.key_image = key_image
         self.key_vision_features=key_vision_features
-        if "clip" in key_vision_boxes:
+        if "clip" in key_vision_features.lower():
             self.key_vision_boxes = None
         else:
             self.key_vision_boxes = key_vision_boxes
