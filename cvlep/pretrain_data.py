@@ -154,8 +154,11 @@ class WikiImage(Dataset):
         self,
         dataset_path,
         key_image,
+        key_vision_features='fastrcnn_features',
+        key_vision_boxes='fastrcnn_boxes',
         split = 'train',
-        topk=-1
+        topk=-1,
+        sampling_with_replacement = False
     ):
         super().__init__()
         if split == "validation":
@@ -172,6 +175,12 @@ class WikiImage(Dataset):
             if self.verbose:
                 print(f"Use only {used_samples} data")
         self.key_image = key_image
+        self.key_vision_features=key_vision_features
+        if "clip" in key_vision_boxes:
+            self.key_vision_boxes = None
+        else:
+            self.key_vision_boxes = key_vision_boxes
+        self.sampling_with_replacement = sampling_with_replacement
 
     def __len__(self):
         self.dataset.num_rows
@@ -180,22 +189,24 @@ class WikiImage(Dataset):
         item = {}
         list_images = self.dataset[index][self.key_image]
         # tirer aléatoirement deux index de features d'images
-        if True:
-            # avec remise
+        if self.sampling_with_replacement:
+            # with replacement
             fct = random.choices
         else:
-            # sans remise
             fct = random.sample
         index_images = fct(range(len(list_images)), k=2)
-        # TODO:define when I ll be sure of the structure
-        boxes_question = None
-        boxes_context = None
-        item['image_features_question'] = list_images[index_images[0]]
-        item['image_features_context'] = list_images[index_images[1]]
-        item['image_boxes_question'] = boxes_question[index_images[0]]
-        item['image_boxes_context'] = boxes_context[index_images[1]]
-        item['n_boxes_question'] = item[''].size()[0]
-        item['n_boxes_context'] = item[''].size()[0]
+        item['image_features_question'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[0]])
+        item['image_features_context'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[1]])
+        if self.key_vision_boxes is not None:
+            boxes_question = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[0]])
+            boxes_context = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[1]])
+        else:
+            boxes_question =  torch.zeros(item['image_features_question'].shape[0], 4) # (L, 4)
+            boxes_context = torch.zeros( item['image_features_context'].shape[0], 4) # (L, 4)
+        item['image_boxes_question'] = boxes_question
+        item['image_boxes_context'] = boxes_context
+        item['n_boxes_question'] = boxes_question.size()[0]
+        item['n_boxes_context'] = boxes_context.size()[0]
         return item
 
     def collate_fn(self, batch):
@@ -255,7 +266,8 @@ class MultimediaDataset(Dataset):
         key_vision_features='fastrcnn_features',
         key_vision_boxes='fastrcnn_boxes',
         topk=-1,
-        verbose=True
+        verbose=True,
+        sampling_with_replacement = False
     ):
         super().__init__()
         self.passages = load_from_disk(passages_path)
@@ -278,7 +290,10 @@ class MultimediaDataset(Dataset):
         self.key_list_images = key_list_images
         self.key_text_passage = key_text_passage
         self.key_vision_features = key_vision_features
-        self.key_vision_boxes = key_vision_boxes
+        if "clip" in self.key_vision_features.lower():
+            self.key_vision_boxes = None
+        else:
+            self.key_vision_boxes = key_vision_boxes
 
         # we use the same tokenizer for question and passage
         self.TokenizerConfig = Config.load_json(tokenizer_path)
@@ -294,6 +309,7 @@ class MultimediaDataset(Dataset):
             self.TokenizerConfig.tokenizer,
             do_lower_case=self.TokenizerConfig.do_lower_case,
         )
+        self.sampling_with_replacement = sampling_with_replacement
 
     def __len__(self):
         return self.kb.num_rows
@@ -306,8 +322,12 @@ class MultimediaDataset(Dataset):
         list_passages = self.kb[str(index)][self.key_passage_index]
         index_passages = random.sample(len(list_passages), k=2)
         list_images = self.kb[index][self.key_list_images]
-        # TODO:pour index images avec ou sans remise ?
-        index_images = random.sample(range(len(list_images)), k=2)
+        if self.sampling_with_replacement:
+            # with replacement
+            fct = random.choices
+        else:
+            fct = random.sample
+        index_images = fct(range(len(list_images)), k=2)
         item = {}
 
         # passage for question encoder
@@ -316,15 +336,19 @@ class MultimediaDataset(Dataset):
         # passage for passage encoder
         item['passage_text'] = self.passages[index_passages[1]
                                              ][self.key_text_passage]
-
-        boxes_question = None
-        boxes_context = None
-        item['image_features_question'] = list_images[index_images[0]]
-        item['image_features_context'] = list_images[index_images[1]]
-        item['image_boxes_question'] = boxes_question[index_images[0]]
-        item['image_boxes_context'] = boxes_context[index_images[1]]
-        item['n_boxes_question'] = item[''].size()[0]
-        item['n_boxes_context'] = item[''].size()[0]
+        index_images = fct(range(len(list_images)), k=2)
+        item['image_features_question'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[0]])
+        item['image_features_context'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[1]])
+        if self.key_vision_boxes is not None:
+            boxes_question = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[0]])
+            boxes_context = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[1]])
+        else:
+            boxes_question =  torch.zeros(item['image_features_question'].shape[0], 4) # (L, 4)
+            boxes_context = torch.zeros( item['image_features_context'].shape[0], 4) # (L, 4)
+        item['image_boxes_question'] = boxes_question
+        item['image_boxes_context'] = boxes_context
+        item['n_boxes_question'] = boxes_question.size()[0]
+        item['n_boxes_context'] = boxes_context.size()[0]
         return item
 
     def collate_fn(self, batch):
@@ -376,7 +400,6 @@ class MultimediaDataset(Dataset):
             "question_image_boxes": question_boxes,
             "context_image_boxes": context_boxes
         }
-
 
 class ImageCaption(Dataset):
     # return image embedding and a link caption
