@@ -13,9 +13,10 @@ source activate cvlp
 python -m processing.embedding_image \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split \
     --type=CLIP \
-    --backbone=RN50
+    --backbone=RN50 \
     --image_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/Commons_wikimage \
     --key_image=list_images \
-    --key_image_embedding=clip
+    --key_image_embedding=clip \
+    --batch_size=4
 
 echo "done"

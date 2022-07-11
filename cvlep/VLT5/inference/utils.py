@@ -553,9 +553,9 @@ def img_tensorize(im, input_format="RGB"):
     if os.path.isfile(im):
         # pbm with gif image and opencv
         # We use gif2numpy
-        if im[-4:] == ".gif":
+        if im[-4:].lower() == ".gif":
             img = np.array(Image.open(im).convert('RGB'))
-        elif im[-4:] == ".svg":
+        elif im[-4:].lower() == ".svg":
             png = svg2png(file_obj=open(im,'r'))
             img = np.array(Image.open(BytesIO(png)).convert('RGB'))
         else:

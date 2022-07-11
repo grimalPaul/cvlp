@@ -17,6 +17,7 @@ python -m processing.embedding_image \
     --model=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/pytorch_model.bin \
     --image_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/Commons_wikimage \
     --key_image=list_images \
-    --key_image_embedding=fastrcnn
+    --key_image_embedding=fastrcnn \
+    --batch_size=4
 
 echo "done"
