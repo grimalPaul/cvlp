@@ -4,6 +4,7 @@
 #SBATCH -J embedding_image
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
+#SBATCH -w node7
 #SBATCH --mem=40G
 #SBATCH --time=0-06:00:00
 

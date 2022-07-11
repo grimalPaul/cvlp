@@ -127,6 +127,7 @@ def item_fasterRCNN_embedding(item, key_image, key_image_embedding, image_proces
         item[f'{key_image_embedding}_boxes'] = None
         item[f'{key_image_embedding}_features'] = None
         log_file.append(item['wikipedia_title'])
+        print(item['wikipedia_title'])
     return item
 
 
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     arg = parser.parse_args()
     kwargs = create_kwargs(arg)
     kwargs.pop('type')
-    log_path = kwargs.pop('log')
+    log_path = kwargs.pop('log_path')
     if arg.type == 'CLIP':
         kwargs.pop("model_config_path")
         kwargs.pop("model")
