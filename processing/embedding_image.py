@@ -53,7 +53,8 @@ def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transf
         images = transform(open_image(f'{image_path}{list_images}'))
     #TODO : fake batch size for single images ?
     #TODO : witch output ?
-    _,_ = vis_encoder(images)
+    output = _,_ = vis_encoder(images)
+    item[f"{key_image_embedding}_features"] = output
     return item
 
 def embed_with_CLIP(dataset_path, backbone, **kwargs):

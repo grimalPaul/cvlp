@@ -11,7 +11,7 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m processing.embedding_image \
-    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split/validation \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_no_filter/validation \
     --type=FasterRCNN \
     --model_config_path=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/config.yaml \
     --model=/scratch_global/stage_pgrimal/data/CVLP/data/frcnn_model/pytorch_model.bin \

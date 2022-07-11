@@ -11,7 +11,7 @@ source /home/pgrimal/.bashrc
 source activate cvlp
 
 python -m processing.embedding_image \
-    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_no_filter \
     --type=CLIP \
     --backbone=RN50 \
     --image_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/Commons_wikimage \
