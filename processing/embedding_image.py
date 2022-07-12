@@ -51,7 +51,7 @@ def load_img_preprocessor(frcnn_cfg):
 # model = get_vis_encoder(backbone='RN50', adapter_type=None, image_size=eval("(224,224)")[0])
 # model.eval() # je pense pour ne pas avoir de gradient
 def open_image(path):
-    if path[-4:] == ".svg":
+    if str(path)[-4:] == ".svg":
         png = svg2png(file_obj=open(path,'r'))
         return Image.open(BytesIO(png))
     else:
@@ -69,10 +69,12 @@ def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transf
                 image = transform(open_image(Path(image_path)/image_name))
                 images.append(image)
             images = torch.stack(images)
+            print(images.shape)
             if images.shape[0] > batch_size:
                 nb_batch = images.shape[0] // batch_size
                 remainder= images.shape[0] % batch_size
                 features = torch.empty((images.shape[0],49,2048))
+                print(features.shape)
                 for i in range(0, nb_batch*batch_size, batch_size):
                     features[i:batch_size+i,:,:],_=vis_encoder(images[i:batch_size+i,:,:,:])
                 if remainder > 0:
@@ -81,7 +83,7 @@ def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transf
                     )
                 item[f'{key_image_embedding}_features'] = features
         else:
-            images = transform(open_image(f'{image_path}{list_images}'))
+            images = transform(open_image(Path(image_path)/list_images))
             item[f"{key_image_embedding}_features"],_ = vis_encoder(images)
     except:
         item[f'{key_image_embedding}_features'] = None
@@ -92,8 +94,9 @@ def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transf
 def embed_with_CLIP(dataset_path, backbone, **kwargs):
     dataset = load_from_disk(dataset_path)
     model = get_vis_encoder(backbone=backbone, adapter_type=None, image_size=eval("(224,224)")[0])
+    model.eval()
     kwargs.update(
-        transform = _transform,
+        transform = _transform(eval("(224,224)")[0]),
         vis_encoder = model
     )
     dataset = dataset.map(item_CLIP_embedding, fn_kwargs=kwargs)
@@ -207,6 +210,6 @@ if __name__ == '__main__':
         raise NotImplementedError()
     if log_path != '':
         print(log_file)
-        with open(log_path, 'w'):
-            json.dump({"error":log_file})
+        with open(log_path, 'w') as f:
+            json.dump({"error":log_file},f)
     

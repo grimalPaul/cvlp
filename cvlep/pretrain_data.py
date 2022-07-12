@@ -1,3 +1,4 @@
+from curses import A_ALTCHARSET
 import json
 import numpy as np
 from cvlep.VLT5.param import Config
@@ -473,22 +474,12 @@ def seed_worker(worker_id):
 def get_loader(
         task,
         mode,
-        # tokenizer_path,
-        # dataset_path,
-        # kb_path,
-        # passages_path,
-        # key_relevant,
-        # key_text_question,
-        # key_text_passage,
-        # key_vision_features,
-        # key_vision_boxes,
-        # batch_size
-        split,
+        batch_size,
         seed,
         distributed,
+        split,
         workers,
         verbose=False,
-        #key_irrelevant=None
         **dataset_args,
 ):
     # TODO: ajouter loader.task
@@ -514,11 +505,10 @@ def get_loader(
         sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
     else:
         sampler = None
-    dataset_args['batch_size']
     if mode == 'train':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=dataset_args['batch_size'],
+            batch_size=batch_size,
             shuffle=(sampler is None),
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -530,7 +520,7 @@ def get_loader(
     elif mode == 'eval':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=dataset_args['batch_size'],
+            batch_size=batch_size,
             shuffle=False,
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -542,7 +532,7 @@ def get_loader(
     elif mode == 'test':
         loader = DataLoader(
             dataset=dataset,
-            batch_size=dataset_args['batch_size'],
+            batch_size=batch_size,
             shuffle=False,
             num_workers=workers,
             pin_memory=(sampler is not None),
@@ -557,7 +547,7 @@ def get_loader(
     return loader
 
 
-def test_dataloader():
+def test_dataloader(task):
     kwargs_triviaqa = {
         "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/triviaqa_for_viquae",
@@ -566,14 +556,57 @@ def test_dataloader():
         "key_text_question": 'input',
         "key_text_passage": 'passage',
         "split": 'train',
-        "topk": 0.8
+        "topk":-1
+    }
+    kwargs_wikimage={
+         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split",
+        "topk":-1,
+        "key_image":"list_images",
+        "key_vision_features":"clip_features",
+        "key_vision_boxes":None,
+    }
+    kwargs_multimedia={
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_split",
+        "passage_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
+        "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+        "key_passage_index": "passage_index",
+        "key_text_passage": "passage",
+        "key_list_images": "list_images",
+        "key_vision_features": "clip_features",
+        "key_vision_boxes": None,
+        "topk": -1,
+    }
+    kwargs_viquae = {
+        "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae",
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+        "key_relevant": "provenance_indices",
+        "key_text_question": "input",
+        "key_text_passage": "passage",
+        "key_vision_features": "clip_features",
+        "key_vision_boxes": None,
+        "key_irrelevant": "BM25_irrelevant_indices",
     }
     batch_size = 4
-    dataset_kilt = KiltDataset(**kwargs_triviaqa)
-    dataloader_kilt = DataLoader(
-        dataset_kilt, batch_size=batch_size, collate_fn=dataset_kilt.collate_fn)
-
-    return dataloader_kilt
+    if task == "triviaqa":
+        dataset_class = KiltDataset
+        args = kwargs_triviaqa
+    elif task == "match_image":
+        dataset_class = WikiImage
+        args=kwargs_wikimage
+    elif task == "match_article":
+        dataset_class = MultimediaDataset
+        args = kwargs_multimedia
+    elif task == "viquae":
+        dataset_class == Viquae
+        args = kwargs_viquae
+    args['verbose']=True
+    args['split'] = 'train'
+    dataset =dataset_class(**args)
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
+    return dataloader
 
 
 if __name__ == '__main__':

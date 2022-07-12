@@ -23,3 +23,12 @@ python -m processing.embedding_image \
     --log_path=/home/pgrimal/CVLEP/error_embedding.json
 
 echo "done"
+
+error 
+Oscar II of Sweden
+Ragnar Hyltén-Cavallius
+Trinity College, Oxford
+SCARA
+GCompris
+Vegetable Lamb of Tartary
+['Oscar II of Sweden', 'Ragnar Hyltén-Cavallius', 'Trinity College, Oxford', 'SCARA', 'GCompris', 'Vegetable Lamb of Tartary']

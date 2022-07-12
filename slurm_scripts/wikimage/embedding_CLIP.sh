@@ -1,11 +1,13 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embedding_image
+#SBATCH -J clip
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
+#SBATCH -w node7
 #SBATCH --mem=24G
-#SBATCH --time=0-06:00:00
+#SBATCH --time=1-00:00:00
+#SBATCH --dependency=116487
 
 source /home/pgrimal/.bashrc
 source activate cvlp

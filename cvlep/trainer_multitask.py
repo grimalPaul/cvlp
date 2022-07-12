@@ -134,12 +134,6 @@ class Trainer_Multitask(Trainer):
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
-                # val loader
-                # {
-                # task:val_loader,
-                # task:val_loader,
-                # task:val_loader
-                # }
                 with torch.no_grad():
                     if self.verbose:
                         tasks_loss = {}
@@ -185,7 +179,7 @@ class Trainer_Multitask(Trainer):
                                 self.save(f"best_{epoch}")
                         else:
                             self.save(f"best_{epoch}")
-                    elif epoch % 5 == 0:
+                    elif epoch % 10 == 0:
                         if self.args.distributed:
                             if self.args.rank == 0:
                                 self.save(f"e_{epoch}")
@@ -310,7 +304,9 @@ def main_worker(config_training, datasets_config, args):
         training_loaders = []
         validation_loaders = []
         for task, args_dataset in datasets_config.items():
-            if "validation" in args_dataset['split']:
+            split = args_dataset.pop('split')
+            batch_size = args_dataset.pop("batch_size")
+            if "validation" in split:
                 validation_loaders.append(
                     get_loader(
                         task=task,
@@ -318,16 +314,18 @@ def main_worker(config_training, datasets_config, args):
                         seed=config_training.seed,
                         workers=config_training.num_workers,
                         verbose=verbose,
+                        batch_size=batch_size,
                         split="validation",
                         distributed=config_training.distributed,
                         **args_dataset
                     )
                 )
-            if 'train' in args_dataset['split']:
+            if 'train' in split:
                 training_loaders.append(
                     get_loader(
                         task=task,
                         mode="eval",
+                        batch_size=batch_size,
                         split="train",
                         seed=config_training.seed,
                         workers=config_training.num_workers,
