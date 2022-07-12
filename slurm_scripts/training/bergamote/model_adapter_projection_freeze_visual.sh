@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --time=7-00:00:00
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH -J freeze_proj
-#SBATCH --gres=gpu:4
-#SBATCH --ntasks-per-node=4
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=46G
-#SBATCH --nodelist=node7,node6
+#SBATCH --nodelist=node7
 
 source /home/pgrimal/.bashrc
 source activate cvlp

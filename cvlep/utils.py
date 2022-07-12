@@ -60,16 +60,19 @@ def retrieval(eval_prediction, ignore_index=-100):
         Labels with this value are not taken into account when computing metrics.
         Defaults to -100
     """
-    print(f"eval_prediction.predictions.shape: {eval_prediction.predictions.shape}")
-    print(f"               .label_ids.shape: {eval_prediction.label_ids.shape}")
+    # convert to numpy
+    eval_prediction['predictions'] = eval_prediction['predictions'].cpu().numpy()
+    eval_prediction['label_ids'] = eval_prediction['label_ids'].cpu().numpy()
+    print(f"eval_prediction.predictions.shape: {eval_prediction['predictions'].shape}")
+    print(f"               .label_ids.shape: {eval_prediction['label_ids'].shape}")
     metrics = {}
 
-    log_probs = eval_prediction.predictions
+    log_probs = eval_prediction['predictions']
     dataset_size, N_times_M = log_probs.shape
     # use argsort to rank the passages w.r.t. their log-probability (`-` to sort in desc. order)
     rankings = (-log_probs).argsort(axis=1)
     mrr, ignored_predictions = 0, 0
-    for ranking, label in zip(rankings, eval_prediction.label_ids):
+    for ranking, label in zip(rankings, eval_prediction['label_ids']):
         if label == ignore_index:
             ignored_predictions += 1
             continue
@@ -85,8 +88,8 @@ def retrieval(eval_prediction, ignore_index=-100):
     # print(f"predictions[:100] {predictions.shape}:\n{predictions[:100]}")
     # print(f"eval_prediction.label_ids[:100] {eval_prediction.label_ids.shape}:\n{eval_prediction.label_ids[:100]}")
     # hits@1
-    where = eval_prediction.label_ids != ignore_index
-    metrics["hits@1"] = (predictions[where] == eval_prediction.label_ids[where]).mean()
+    where = eval_prediction['label_ids'] != ignore_index
+    metrics["hits@1"] = (predictions[where] == eval_prediction['label_ids'][where]).mean()
 
     return metrics
 

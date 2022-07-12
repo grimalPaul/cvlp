@@ -423,48 +423,6 @@ class ImageCaption(Dataset):
 
         }
 
-
-"""
-
-Utiliser même chose que DPR avec les targets pour plus de simplicités
-def compute_loss_like_clip(model1, model2, data, temperature):
-    # fake function to implement after in the model
-
-    def cross_entropy(preds, targets, reduction='none'):
-        log_softmax = nn.LogSoftmax(dim=-1)
-        loss = (-targets * log_softmax(preds)).sum(1)
-        if reduction == "none":
-            return loss
-        elif reduction == "mean":
-            return loss.mean()
-
-    question_embeddings = model1(
-        data['input_ids_question'],
-        (data['visual_feats_question'],data['question_image_boxes'])
-    )
-    passage_embeddings = model2(
-        data['input_ids_context'],
-        (data['visual_feats_context'],data['context_image_boxes'])
-        )
-
-
-    # TODO : peut être normaliser ? Voir la gueule de la training loop dans clip
-    # normalized features from https://github.com/openai/CLIP/blob/b46f5ac7587d2e1862f8b7b1573179d80dcdd620/clip/model.py#L363
-    # image_features = image_features / image_features.norm(dim=1, keepdim=True)
-    # text_features = text_features / text_features.norm(dim=1, keepdim=True)
-    logits = (passage_embeddings @ question_embeddings.T) / temperature
-    questions_similarity = question_embeddings @ question_embeddings.T
-    passages_similarity = passage_embeddings @ passage_embeddings.T
-    targets = F.softmax(
-        (questions_similarity + passages_similarity) / 2 * temperature, dim=-1
-    )
-    questions_loss = cross_entropy(logits, targets, reduction='none')
-    passages_loss = cross_entropy(logits.T, targets.T, reduction='none')
-    loss = (questions_loss + passages_loss) / 2.0  # shape: (batch_size)
-    return loss.mean()
-"""
-
-
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
@@ -493,7 +451,7 @@ def get_loader(
     elif task == "match_article":
         dataset_class = MultimediaDataset
     elif task == "viquae":
-        dataset_class == Viquae
+        dataset_class = Viquae
     else:
         raise NotImplementedError("dataset about this task is not implemented")
     dataset = dataset_class(
@@ -599,7 +557,7 @@ def test_dataloader(task):
         dataset_class = MultimediaDataset
         args = kwargs_multimedia
     elif task == "viquae":
-        dataset_class == Viquae
+        dataset_class = Viquae
         args = kwargs_viquae
     args['verbose']=True
     args['split'] = 'train'

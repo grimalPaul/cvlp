@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embedding_image
+#SBATCH -J fastercnn
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
 #SBATCH -w node7
 #SBATCH --mem=40G
-#SBATCH --time=0-06:00:00
-
+#SBATCH --time=1-00:00:00
+#SBATCH --dependency=116534
 source /home/pgrimal/.bashrc
 source activate cvlp
 
@@ -23,12 +23,3 @@ python -m processing.embedding_image \
     --log_path=/home/pgrimal/CVLEP/error_embedding.json
 
 echo "done"
-
-error 
-Oscar II of Sweden
-Ragnar Hyltén-Cavallius
-Trinity College, Oxford
-SCARA
-GCompris
-Vegetable Lamb of Tartary
-['Oscar II of Sweden', 'Ragnar Hyltén-Cavallius', 'Trinity College, Oxford', 'SCARA', 'GCompris', 'Vegetable Lamb of Tartary']

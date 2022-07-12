@@ -11,6 +11,8 @@ from cvlep.VLT5.param import Config
 import os
 import json
 
+from cvlep.utils import retrieval
+
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
     raise NotImplementedError("We did not implement apex")
@@ -144,15 +146,24 @@ class Trainer_Multitask(Trainer):
                         for loader in self.val_loader.values():
                             size += len(loader)
                         pbar = tqdm(total=size, ncols=100)
-                    for t, loader in self.val_loader:
+                    for task, loader in self.val_loader.items():
+                        if task == "viquae" and self.verbose:
+                            all_probs = []
+                            all_labels = []
                         for batch in loader:
-                            task = batch['task']
                             if self.args.fp16 and _use_native_amp:
                                 with autocast():
+                                    
                                     if self.args.distributed:
-                                        loss = self.compute_loss(batch)
+                                        if task == "viquae" and self.verbose:
+                                            loss, outputs = self.compute_loss(batch,return_outputs=True)
+                                        else:
+                                            loss, outputs = self.compute_loss(batch)
                             else:
-                                loss = self.compute_loss(batch)
+                                if task == "viquae" and self.verbose:
+                                            loss, outputs = self.compute_loss(batch,return_outputs=True)
+                                else:
+                                    loss = self.compute_loss(batch)
                             if self.verbose:
                                 tasks_loss[task].update(loss.item())
                                 loss_meter.update(loss.item())
@@ -162,11 +173,25 @@ class Trainer_Multitask(Trainer):
                                         desc_str += f'| {task_name}_loss : {l.val:4f}'
                                 pbar.set_description(desc_str)
                                 pbar.update(1)
+                                if task == "viquae":
+                                    all_probs.append(outputs['log_probs'])
+                                    all_labels.append(outputs['label_ids'])
                     if self.verbose:
                         pbar.close()
                         for task_name, l in tasks_loss.items():
                             self.writer.add_scalar(
                                 f'Validation_{task_name}_loss', l.val, epoch)
+                            if task_name == "viquae":
+                                all_probs = torch.cat(all_probs, dim=0)
+                                all_labels = torch.cat(all_labels, dim=0)
+                                eval_prediction = dict(
+                                    predictions=all_probs, label_ids=all_labels)
+                                metrics = retrieval(eval_prediction)
+                                self.writer.add_scalar(
+                                    "MRR@N*M", metrics['MRR@N*M'], epoch)
+                                self.writer.add_scalar(
+                                    "Hits@1", metrics['hits@1'], epoch)
+                                print(f"\nMRR {metrics['MRR@N*M']} Hits@1: {metrics['hits@1']}")
                         self.writer.add_scalar(
                             'Validation_loss', loss_meter.val, epoch)
                         self.writer.flush()
@@ -194,91 +219,6 @@ class Trainer_Multitask(Trainer):
 
         if self.verbose:
             self.writer.close()
-
-    def compute_loss(self, batch):
-        # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
-        # From https://github.com/PaulLerner/ViQuAE/blob/e032dedc568c8a56b9a54ada6bb4dfa20c4301de/meerqat/train/trainer.py#L206
-
-        if self.args.distributed:
-            output_question, output_context, local_labels = self.model.module.train_step(
-                batch)
-        else:
-            output_question, output_context, local_labels = self.model.train_step(
-                batch)
-
-        # N question in the batch * dim model = N * d
-        local_question_representations = output_question
-        # (1 relevant + 1 irrelevant) * N * dim model = 2N * d
-        local_context_representations = output_context
-
-        if self.args.world_size > 1:
-            question_representations_to_send = torch.empty_like(
-                local_question_representations).copy_(local_question_representations).detach_()
-            context_representations_to_send = torch.empty_like(
-                local_context_representations).copy_(local_context_representations).detach_()
-            labels_to_send = torch.empty_like(local_labels).copy_(local_labels)
-
-            # gathers representations from other GPUs
-            question_representations_gatherer = [torch.empty_like(
-                question_representations_to_send) for _ in range(self.args.world_size)]
-            context_representations_gatherer = [torch.empty_like(
-                context_representations_to_send) for _ in range(self.args.world_size)]
-            labels_gatherer = [torch.empty_like(
-                labels_to_send) for _ in range(self.args.world_size)]
-            dist.all_gather(question_representations_gatherer,
-                            question_representations_to_send)
-            dist.all_gather(context_representations_gatherer,
-                            context_representations_to_send)
-            dist.all_gather(labels_gatherer, labels_to_send)
-
-            # keep local vector in the local_rank index (taken from DPR, to not loose the gradients?)
-            label_shift = 0
-            global_question_representations, global_context_representations, global_labels = [], [], []
-            gatherers = zip(question_representations_gatherer,
-                            context_representations_gatherer, labels_gatherer)
-            for i, (received_question_representations, received_context_representations, received_labels) in enumerate(gatherers):
-                # receiving representations from other GPUs
-                if i != self.args.rank:
-                    global_question_representations.append(
-                        received_question_representations.to(local_question_representations.device))
-                    global_context_representations.append(
-                        received_context_representations.to(local_context_representations.device))
-                    # labels are defined at the batch-level so we need to shift them when concatening batches
-                    received_labels[received_labels !=
-                                    self.loss_fct.ignore_index] += label_shift
-                    # 2N
-                    label_shift += received_context_representations.shape[0]
-                    global_labels.append(
-                        received_labels.to(local_labels.device))
-                # keep local representation
-                else:
-                    global_question_representations.append(
-                        local_question_representations)
-                    global_context_representations.append(
-                        local_context_representations)
-                    # labels are defined at the batch-level so we need to shift them when concatening batches
-                    local_labels[local_labels !=
-                                 self.loss_fct.ignore_index] += label_shift
-                    label_shift += local_context_representations.shape[0]  # 2N
-                    global_labels.append(local_labels)
-            global_question_representations = torch.cat(
-                global_question_representations, dim=0)
-            global_context_representations = torch.cat(
-                global_context_representations, dim=0)
-            global_labels = torch.cat(global_labels, dim=0)
-        else:
-            # (N, d)
-            global_question_representations = local_question_representations
-            # (2N, d)
-            global_context_representations = local_context_representations
-            global_labels = local_labels  # N
-
-        # compute similarity
-        # (N, 2N)
-        similarities = global_question_representations @ global_context_representations.T
-        log_probs = self.log_softmax(similarities)
-
-        return self.loss_fct(log_probs, global_labels)
 
 
 def main_worker(config_training, datasets_config, args):

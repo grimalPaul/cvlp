@@ -17,7 +17,6 @@ from datasets import load_from_disk, disable_caching
 import argparse
 import torch
 from processing.utils import create_kwargs
-import torch.nn.functional as F
 
 disable_caching()
 

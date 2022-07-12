@@ -33,6 +33,8 @@ from cairosvg import svg2png
 from io import BytesIO
 import json
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 disable_caching()
 
 log_file = []
@@ -48,8 +50,6 @@ def load_img_preprocessor(frcnn_cfg):
     return Preprocess(frcnn_cfg)
 
 # CLIP
-# model = get_vis_encoder(backbone='RN50', adapter_type=None, image_size=eval("(224,224)")[0])
-# model.eval() # je pense pour ne pas avoir de gradient
 def open_image(path):
     if str(path)[-4:] == ".svg":
         png = svg2png(file_obj=open(path,'r'))
@@ -62,38 +62,45 @@ def item_CLIP_embedding(item, key_image, key_image_embedding, image_path, transf
     # can embed single image or list of image
     global log_file
     list_images = item[key_image]
-    try:
-        if isinstance(list_images, list):
-            images = list()
-            for image_name in list_images:
-                image = transform(open_image(Path(image_path)/image_name))
-                images.append(image)
-            images = torch.stack(images)
-            print(images.shape)
-            if images.shape[0] > batch_size:
-                nb_batch = images.shape[0] // batch_size
-                remainder= images.shape[0] % batch_size
-                features = torch.empty((images.shape[0],49,2048))
-                print(features.shape)
-                for i in range(0, nb_batch*batch_size, batch_size):
-                    features[i:batch_size+i,:,:],_=vis_encoder(images[i:batch_size+i,:,:,:])
-                if remainder > 0:
-                    features[-remainder:,:,:],_ =vis_encoder(
-                        images[-remainder:,:,:,:]
-                    )
-                item[f'{key_image_embedding}_features'] = features
-        else:
-            images = transform(open_image(Path(image_path)/list_images))
-            item[f"{key_image_embedding}_features"],_ = vis_encoder(images)
-    except:
-        item[f'{key_image_embedding}_features'] = None
-        log_file.append(item['wikipedia_title'])
-        print(item['wikipedia_title'])
+
+    with torch.no_grad():
+        try:
+            if isinstance(list_images, list):
+                images = list()
+                for image_name in list_images:
+                    image = transform(open_image(Path(image_path)/image_name))
+                    images.append(image)
+                images = torch.stack(images)
+                if images.shape[0] > batch_size:
+                    nb_batch = images.shape[0] // batch_size
+                    remainder= images.shape[0] % batch_size
+                    features = torch.empty((images.shape[0],49,2048))
+                    for i in range(0, nb_batch*batch_size, batch_size):
+                        features[i:batch_size+i,:,:],_=vis_encoder((images[i:batch_size+i,:,:,:]).to(device))
+                    if remainder > 0:
+                        features[-remainder:,:,:],_ =vis_encoder(
+                            (images[-remainder:,:,:,:]).to(device)
+                        )
+                    item[f'{key_image_embedding}_features'] = features.cpu().numpy()
+                else:
+                    features,_ =vis_encoder(
+                            (images).to(device)
+                        )
+                    item[f'{key_image_embedding}_features'] = features.cpu().numpy()
+            else:
+                images = transform(open_image(Path(image_path)/list_images))
+                images = torch.unsqueeze(images, dim=0)
+                features,_ = vis_encoder((images).to(device))
+                item[f"{key_image_embedding}_features"] = features.cpu().numpy()
+        except:
+            item[f'{key_image_embedding}_features'] = None
+            log_file.append(item['wikipedia_title'])
     return item
 
 def embed_with_CLIP(dataset_path, backbone, **kwargs):
     dataset = load_from_disk(dataset_path)
     model = get_vis_encoder(backbone=backbone, adapter_type=None, image_size=eval("(224,224)")[0])
+    model = model.to(device)
     model.eval()
     kwargs.update(
         transform = _transform(eval("(224,224)")[0]),
@@ -106,59 +113,74 @@ def embed_with_CLIP(dataset_path, backbone, **kwargs):
 def item_fasterRCNN_embedding(item, key_image, key_image_embedding, image_process, image_path, frcnn, frcnn_cfg, batch_size):
     list_images = item[key_image]
     global log_file
-    #TODO: batch max number of image and concatenate results !
-    try:
-        if isinstance(list_images,list):
-            images = list()
-            for image_name in list_images:
-                images.append(str(Path(image_path) / image_name))
-            images, sizes, scales_yx = image_process(images)
-            if images.shape[0] > batch_size:
-                nb_batch = images.shape[0] // batch_size
-                remainder= images.shape[0] % batch_size
-                boxes = torch.empty((images.shape[0],frcnn_cfg.max_detections,4))
-                features = torch.empty((images.shape[0],frcnn_cfg.max_detections, 2048))
-                for i in range(0, nb_batch*batch_size, batch_size):
+    with torch.no_grad():
+        try:
+            if isinstance(list_images,list):
+                images = list()
+                for image_name in list_images:
+                    images.append(str(Path(image_path) / image_name))
+                images, sizes, scales_yx = image_process(images)
+                print(images.shape)
+                if images.shape[0] > batch_size:
+                    nb_batch = images.shape[0] // batch_size
+                    remainder= images.shape[0] % batch_size
+                    boxes = torch.empty((images.shape[0],frcnn_cfg.max_detections,4))
+                    features = torch.empty((images.shape[0],frcnn_cfg.max_detections, 2048))
+                    boxes = boxes.to(device)
+                    features = features.to(device)
+                    for i in range(0, nb_batch*batch_size, batch_size):
+                        output_dict = frcnn(
+                            images[i:batch_size+i,:,:,:],
+                            sizes[i:batch_size+i,:],
+                            scales_yx=scales_yx[i:batch_size+i,:],
+                            padding='max_detections',
+                            max_detections=frcnn_cfg.max_detections,
+                            return_tensors='pt'
+                        )
+                        boxes[i:batch_size+i,:,:]=output_dict.get("normalized_boxes")
+                        features[i:batch_size+i,:,:]=output_dict.get("roi_features")
+                    if remainder > 0:
+                        output_dict = frcnn(
+                            images[-remainder:,:,:,:],
+                            sizes[-remainder:,:],
+                            scales_yx=scales_yx[-remainder:,:],
+                            padding='max_detections',
+                            max_detections=frcnn_cfg.max_detections,
+                            return_tensors='pt'
+                        )
+                        boxes[-remainder:,:,:]=output_dict.get("normalized_boxes")
+                        features[-remainder:,:,:]=output_dict.get("roi_features")
+                    print(boxes.shape)
+                    print(features.shape)
+                    item[f'{key_image_embedding}_boxes'] = boxes.cpu().numpy()
+                    item[f'{key_image_embedding}_features'] = features.cpu().numpy()
+                else:
                     output_dict = frcnn(
-                        images[i:batch_size+i,:,:,:],
-                        sizes[i:batch_size+i,:],
-                        scales_yx=scales_yx[i:batch_size+i,:],
-                        padding='max_detections',
-                        max_detections=frcnn_cfg.max_detections,
-                        return_tensors='pt'
-                    )
-                    boxes[i:batch_size+i,:,:]=output_dict.get("normalized_boxes")
-                    features[i:batch_size+i,:,:]=output_dict.get("roi_features")
-                if remainder > 0:
-                    output_dict = frcnn(
-                        images[-remainder:,:,:,:],
-                        sizes[-remainder:,:],
-                        scales_yx=scales_yx[-remainder:,:],
-                        padding='max_detections',
-                        max_detections=frcnn_cfg.max_detections,
-                        return_tensors='pt'
-                    )
-                    boxes[-remainder:,:,:]=output_dict.get("normalized_boxes")
-                    features[-remainder:,:,:]=output_dict.get("roi_features")
-                item[f'{key_image_embedding}_boxes'] = boxes
-                item[f'{key_image_embedding}_features'] = features
-        else:
-            images, sizes, scales_yx = image_process(str(Path(image_path)/list_images))
-            output_dict = frcnn(
-                images,
-                sizes,
-                scales_yx=scales_yx,
-                padding='max_detections',
-                max_detections=frcnn_cfg.max_detections,
-                return_tensors='pt'
-            )
-            item[f'{key_image_embedding}_boxes'] = output_dict.get("normalized_boxes")
-            item[f'{key_image_embedding}_features'] = output_dict.get("roi_features")
-    except:
-        item[f'{key_image_embedding}_boxes'] = None
-        item[f'{key_image_embedding}_features'] = None
-        log_file.append(item['wikipedia_title'])
-        print(item['wikipedia_title'])
+                            images,
+                            sizes,
+                            scales_yx=scales_yx,
+                            padding='max_detections',
+                            max_detections=frcnn_cfg.max_detections,
+                            return_tensors='pt'
+                        )
+                    item[f'{key_image_embedding}_boxes']=output_dict.get("normalized_boxes")
+                    item[f'{key_image_embedding}_features']=output_dict.get("roi_features")
+            else:
+                images, sizes, scales_yx = image_process(str(Path(image_path)/list_images))
+                output_dict = frcnn(
+                    images,
+                    sizes,
+                    scales_yx=scales_yx,
+                    padding='max_detections',
+                    max_detections=frcnn_cfg.max_detections,
+                    return_tensors='pt'
+                )
+                item[f'{key_image_embedding}_boxes'] = output_dict.get("normalized_boxes").cpu().numpy()
+                item[f'{key_image_embedding}_features'] = output_dict.get("roi_features").cpu().numpy()
+        except:
+            item[f'{key_image_embedding}_boxes'] = None
+            item[f'{key_image_embedding}_features'] = None
+            log_file.append(item['wikipedia_title'])
     return item
 
 
@@ -166,6 +188,7 @@ def embed_with_fasterRCNN(dataset_path, model, model_config_path, **kwargs):
     dataset = load_from_disk(dataset_path)
     visual_model, cfg = load_frcnn(model_config_path, model)
     img_process = load_img_preprocessor(cfg)
+    visual_model = visual_model.to(device)
     kwargs.update(
         image_process=img_process,
         frcnn=visual_model,
@@ -210,6 +233,7 @@ if __name__ == '__main__':
         raise NotImplementedError()
     if log_path != '':
         print(log_file)
+        print(len(log_file))
         with open(log_path, 'w') as f:
             json.dump({"error":log_file},f)
     

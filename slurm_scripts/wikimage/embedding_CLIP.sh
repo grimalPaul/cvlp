@@ -4,10 +4,9 @@
 #SBATCH -J clip
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
-#SBATCH -w node7
-#SBATCH --mem=24G
+#SBATCH -w node4
+#SBATCH --mem=60G
 #SBATCH --time=1-00:00:00
-#SBATCH --dependency=116487
 
 source /home/pgrimal/.bashrc
 source activate cvlp

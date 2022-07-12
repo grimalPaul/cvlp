@@ -36,6 +36,7 @@ from transformers.models.t5.modeling_t5 import T5LayerNorm
 from tqdm import tqdm
 from cvlep.viquae_data import get_loader
 from torch.utils.tensorboard import SummaryWriter
+from cvlep.utils import retrieval
 
 # Check if Pytorch version >= 1.6 to switch between Native AMP and Apex
 if version.parse(torch.__version__) < version.parse("1.6"):
@@ -44,8 +45,9 @@ else:
     _use_native_amp = True
     from torch.cuda.amp import autocast
 
+
 class Trainer(object):
-    def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True, local = False):
+    def __init__(self, config_question, config_passage, config_model, config_training, train_loader=None, val_loader=None, test_loader=None, train=True, local=False):
 
         # config of the two part of the model
         config_encoder_question = config_question
@@ -77,7 +79,6 @@ class Trainer(object):
         self.tokenizer_question = self.create_tokenizer(
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
-    
 
         self.encoder_question = self.create_encoder(ModelQuestionConfig)
         self.encoder_passage = self.create_encoder(ModelPassageConfig)
@@ -136,7 +137,7 @@ class Trainer(object):
             if self.args.multiGPU:
                 if self.args.distributed:
                     self.model = DDP(self.model, device_ids=[
-                                    config_training.local_rank])
+                        config_training.local_rank])
 
     def train(self):
         if self.verbose:
@@ -147,86 +148,86 @@ class Trainer(object):
             self.val_loader.sampler.set_epoch(0)
 
         for epoch in tqdm(range(self.args.epochs)):
-            if self.verbose:
-                loss_meter = LossMeter()
-                pbar = tqdm(total=len(self.train_loader), ncols=100)
-            self.model.train()
-            if self.args.distributed:
-                self.train_loader.sampler.set_epoch(epoch)
-            for step_i, batch in enumerate(self.train_loader):
-                if self.args.fp16 and _use_native_amp:
-                    with autocast():
-                        if self.args.distributed:
-                            loss = self.compute_loss(batch)
-                else:
-                    loss = self.compute_loss(batch)
+            # if self.verbose:
+            #     loss_meter = LossMeter()
+            #     pbar = tqdm(total=len(self.train_loader), ncols=100)
+            # self.model.train()
+            # if self.args.distributed:
+            #     self.train_loader.sampler.set_epoch(epoch)
+            # for step_i, batch in enumerate(self.train_loader):
+            #     if self.args.fp16 and _use_native_amp:
+            #         with autocast():
+            #             if self.args.distributed:
+            #                 loss = self.compute_loss(batch)
+            #     else:
+            #         loss = self.compute_loss(batch)
 
-                # loss.backward
-                if self.args.fp16 and _use_native_amp:
-                    self.scaler.scale(loss).backward()
-                else:
-                    loss.backward()
+            #     # loss.backward
+            #     if self.args.fp16 and _use_native_amp:
+            #         self.scaler.scale(loss).backward()
+            #     else:
+            #         loss.backward()
 
-                loss = loss.detach()
-                # Update Parameters
-                if self.args.clip_grad_norm > 0:
-                    if self.args.fp16 and _use_native_amp:
-                        self.scaler.unscale_(self.optim)
-                        torch.nn.utils.clip_grad_norm_(
-                            self.model.parameters(), self.args.clip_grad_norm)
-                    else:
-                        torch.nn.utils.clip_grad_norm_(
-                            self.model.parameters(), self.args.clip_grad_norm)
+            #     loss = loss.detach()
+            #     # Update Parameters
+            #     if self.args.clip_grad_norm > 0:
+            #         if self.args.fp16 and _use_native_amp:
+            #             self.scaler.unscale_(self.optim)
+            #             torch.nn.utils.clip_grad_norm_(
+            #                 self.model.parameters(), self.args.clip_grad_norm)
+            #         else:
+            #             torch.nn.utils.clip_grad_norm_(
+            #                 self.model.parameters(), self.args.clip_grad_norm)
 
-                # optim step
-                update = True
-                if self.args.gradient_accumulation_steps > 1:
-                    if step_i == 0:
-                        update = False
-                    elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
-                        update = True
-                    else:
-                        update = False
+            #     # optim step
+            #     update = True
+            #     if self.args.gradient_accumulation_steps > 1:
+            #         if step_i == 0:
+            #             update = False
+            #         elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
+            #             update = True
+            #         else:
+            #             update = False
 
-                if update:
-                    if self.args.fp16 and _use_native_amp:
-                        self.scaler.step(self.optim)
-                        self.scaler.update()
-                    else:
-                        self.optim.step()
+            #     if update:
+            #         if self.args.fp16 and _use_native_amp:
+            #             self.scaler.step(self.optim)
+            #             self.scaler.update()
+            #         else:
+            #             self.optim.step()
 
-                    if self.lr_scheduler:
-                        self.lr_scheduler.step()
-                    for param in self.model.parameters():
-                        param.grad = None
+            #         if self.lr_scheduler:
+            #             self.lr_scheduler.step()
+            #         for param in self.model.parameters():
+            #             param.grad = None
 
-                # Scheduler
-                if self.lr_scheduler:
-                    if version.parse(torch.__version__) >= version.parse("1.4"):
-                        lr = self.lr_scheduler.get_last_lr()[0]
-                    else:
-                        lr = self.lr_scheduler.get_lr()[0]
-                else:
-                    try:
-                        lr = self.optim.get_lr()[0]
-                    except AttributeError:
-                        lr = self.args.lr
+            #     # Scheduler
+            #     if self.lr_scheduler:
+            #         if version.parse(torch.__version__) >= version.parse("1.4"):
+            #             lr = self.lr_scheduler.get_last_lr()[0]
+            #         else:
+            #             lr = self.lr_scheduler.get_lr()[0]
+            #     else:
+            #         try:
+            #             lr = self.optim.get_lr()[0]
+            #         except AttributeError:
+            #             lr = self.args.lr
 
-                if self.verbose:
-                    loss_meter.update(loss.item())
-                    desc_str = f'Epoch {epoch} | LR {lr:.6f}'
-                    desc_str += f' | Loss {loss_meter.val:4f}'
-                    pbar.set_description(desc_str)
-                    pbar.update(1)
+            #     if self.verbose:
+            #         loss_meter.update(loss.item())
+            #         desc_str = f'Epoch {epoch} | LR {lr:.6f}'
+            #         desc_str += f' | Loss {loss_meter.val:4f}'
+            #         pbar.set_description(desc_str)
+            #         pbar.update(1)
 
-            if self.args.distributed:
-                dist.barrier()
+            # if self.args.distributed:
+            #     dist.barrier()
 
-            if self.verbose:
-                pbar.close()
-                self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
-                self.writer.add_scalar('lr', lr, epoch)
-                self.writer.flush()
+            # if self.verbose:
+            #     pbar.close()
+            #     self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
+            #     self.writer.add_scalar('lr', lr, epoch)
+            #     self.writer.flush()
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
@@ -234,22 +235,37 @@ class Trainer(object):
                     if self.verbose:
                         loss_meter = LossMeter()
                         pbar = tqdm(total=len(self.val_loader), ncols=100)
+                        all_probs = []
+                        all_labels = []
                     for step_i, batch in enumerate(self.val_loader):
                         if self.args.fp16 and _use_native_amp:
                             with autocast():
                                 if self.args.distributed:
-                                    loss = self.compute_loss(batch)
+                                    loss, outputs = self.compute_loss(
+                                        batch, return_outputs=True)
                         else:
-                            loss = self.compute_loss(batch)
+                            loss, outputs = self.compute_loss(
+                                batch, return_outputs=True)
                         if self.verbose:
+                            all_probs.append(outputs['log_probs'])
+                            all_labels.append(outputs['label_ids'])
                             loss_meter.update(loss.item())
                             desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
                             pbar.set_description(desc_str)
                             pbar.update(1)
                     if self.verbose:
+                        all_probs = torch.cat(all_probs, dim=0)
+                        all_labels = torch.cat(all_labels, dim=0)
+                        eval_prediction = dict(
+                            predictions=all_probs, label_ids=all_labels)
+                        metrics = retrieval(eval_prediction)
                         pbar.close()
                         self.writer.add_scalar(
                             'Validation_loss', loss_meter.val, epoch)
+                        self.writer.add_scalar(
+                            "MRR@N*M", metrics['MRR@N*M'], epoch)
+                        self.writer.add_scalar(
+                            "Hits@1", metrics['hits@1'], epoch)
                         self.writer.flush()
                 if self.verbose:
                     if loss_meter.val < best_valid or epoch == 0:
@@ -268,11 +284,12 @@ class Trainer(object):
                             self.save(f"best_{epoch}")
                     log_str = f"\nEpoch {epoch}/{self.args.epochs - 1}: Valid Loss {loss_meter.val:4f}"
                     log_str += f"\nBest Epoch {best_epoch}: Best Valid Loss {best_valid:4f}"
+                    log_str += f"\nMRR {metrics['MRR@N*M']} Hits@1: {metrics['hits@1']}"
                     print(log_str)
 
             if self.args.distributed:
                 dist.barrier()
-        
+
         if self.verbose:
             self.writer.close()
 
@@ -299,7 +316,7 @@ class Trainer(object):
             if self.verbose:
                 pbar.close()
 
-    def compute_loss(self, batch):
+    def compute_loss(self, batch, return_outputs=False):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
         # From https://github.com/PaulLerner/ViQuAE/blob/e032dedc568c8a56b9a54ada6bb4dfa20c4301de/meerqat/train/trainer.py#L206
 
@@ -381,8 +398,8 @@ class Trainer(object):
         # (N, 2N)
         similarities = global_question_representations @ global_context_representations.T
         log_probs = self.log_softmax(similarities)
-
-        return self.loss_fct(log_probs, global_labels)
+        loss = self.loss_fct(log_probs, global_labels)
+        return (loss, dict(log_probs=log_probs, label_ids=global_labels)) if return_outputs else loss
 
     def create_config(self, config_model):
         from transformers import T5Config
@@ -543,7 +560,8 @@ class Trainer(object):
             model_class = encoderVLT5
 
         else:
-            raise NotImplementedError("Thys type of encoder is not implemented")
+            raise NotImplementedError(
+                "Thys type of encoder is not implemented")
 
         model_name = config_model._name_or_path
 
@@ -834,6 +852,7 @@ def main_worker(config_training, args):
             verbose = False
     if verbose:
         print(f"World size : {config_training.world_size}")
+        print(f'distributed : {config_training.distributed}')
 
     if config_training.train:
         train_loader = get_loader(
@@ -954,5 +973,4 @@ if __name__ == '__main__':
     else:
         config_training.distributed = False
         config_training.multiGPU = False
-
     main_worker(config_training, args)
