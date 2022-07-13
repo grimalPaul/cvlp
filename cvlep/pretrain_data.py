@@ -256,7 +256,6 @@ class MultimediaDataset(Dataset):
     def __init__(
         self,
         passages_path,
-        
         kb_path,
         tokenizer_path,
         split='train',

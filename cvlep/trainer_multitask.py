@@ -42,101 +42,101 @@ class Trainer_Multitask(Trainer):
         }
         
         for epoch in tqdm(range(self.args.epochs)):
-            # if self.verbose:
-            #     tasks_loss = {}
-            #     for task in task_counter.keys():
-            #         tasks_loss[task] = LossMeter()
-            #     loss_meter = LossMeter()
-            #     pbar = tqdm(total=len(self.train_loader), ncols=1000)
-            # self.model.train()
-            # if self.args.distributed:
-            #     self.train_loader.set_epoch(epoch)
+            if self.verbose:
+                tasks_loss = {}
+                for task in task_counter.keys():
+                    tasks_loss[task] = LossMeter()
+                loss_meter = LossMeter()
+                pbar = tqdm(total=len(self.train_loader), ncols=500)
+            self.model.train()
+            if self.args.distributed:
+                self.train_loader.set_epoch(epoch)
 
-            # for step_i, batch in enumerate(self.train_loader):
-            #     task = batch['task']
-            #     task_counter[task] += 1
+            for step_i, batch in enumerate(self.train_loader):
+                task = batch['task']
+                task_counter[task] += 1
 
-            #     if self.args.fp16 and _use_native_amp:
-            #         with autocast():
-            #             if self.args.distributed:
-            #                 loss = self.compute_loss(batch)
-            #     else:
-            #         loss = self.compute_loss(batch)
+                if self.args.fp16 and _use_native_amp:
+                    with autocast():
+                        if self.args.distributed:
+                            loss = self.compute_loss(batch)
+                else:
+                    loss = self.compute_loss(batch)
 
-            #     # loss.backward
-            #     if self.args.fp16 and _use_native_amp:
-            #         self.scaler.scale(loss).backward()
-            #     else:
-            #         loss.backward()
+                # loss.backward
+                if self.args.fp16 and _use_native_amp:
+                    self.scaler.scale(loss).backward()
+                else:
+                    loss.backward()
 
-            #     loss = loss.detach()
-            #     # Update Parameters
-            #     if self.args.clip_grad_norm > 0:
-            #         if self.args.fp16 and _use_native_amp:
-            #             self.scaler.unscale_(self.optim)
-            #             torch.nn.utils.clip_grad_norm_(
-            #                 self.model.parameters(), self.args.clip_grad_norm)
-            #         else:
-            #             torch.nn.utils.clip_grad_norm_(
-            #                 self.model.parameters(), self.args.clip_grad_norm)
+                loss = loss.detach()
+                # Update Parameters
+                if self.args.clip_grad_norm > 0:
+                    if self.args.fp16 and _use_native_amp:
+                        self.scaler.unscale_(self.optim)
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(), self.args.clip_grad_norm)
+                    else:
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(), self.args.clip_grad_norm)
 
-            #     # optim step
-            #     update = True
-            #     if self.args.gradient_accumulation_steps > 1:
-            #         if step_i == 0:
-            #             update = False
-            #         elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
-            #             update = True
-            #         else:
-            #             update = False
+                # optim step
+                update = True
+                if self.args.gradient_accumulation_steps > 1:
+                    if step_i == 0:
+                        update = False
+                    elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
+                        update = True
+                    else:
+                        update = False
 
-            #     if update:
-            #         if self.args.fp16 and _use_native_amp:
-            #             self.scaler.step(self.optim)
-            #             self.scaler.update()
-            #         else:
-            #             self.optim.step()
+                if update:
+                    if self.args.fp16 and _use_native_amp:
+                        self.scaler.step(self.optim)
+                        self.scaler.update()
+                    else:
+                        self.optim.step()
 
-            #         if self.lr_scheduler:
-            #             self.lr_scheduler.step()
-            #         for param in self.model.parameters():
-            #             param.grad = None
+                    if self.lr_scheduler:
+                        self.lr_scheduler.step()
+                    for param in self.model.parameters():
+                        param.grad = None
 
-            #     # Scheduler
-            #     if self.lr_scheduler:
-            #         if version.parse(torch.__version__) >= version.parse("1.4"):
-            #             lr = self.lr_scheduler.get_last_lr()[0]
-            #         else:
-            #             lr = self.lr_scheduler.get_lr()[0]
-            #     else:
-            #         try:
-            #             lr = self.optim.get_lr()[0]
-            #         except AttributeError:
-            #             lr = self.args.lr
+                # Scheduler
+                if self.lr_scheduler:
+                    if version.parse(torch.__version__) >= version.parse("1.4"):
+                        lr = self.lr_scheduler.get_last_lr()[0]
+                    else:
+                        lr = self.lr_scheduler.get_lr()[0]
+                else:
+                    try:
+                        lr = self.optim.get_lr()[0]
+                    except AttributeError:
+                        lr = self.args.lr
 
-            #     if self.verbose:
-            #         tasks_loss[task].update(loss.item())
-            #         loss_meter.update(loss.item())
-            #         desc_str = f'Epoch {epoch} | LR {lr:.6f}'
-            #         for task_name, nb in task_counter.items():
-            #             desc_str += f'|{task_name}:{nb} '
-            #             if len(tasks_loss[task_name]) != 0 and tasks_loss[task_name].val > 0:
-            #                 desc_str += f'loss:{tasks_loss[task_name].val:4f}'
-            #         desc_str += f' | Loss Total {loss_meter.val:4f}'
-            #         pbar.set_description(desc_str)
-            #         pbar.update(1)
+                if self.verbose:
+                    tasks_loss[task].update(loss.item())
+                    loss_meter.update(loss.item())
+                    desc_str = f'Epoch {epoch} | LR {lr:.6f}'
+                    for task_name, nb in task_counter.items():
+                        desc_str += f'|{task_name}:{nb} '
+                        if len(tasks_loss[task_name]) != 0 and tasks_loss[task_name].val > 0:
+                            desc_str += f'loss:{tasks_loss[task_name].val:4f}'
+                    desc_str += f' | Loss Total {loss_meter.val:4f}'
+                    pbar.set_description(desc_str)
+                    pbar.update(1)
 
-            # if self.args.distributed:
-            #     dist.barrier()
+            if self.args.distributed:
+                dist.barrier()
 
-            # if self.verbose:
-            #     pbar.close()
-            #     self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
-            #     self.writer.add_scalar('lr', lr, epoch)
-            #     for task_name, l in tasks_loss.items():
-            #         if len(l)!=0:
-            #             self.writer.add_scalar(f'{task_name}_loss', l.val, epoch)
-            #     self.writer.flush()
+            if self.verbose:
+                pbar.close()
+                self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
+                self.writer.add_scalar('lr', lr, epoch)
+                for task_name, l in tasks_loss.items():
+                    if len(l)!=0:
+                        self.writer.add_scalar(f'{task_name}_loss', l.val, epoch)
+                self.writer.flush()
 
             # Validation
             if self.val_loader is not None:
@@ -150,7 +150,7 @@ class Trainer_Multitask(Trainer):
                         size = 0
                         for loader in self.val_loader.values():
                             size += len(loader)
-                        pbar = tqdm(total=size, ncols=1000)
+                        pbar = tqdm(total=size, ncols=500)
                     for task, loader in self.val_loader.items():
                         if task == "viquae" and self.verbose:
                             all_probs = []

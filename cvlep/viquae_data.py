@@ -531,7 +531,7 @@ def test_dataloader():
     dataset_clip = SimpleContrastiveDataset(**kwargs_clip)
     dataloader_clip = DataLoader(
         dataset_clip, batch_size=batch_size, collate_fn=dataset_clip.collate_fn)
-    dataset_dpr = DPRDataset(**kwargs_dpr)
+    dataset_dpr = Viquae(**kwargs_dpr)
     dataloader_dpr = DataLoader(
         dataset_dpr, batch_size=batch_size, collate_fn=dataset_dpr.collate_fn)
     return dataloader_clip, dataloader_dpr
