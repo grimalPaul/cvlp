@@ -144,7 +144,8 @@ class KiltDataset(Dataset):
             "visual_feats_question": None,
             "visual_feats_context": None,
             "question_image_boxes": None,
-            "context_image_boxes": None
+            "context_image_boxes": None,
+            "task":"triviaqa"
         }
 
 
@@ -245,11 +246,9 @@ class WikiImage(Dataset):
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": context_vis_feats,
             "question_image_boxes": question_boxes,
-            "context_image_boxes": context_boxes
+            "context_image_boxes": context_boxes,
+            "task":"mathc_image"
         }
-
-# TODO : use with image embedding
-
 
 class MultimediaDataset(Dataset):
     # match differents passages paired with illustrative image
@@ -399,7 +398,8 @@ class MultimediaDataset(Dataset):
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": context_vis_feats,
             "question_image_boxes": question_boxes,
-            "context_image_boxes": context_boxes
+            "context_image_boxes": context_boxes,
+            "task":"match_article"
         }
 
 class ImageCaption(Dataset):

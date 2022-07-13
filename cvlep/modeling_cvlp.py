@@ -60,18 +60,28 @@ class CVLEP(nn.Module):
 
         return outputs_question, output_passage
 
+    def to_device(self, input, device):
+        if input is None:
+            return None
+        else:
+            return input.to(device)
+
     def train_step(self, batch):
         device = next(self.parameters()).device
+
         outputs_question, output_passage = self.forward(
-            question_input_ids=batch["input_ids_question"].to(device),
-            question_attention_mask=batch["attention_mask_question"].to(
-                device),
-            question_vis_inputs=(batch["visual_feats_question"].to(
-                device), batch["question_image_boxes"].to(device)),
-            passage_input_ids=batch["input_ids_context"].to(device),
-            passage_attention_mask=batch["attention_mask_context"].to(device),
-            passage_vis_inputs=(batch["visual_feats_context"].to(
-                device), batch["context_image_boxes"].to(device))
+            question_input_ids=self.to_device(
+                batch["input_ids_question"], device),
+            question_attention_mask=self.to_device(
+                batch["attention_mask_question"], device),
+            question_vis_inputs=(self.to_device(batch["visual_feats_question"], device), self.to_device(
+                batch["question_image_boxes"], device)),
+            passage_input_ids=self.to_device(
+                batch["input_ids_context"], device),
+            passage_attention_mask=self.to_device(
+                batch["attention_mask_context"], device),
+            passage_vis_inputs=(self.to_device(batch["visual_feats_context"], device), self.to_device(
+                batch["context_image_boxes"], device))
         )
         labels = batch['labels'].to(device)
         return outputs_question, output_passage, labels
@@ -83,7 +93,8 @@ class CVLEP(nn.Module):
         return self.image_passage_encoder(
             input_ids=batch["input_ids"].to(device),
             attention_mask=batch["attention_mask"].to(device),
-            vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),
+            vis_inputs=(batch['vision_features'].to(
+                device), batch['boxes'].to(device)),
             task=batch["task"],
             return_pooled_output=True,
             pool_strategy="avg"
@@ -96,7 +107,8 @@ class CVLEP(nn.Module):
         return self.image_passage_encoder(
             input_ids=batch["input_ids"].to(device),
             attention_mask=batch["attention_mask"].to(device),
-            vis_inputs=(batch['vision_features'].to(device),batch['boxes'].to(device)),
+            vis_inputs=(batch['vision_features'].to(
+                device), batch['boxes'].to(device)),
             task=batch["task"],
             return_pooled_output=True,
             pool_strategy="avg"

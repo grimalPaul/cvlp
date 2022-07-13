@@ -18,7 +18,7 @@
     "vis_use_transformer": false,
     "vis_pooling_output": false,
     "sparse_sample": false,
-    "downsample": true,
+    "downsample": false,
     "oneddownsample": false,
     "use_adapter": true,
     "use_hyperformer": false,

@@ -246,7 +246,8 @@ class Viquae(Dataset):
             "visual_feats_question": question_vis_feats,
             "visual_feats_context": visual_feats_context,
             "question_image_boxes": question_boxes,
-            "context_image_boxes": context_image_boxes
+            "context_image_boxes": context_image_boxes,
+            "task":"viquae"
         }
 
 

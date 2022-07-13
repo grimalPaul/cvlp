@@ -297,8 +297,8 @@ class JointEncoder(T5Stack):
         else:
             inputs_embeds = None
             L = 0
-
-        if vis_inputs is not None:
+            
+        if vis_inputs != (None,None):
             if self.downsample is not None:
                 vis_inputs = self.downsample(vis_inputs)
 

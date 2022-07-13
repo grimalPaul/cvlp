@@ -4,12 +4,12 @@
 #SBATCH -J process_kilt
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
-#SBATCH --mem=20G
+#SBATCH --mem=40G
 
 source /home/pgrimal/.bashrc
 source activate cvlp
 
-path_kb=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_filter
+path_kb=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_no_filter
 
 echo 'title2index'
 python -m meerqat.data.loading map \

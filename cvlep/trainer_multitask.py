@@ -32,11 +32,15 @@ class Trainer_Multitask(Trainer):
             best_epoch = 0
         if self.args.distributed and self.val_loader is not None:
             for task_name in self.val_loader.keys():
-                self.val_loader[task_name].set_epoch(0)
+                self.val_loader[task_name].sampler.set_epoch(0)
 
-        # TODO : init counter for class
-        task_counter = {}
-
+        task_counter = {
+            "triviaqa":0,
+            "match_image":0,
+            "match_article":0,
+            "viquae":0
+        }
+        
         for epoch in tqdm(range(self.args.epochs)):
             if self.verbose:
                 tasks_loss = {}
@@ -115,9 +119,9 @@ class Trainer_Multitask(Trainer):
                     loss_meter.update(loss.item())
                     desc_str = f'Epoch {epoch} | LR {lr:.6f}'
                     for task_name, nb in task_counter.items():
-                        desc_str += f'| {task_name} : {nb} '
-                        if tasks_loss[task_name].val > 0:
-                            desc_str += f'loss : {tasks_loss[task_name].val:4f}'
+                        desc_str += f'|{task_name}:{nb} '
+                        if len(tasks_loss[task_name]) != 0 and tasks_loss[task_name].val > 0:
+                            desc_str += f'loss:{tasks_loss[task_name].val:4f}'
                     desc_str += f' | Loss Total {loss_meter.val:4f}'
                     pbar.set_description(desc_str)
                     pbar.update(1)
@@ -283,7 +287,7 @@ def main_worker(config_training, datasets_config, args):
     config_encoder_passage = Config.load_json(args.encoder_passage_path)
     config_model = Config.load_json(args.model_path)
 
-    trainer = Trainer(
+    trainer = Trainer_Multitask(
         config_question=config_encoder_question,
         config_passage=config_encoder_passage,
         config_model=config_model,
@@ -326,7 +330,7 @@ if __name__ == '__main__':
         config_training_json = json.load(f)
     datasets_config = config_training_json.pop("datasets")
     config_training_json['tasks'] = [t for t in datasets_config.keys()]
-    config_training = Config(config_training_json)
+    config_training = Config(**config_training_json)
     config_training.world_size = world_size
     config_training.rank = rank
     config_training.local_rank = local_rank
