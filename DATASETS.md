@@ -64,6 +64,9 @@ et je filtre multimedia pour avoir les mêmes entités dans validation et dans t
     }
 ```
 
+
+
+
 après split on a
 multimedia :
 train :  num_rows: 33871
@@ -72,3 +75,11 @@ validation :  num_rows: 2490
 wikimage:
 train:40525
 validation:3000
+
+
+
+on cherche dan sl a kb, entités qui on au moins deux image 
+on crée multimedia et wikimage
+on supprime dans multimedia entités qui n'ont pas au moins deux passages
+on filtre les deux datasets de toutes les entités présentent dans viquae
+On shuffle puis on split wikimage sur un nombre d'entités, on utilise les mêmes entités pour faire le split de multimedia

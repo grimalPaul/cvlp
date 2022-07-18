@@ -197,8 +197,8 @@ class WikiImage(Dataset):
         else:
             fct = random.sample
         index_images = fct(range(len(list_images)), k=2)
-        item['image_features_question'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[0]])
-        item['image_features_context'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[1]])
+        item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
+        item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
         if self.key_vision_boxes is not None:
             boxes_question = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[0]])
             boxes_context = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[1]])
@@ -270,7 +270,7 @@ class MultimediaDataset(Dataset):
     ):
         super().__init__()
         self.passages = load_from_disk(passages_path)
-        self.tokp = topk
+        self.topk = topk
         self.verbose = verbose
         if split == "validation":
             self.split = "validation"
@@ -318,8 +318,8 @@ class MultimediaDataset(Dataset):
         # 'question' is intented for encoder_question
         # 'context' is intented for encoder_passage
 
-        list_passages = self.kb[str(index)][self.key_passage_index]
-        index_passages = random.sample(len(list_passages), k=2)
+        list_passages = self.kb[index][self.key_passage_index]
+        index_passages = random.sample(range(len(list_passages)), k=2)
         list_images = self.kb[index][self.key_list_images]
         if self.sampling_with_replacement:
             # with replacement
@@ -336,11 +336,11 @@ class MultimediaDataset(Dataset):
         item['passage_text'] = self.passages[index_passages[1]
                                              ][self.key_text_passage]
         index_images = fct(range(len(list_images)), k=2)
-        item['image_features_question'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[0]])
-        item['image_features_context'] = torch.Tensor(self.dataset[self.key_vision_features][index_images[1]])
+        item['image_features_question'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[0]])
+        item['image_features_context'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[1]])
         if self.key_vision_boxes is not None:
-            boxes_question = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[0]])
-            boxes_context = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[1]])
+            boxes_question = torch.Tensor(self.kb[index][self.key_vision_boxes][index_images[0]])
+            boxes_context = torch.Tensor(self.kb[index][self.key_vision_boxes][index_images[1]])
         else:
             boxes_question =  torch.zeros(item['image_features_question'].shape[0], 4) # (L, 4)
             boxes_context = torch.zeros( item['image_features_context'].shape[0], 4) # (L, 4)
@@ -391,7 +391,7 @@ class MultimediaDataset(Dataset):
         return {
             "input_ids_question": question_input.input_ids,
             "attention_mask_question": question_input.attention_mask,
-            "input_ids_context": context_input.inputs_ids,
+            "input_ids_context": context_input.input_ids,
             "attention_mask_context": context_input.attention_mask,
             "labels": labels,
             "visual_feats_question": question_vis_feats,
@@ -504,7 +504,7 @@ def get_loader(
     return loader
 
 
-def test_dataloader(task):
+def test_dataloader(task, workers=1):
     kwargs_triviaqa = {
         "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/triviaqa_for_viquae",
@@ -523,8 +523,8 @@ def test_dataloader(task):
         "key_vision_boxes":None,
     }
     kwargs_multimedia={
-        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_split",
-        "passage_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
+        "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_train_val_filter",
+        "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
         "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
         "key_passage_index": "passage_index",
         "key_text_passage": "passage",
@@ -545,7 +545,7 @@ def test_dataloader(task):
         "key_vision_boxes": None,
         "key_irrelevant": "BM25_irrelevant_indices",
     }
-    batch_size = 4
+    batch_size = 2
     if task == "triviaqa":
         dataset_class = KiltDataset
         args = kwargs_triviaqa
@@ -562,9 +562,11 @@ def test_dataloader(task):
     args['split'] = 'train'
     dataset =dataset_class(**args)
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
+        dataset, batch_size=batch_size, collate_fn=dataset.collate_fn, num_workers=workers)
     return dataloader
 
-
 if __name__ == '__main__':
-    pass
+    dataloader = test_dataloader("match_article", workers=4)
+    print(dataloader)
+    a = next(iter(dataloader))
+    print(a)
