@@ -69,12 +69,18 @@ et je filtre multimedia pour avoir les mêmes entités dans validation et dans t
 
 après split on a
 multimedia :
-train :  num_rows: 33871
-validation :  num_rows: 2490
+train :  num_rows: 
+validation :  num_rows: 
 
 wikimage:
-train:40525
-validation:3000
+    train: Dataset({
+        features: ['image', 'kilt_id', 'url', 'wikidata_info', 'wikipedia_id', 'wikipedia_title', 'wikidata_id', 'type', 'url_images', 'list_images', 'fastrcnn_features', 'fastrcnn_boxes', 'clip_features'],
+        num_rows: 40420
+    })
+    validation: Dataset({
+        features: ['image', 'kilt_id', 'url', 'wikidata_info', 'wikipedia_id', 'wikipedia_title', 'wikidata_id', 'type', 'url_images', 'list_images', 'fastrcnn_features', 'fastrcnn_boxes', 'clip_features'],
+        num_rows: 2989
+
 
 
 

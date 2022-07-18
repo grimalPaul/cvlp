@@ -149,8 +149,6 @@ class KiltDataset(Dataset):
         }
 
 
-# TODO:split possibility
-# TODO: image embedding
 class WikiImage(Dataset):
     def __init__(
         self,
@@ -160,7 +158,8 @@ class WikiImage(Dataset):
         key_vision_boxes='fastrcnn_boxes',
         split = 'train',
         topk=-1,
-        sampling_with_replacement = False
+        sampling_with_replacement = False,
+        verbose=True
     ):
         super().__init__()
         if split == "validation":
@@ -171,6 +170,7 @@ class WikiImage(Dataset):
             raise NotImplementedError("This split is not implemented")
         self.dataset = load_from_disk(dataset_path)[self.split]
         self.topk = topk
+        self.verbose = verbose
         if isinstance(self.topk, float) and (0 < self.topk <= 1):
             used_samples = int(self.topk * self.dataset.num_rows)
             self.dataset = self.dataset.select(range(used_samples))
@@ -185,7 +185,7 @@ class WikiImage(Dataset):
         self.sampling_with_replacement = sampling_with_replacement
 
     def __len__(self):
-        self.dataset.num_rows
+        return self.dataset.num_rows
 
     def __getitem__(self, index):
         item = {}
@@ -228,7 +228,7 @@ class WikiImage(Dataset):
             n_boxes_context = item['n_boxes_context']
             n_boxes_question = item['n_boxes_question']
             question_boxes[i,
-                           :n_boxes_question] = item['question_image_boxes']
+                           :n_boxes_question] = item['image_boxes_question']
             question_vis_feats[i,
                                :n_boxes_question] = item['image_features_question']
             context_boxes[i,
@@ -247,7 +247,7 @@ class WikiImage(Dataset):
             "visual_feats_context": context_vis_feats,
             "question_image_boxes": question_boxes,
             "context_image_boxes": context_boxes,
-            "task":"mathc_image"
+            "task":"match_image"
         }
 
 class MultimediaDataset(Dataset):
@@ -504,7 +504,7 @@ def get_loader(
     return loader
 
 
-def test_dataloader(task, workers=1):
+def test_dataloader(task):
     kwargs_triviaqa = {
         "tokenizer_path": "experiments/configEncoder/bergamote/TokenizerConfig.json",
         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/triviaqa_for_viquae",
@@ -516,11 +516,11 @@ def test_dataloader(task, workers=1):
         "topk":-1
     }
     kwargs_wikimage={
-         "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split",
+        "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_train_val_filter",
         "topk":-1,
         "key_image":"list_images",
         "key_vision_features":"clip_features",
-        "key_vision_boxes":None,
+        "key_vision_boxes":None
     }
     kwargs_multimedia={
         "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_train_val_filter",
@@ -561,12 +561,10 @@ def test_dataloader(task, workers=1):
     args['verbose']=True
     args['split'] = 'train'
     dataset =dataset_class(**args)
+    print(dataset)
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, collate_fn=dataset.collate_fn, num_workers=workers)
+        dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
     return dataloader
 
 if __name__ == '__main__':
-    dataloader = test_dataloader("match_article", workers=4)
-    print(dataloader)
-    a = next(iter(dataloader))
-    print(a)
+    pass

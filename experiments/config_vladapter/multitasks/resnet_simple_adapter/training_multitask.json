@@ -28,7 +28,7 @@
         },
         "match_image": {
             "batch_size": 4,
-            "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_split_v2",
+            "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/wikimage/wikimage_train_val_filter",
             "topk":-1,
             "key_image":"list_images",
             "key_vision_features":"fastrcnn_features",
@@ -37,8 +37,8 @@
         },
         "match_article": {
             "batch_size": 4,
-            "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_split_v2",
-            "passage_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
+            "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_train_val_filter",
+            "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
             "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
             "key_passage_index": "passage_index",
             "key_text_passage": "passage",
