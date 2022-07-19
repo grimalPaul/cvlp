@@ -2,11 +2,11 @@
 #SBATCH --time=7-00:00:00
 #SBATCH --nodes=1
 #SBATCH -J train_clipT5
-#SBATCH --gres=gpu:8
-#SBATCH --ntasks-per-node=8
+#SBATCH --gres=gpu:4
+#SBATCH --partition=gpuv100
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=50G
-#SBATCH --nodelist=node7
+#SBATCH -w node27
 
 source /home/users/pgrimal/.bashrc
 source activate cvlp
@@ -19,7 +19,6 @@ encoder_passage_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/
 model_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/config_model.json
 training_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/training_multitask.json
 
-experiments/config_vladapter/factoryIA/clip_simple_adapter
 echo "Training model with clip embedding"
 srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \
     --encoder_question_path=${encoder_question_path} \
