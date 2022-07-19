@@ -96,7 +96,7 @@ tensorboard --logdir=. --port=6666  # change to any available port
 
 From your local computer, redirect the port tensorboard is listening on:
 
-ssh -L 6006:localhost:6006 -N username@factoryia
+ssh -L 6666:localhost:6666 -N username@factoryia
 
 And open tensorboard in your browser at <http://localhost:6006>
 

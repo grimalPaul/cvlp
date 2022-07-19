@@ -3,7 +3,8 @@
     "tokenizer": "/scratch_global/stage_pgrimal/data/CVLP/data/tokenizer/t5-base",
     "feat_dim": 2048,
     "pos_dim": 4,
-   
+    "add_projectionHead":true,
+    "dim_projectionHead":768,
     "use_vision": true,
     "use_vis_order_embedding": true,
     "additional_visual_embedding_layers": 0,
