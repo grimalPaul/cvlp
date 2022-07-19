@@ -1,10 +1,7 @@
-from curses import A_ALTCHARSET
-import json
 import numpy as np
 from cvlep.VLT5.param import Config
 from cvlep.CLIPT5.tokenization import VLT5TokenizerFast
 from transformers import T5TokenizerFast
-from multiprocessing import context
 import warnings
 from datasets import disable_caching, load_from_disk
 import random
@@ -14,11 +11,6 @@ from torch.utils.data.distributed import DistributedSampler
 from cvlep.viquae_data import Viquae
 
 disable_caching()
-
-# if args.boxe is None:
-#     # clip  create boxes
-# else tteke box from index
-
 
 
 # Kilt dataset
@@ -97,16 +89,16 @@ class KiltDataset(Dataset):
         relevants_index = self.dataset[index][self.key_index_relevant_passages]
         irrelevant_index = self.dataset[index][self.key_index_irrelevant_passages]
         if len(relevants_index) < 1:
-            warnings.warn(
-                f"Didn't find any relevant passage for question {self.dataset[index]['id']}")
+            # warnings.warn(
+            #     f"Didn't find any relevant passage for question {self.dataset[index]['id']}")
             item[f'passage_relevant_text'] = None
         else:
             relevant_index = random.choice(relevants_index)
             item[f'passage_relevant_text'] = self.passages[relevant_index][self.key_text_passage]
 
         if len(irrelevant_index) < 1:
-            warnings.warn(
-                f"Didn't find any irrelevant passage for question {self.dataset[index]['id']}")
+            # warnings.warn(
+            #     f"Didn't find any irrelevant passage for question {self.dataset[index]['id']}")
             item[f'passage_irrelevant_text'] = None
         else:
             irrelevant_index = random.choice(irrelevant_index)
@@ -197,8 +189,17 @@ class WikiImage(Dataset):
         else:
             fct = random.sample
         index_images = fct(range(len(list_images)), k=2)
-        item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
-        item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
+        try:
+            item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
+            item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
+        except IndexError as e:
+            print(index)
+            error = f'WIKIMAGE index : {index}, {self.dataset[index]["wikipedia_title"]} {e}'
+            print(error)
+            index_images = [0,1]
+            index = 0
+            item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
+            item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
         if self.key_vision_boxes is not None:
             boxes_question = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[0]])
             boxes_context = torch.Tensor(self.dataset[index][self.key_vision_boxes][index_images[1]])
@@ -210,7 +211,7 @@ class WikiImage(Dataset):
         item['n_boxes_question'] = boxes_question.size()[0]
         item['n_boxes_context'] = boxes_context.size()[0]
         return item
-
+# 32313, Martin Chilcott
     def collate_fn(self, batch):
         B = len(batch)
         V_L_question = max(item['n_boxes_question'] for item in batch)
@@ -318,6 +319,43 @@ class MultimediaDataset(Dataset):
         # 'question' is intented for encoder_question
         # 'context' is intented for encoder_passage
 
+        # list_passages = self.kb[index][self.key_passage_index]
+        # index_passages = random.sample(range(len(list_passages)), k=2)
+        # list_images = self.kb[index][self.key_list_images]
+        # if self.sampling_with_replacement:
+        #     # with replacement
+        #     fct = random.choices
+        # else:
+        #     fct = random.sample
+        # index_images = fct(range(len(list_images)), k=2)
+        # item = {}
+
+        # passage for question encoder
+        # item['question_text'] = self.passages[index_passages[0]
+        #                                       ][self.key_text_passage]
+        # # passage for passage encoder
+        # item['passage_text'] = self.passages[index_passages[1]
+        #                                      ][self.key_text_passage]
+        if self.sampling_with_replacement:
+            # with replacement
+            fct = random.choices
+        else:
+            fct = random.sample
+        list_images = self.kb[index][self.key_list_images]
+
+        index_images = fct(range(len(list_images)), k=2)
+        try:
+            item['image_features_question'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[0]])
+            item['image_features_context'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[1]])
+        except IndexError as e:
+            print(index)
+            error = f'MULTIMEDIA index : {index}, {self.dataset[index]["wikipedia_title"]} {e}'
+            print(error)
+            index_images = [0,1]
+            index = 0
+            item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
+            item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
+        # temp
         list_passages = self.kb[index][self.key_passage_index]
         index_passages = random.sample(range(len(list_passages)), k=2)
         list_images = self.kb[index][self.key_list_images]
@@ -326,18 +364,13 @@ class MultimediaDataset(Dataset):
             fct = random.choices
         else:
             fct = random.sample
-        index_images = fct(range(len(list_images)), k=2)
         item = {}
-
-        # passage for question encoder
         item['question_text'] = self.passages[index_passages[0]
                                               ][self.key_text_passage]
         # passage for passage encoder
         item['passage_text'] = self.passages[index_passages[1]
                                              ][self.key_text_passage]
-        index_images = fct(range(len(list_images)), k=2)
-        item['image_features_question'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[0]])
-        item['image_features_context'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[1]])
+        
         if self.key_vision_boxes is not None:
             boxes_question = torch.Tensor(self.kb[index][self.key_vision_boxes][index_images[0]])
             boxes_context = torch.Tensor(self.kb[index][self.key_vision_boxes][index_images[1]])
