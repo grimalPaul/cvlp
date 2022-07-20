@@ -12,7 +12,23 @@ from cvlep.viquae_data import Viquae
 
 disable_caching()
 
-
+def remove_lines(n_rows, split, name_dataset):
+    index = [_ for _ in range(n_rows)]
+    if split == 'train':
+        if name_dataset == "multimedia":
+            idx2remove = [9015,10895,14484,14730,22832]
+            idx2remove = idx2remove[::-1]
+            for i in idx2remove:
+                index.pop(i)
+            return index
+        elif name_dataset == 'wikimage':
+            idx2remove = [10541,19146,21477,32313,36478,36951]
+            idx2remove = idx2remove[::-1]
+            for i in idx2remove:
+                index.pop(i)
+            return index
+    return index
+    
 # Kilt dataset
 # "train_dataset": "data/triviaqa/without_viquae"
 # "eval_dataset": "data/triviaqa/with_viquae_validation"
@@ -163,6 +179,9 @@ class WikiImage(Dataset):
         self.dataset = load_from_disk(dataset_path)[self.split]
         self.topk = topk
         self.verbose = verbose
+        if split == "train":
+            index = remove_lines(self.dataset.num_rows, "train", "wikimage")
+            self.dataset = self.dataset.select(index)
         if isinstance(self.topk, float) and (0 < self.topk <= 1):
             used_samples = int(self.topk * self.dataset.num_rows)
             self.dataset = self.dataset.select(range(used_samples))
@@ -211,7 +230,7 @@ class WikiImage(Dataset):
         item['n_boxes_question'] = boxes_question.size()[0]
         item['n_boxes_context'] = boxes_context.size()[0]
         return item
-# 32313, Martin Chilcott
+
     def collate_fn(self, batch):
         B = len(batch)
         V_L_question = max(item['n_boxes_question'] for item in batch)
@@ -280,6 +299,9 @@ class MultimediaDataset(Dataset):
         else:
             raise NotImplementedError("This split is not implemented")
         self.kb = load_from_disk(kb_path)[self.split]
+        if split == "train":
+            index = remove_lines(self.kb.num_rows, "train", "multimedia")
+            self.kb = self.kb.select(index)
         if isinstance(self.topk, float) and (0 < self.topk <= 1):
             used_samples = int(self.topk * self.kb.num_rows)
             self.kb = self.kb.select(range(used_samples))
@@ -336,6 +358,7 @@ class MultimediaDataset(Dataset):
         # # passage for passage encoder
         # item['passage_text'] = self.passages[index_passages[1]
         #                                      ][self.key_text_passage]
+        item = {}
         if self.sampling_with_replacement:
             # with replacement
             fct = random.choices
@@ -349,12 +372,12 @@ class MultimediaDataset(Dataset):
             item['image_features_context'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[1]])
         except IndexError as e:
             print(index)
-            error = f'MULTIMEDIA index : {index}, {self.dataset[index]["wikipedia_title"]} {e}'
+            error = f'MULTIMEDIA index : {index}, {self.kb[index]["wikipedia_title"]} {e}'
             print(error)
             index_images = [0,1]
             index = 0
-            item['image_features_question'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[0]])
-            item['image_features_context'] = torch.Tensor(self.dataset[index][self.key_vision_features][index_images[1]])
+            item['image_features_question'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[0]])
+            item['image_features_context'] = torch.Tensor(self.kb[index][self.key_vision_features][index_images[1]])
         # temp
         list_passages = self.kb[index][self.key_passage_index]
         index_passages = random.sample(range(len(list_passages)), k=2)
@@ -364,7 +387,6 @@ class MultimediaDataset(Dataset):
             fct = random.choices
         else:
             fct = random.sample
-        item = {}
         item['question_text'] = self.passages[index_passages[0]
                                               ][self.key_text_passage]
         # passage for passage encoder
