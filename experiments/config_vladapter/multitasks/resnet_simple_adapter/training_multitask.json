@@ -8,6 +8,8 @@
     "gradient_accumulation_steps": 1,
     "lr": 0.0003,
     "num_workers": 4,
+    "val_workers":0,
+
     "optim": "adamw",
     "output": "snap/multitask_adapter_resnet/",
     "seed": 0,

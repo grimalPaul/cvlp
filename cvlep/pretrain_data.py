@@ -491,6 +491,8 @@ def get_loader(
         distributed,
         split,
         workers,
+        rank,
+        world_size,
         verbose=False,
         **dataset_args,
 ):
@@ -514,7 +516,7 @@ def get_loader(
         **dataset_args
     )
     if distributed:
-        sampler = DistributedSampler(dataset, drop_last=True, seed=seed)
+        sampler = DistributedSampler(dataset, drop_last=True, seed=seed, num_replicas=world_size, rank=rank)
     else:
         sampler = None
     if mode == 'train':
@@ -528,7 +530,7 @@ def get_loader(
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
             generator=g
-        )
+        )   
     elif mode == 'eval':
         loader = DataLoader(
             dataset=dataset,
@@ -539,7 +541,8 @@ def get_loader(
             sampler=sampler,
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
-            generator=g
+            generator=g,
+            drop_last=True
         )
     elif mode == 'test':
         loader = DataLoader(
@@ -551,7 +554,8 @@ def get_loader(
             sampler=sampler,
             collate_fn=dataset.collate_fn,
             worker_init_fn=seed_worker,
-            generator=g
+            generator=g,
+            drop_last=True
         )
     else:
         raise NotImplementedError('this mode is not implemented')

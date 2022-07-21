@@ -148,86 +148,86 @@ class Trainer(object):
             self.val_loader.sampler.set_epoch(0)
 
         for epoch in tqdm(range(self.args.epochs)):
-            # if self.verbose:
-            #     loss_meter = LossMeter()
-            #     pbar = tqdm(total=len(self.train_loader), ncols=100)
-            # self.model.train()
-            # if self.args.distributed:
-            #     self.train_loader.sampler.set_epoch(epoch)
-            # for step_i, batch in enumerate(self.train_loader):
-            #     if self.args.fp16 and _use_native_amp:
-            #         with autocast():
-            #             if self.args.distributed:
-            #                 loss = self.compute_loss(batch)
-            #     else:
-            #         loss = self.compute_loss(batch)
+            if self.verbose:
+                loss_meter = LossMeter()
+                pbar = tqdm(total=len(self.train_loader), ncols=100)
+            self.model.train()
+            if self.args.distributed:
+                self.train_loader.sampler.set_epoch(epoch)
+            for step_i, batch in enumerate(self.train_loader):
+                if self.args.fp16 and _use_native_amp:
+                    with autocast():
+                        if self.args.distributed:
+                            loss = self.compute_loss(batch)
+                else:
+                    loss = self.compute_loss(batch)
 
-            #     # loss.backward
-            #     if self.args.fp16 and _use_native_amp:
-            #         self.scaler.scale(loss).backward()
-            #     else:
-            #         loss.backward()
+                # loss.backward
+                if self.args.fp16 and _use_native_amp:
+                    self.scaler.scale(loss).backward()
+                else:
+                    loss.backward()
 
-            #     loss = loss.detach()
-            #     # Update Parameters
-            #     if self.args.clip_grad_norm > 0:
-            #         if self.args.fp16 and _use_native_amp:
-            #             self.scaler.unscale_(self.optim)
-            #             torch.nn.utils.clip_grad_norm_(
-            #                 self.model.parameters(), self.args.clip_grad_norm)
-            #         else:
-            #             torch.nn.utils.clip_grad_norm_(
-            #                 self.model.parameters(), self.args.clip_grad_norm)
+                loss = loss.detach()
+                # Update Parameters
+                if self.args.clip_grad_norm > 0:
+                    if self.args.fp16 and _use_native_amp:
+                        self.scaler.unscale_(self.optim)
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(), self.args.clip_grad_norm)
+                    else:
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(), self.args.clip_grad_norm)
 
-            #     # optim step
-            #     update = True
-            #     if self.args.gradient_accumulation_steps > 1:
-            #         if step_i == 0:
-            #             update = False
-            #         elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
-            #             update = True
-            #         else:
-            #             update = False
+                # optim step
+                update = True
+                if self.args.gradient_accumulation_steps > 1:
+                    if step_i == 0:
+                        update = False
+                    elif step_i % self.args.gradient_accumulation_steps == 0 or step_i == len(self.train_loader) - 1:
+                        update = True
+                    else:
+                        update = False
 
-            #     if update:
-            #         if self.args.fp16 and _use_native_amp:
-            #             self.scaler.step(self.optim)
-            #             self.scaler.update()
-            #         else:
-            #             self.optim.step()
+                if update:
+                    if self.args.fp16 and _use_native_amp:
+                        self.scaler.step(self.optim)
+                        self.scaler.update()
+                    else:
+                        self.optim.step()
 
-            #         if self.lr_scheduler:
-            #             self.lr_scheduler.step()
-            #         for param in self.model.parameters():
-            #             param.grad = None
+                    if self.lr_scheduler:
+                        self.lr_scheduler.step()
+                    for param in self.model.parameters():
+                        param.grad = None
 
-            #     # Scheduler
-            #     if self.lr_scheduler:
-            #         if version.parse(torch.__version__) >= version.parse("1.4"):
-            #             lr = self.lr_scheduler.get_last_lr()[0]
-            #         else:
-            #             lr = self.lr_scheduler.get_lr()[0]
-            #     else:
-            #         try:
-            #             lr = self.optim.get_lr()[0]
-            #         except AttributeError:
-            #             lr = self.args.lr
+                # Scheduler
+                if self.lr_scheduler:
+                    if version.parse(torch.__version__) >= version.parse("1.4"):
+                        lr = self.lr_scheduler.get_last_lr()[0]
+                    else:
+                        lr = self.lr_scheduler.get_lr()[0]
+                else:
+                    try:
+                        lr = self.optim.get_lr()[0]
+                    except AttributeError:
+                        lr = self.args.lr
 
-            #     if self.verbose:
-            #         loss_meter.update(loss.item())
-            #         desc_str = f'Epoch {epoch} | LR {lr:.6f}'
-            #         desc_str += f' | Loss {loss_meter.val:4f}'
-            #         pbar.set_description(desc_str)
-            #         pbar.update(1)
+                if self.verbose:
+                    loss_meter.update(loss.item())
+                    desc_str = f'Epoch {epoch} | LR {lr:.6f}'
+                    desc_str += f' | Loss {loss_meter.val:4f}'
+                    pbar.set_description(desc_str)
+                    pbar.update(1)
 
-            # if self.args.distributed:
-            #     dist.barrier()
+            if self.args.distributed:
+                dist.barrier()
 
-            # if self.verbose:
-            #     pbar.close()
-            #     self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
-            #     self.writer.add_scalar('lr', lr, epoch)
-            #     self.writer.flush()
+            if self.verbose:
+                pbar.close()
+                self.writer.add_scalar('Training_loss', loss_meter.val, epoch)
+                self.writer.add_scalar('lr', lr, epoch)
+                self.writer.flush()
             # Validation
             if self.val_loader is not None:
                 self.model.eval()
@@ -235,6 +235,7 @@ class Trainer(object):
                     if self.verbose:
                         loss_meter = LossMeter()
                         pbar = tqdm(total=len(self.val_loader), ncols=100)
+                        size_all_probs = None
                         all_probs = []
                         all_labels = []
                     for step_i, batch in enumerate(self.val_loader):
@@ -247,8 +248,11 @@ class Trainer(object):
                             loss, outputs = self.compute_loss(
                                 batch, return_outputs=True)
                         if self.verbose:
-                            all_probs.append(outputs['log_probs'])
-                            all_labels.append(outputs['label_ids'])
+                            if size_all_probs is None:
+                                size_all_probs = outputs['log_probs'].shape
+                            if size_all_probs == outputs['log_probs'].shape:
+                                all_probs.append(outputs['log_probs'])
+                                all_labels.append(outputs['label_ids'])
                             loss_meter.update(loss.item())
                             desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
                             pbar.set_description(desc_str)
@@ -319,14 +323,14 @@ class Trainer(object):
     def compute_loss(self, batch, return_outputs=False):
         # Calculates In-batch negatives schema loss and supports to run it in DDP mode by exchanging the representations across all the nodes.
         # From https://github.com/PaulLerner/ViQuAE/blob/e032dedc568c8a56b9a54ada6bb4dfa20c4301de/meerqat/train/trainer.py#L206
-
+       
         if self.args.distributed:
             output_question, output_context, local_labels = self.model.module.train_step(
                 batch)
         else:
             output_question, output_context, local_labels = self.model.train_step(
                 batch)
-
+        # print('local_labels', local_labels)
         # N question in the batch * dim model = N * d
         local_question_representations = output_question
         # (1 relevant + 1 irrelevant) * N * dim model = 2N * d

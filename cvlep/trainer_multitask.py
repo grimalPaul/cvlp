@@ -42,15 +42,16 @@ class Trainer_Multitask(Trainer):
         }
         
         for epoch in tqdm(range(self.args.epochs)):
+            self.model.train()
+            if self.args.distributed:
+                self.train_loader.set_epoch(epoch)
             if self.verbose:
                 tasks_loss = {}
                 for task in task_counter.keys():
                     tasks_loss[task] = LossMeter()
                 loss_meter = LossMeter()
-                pbar = tqdm(total=len(self.train_loader), ncols=500)
-            self.model.train()
-            if self.args.distributed:
-                self.train_loader.set_epoch(epoch)
+                pbar = tqdm(total=len(self.train_loader), ncols=200)
+            
 
             for step_i, batch in enumerate(self.train_loader):
                 task = batch['task']
@@ -150,15 +151,15 @@ class Trainer_Multitask(Trainer):
                         size = 0
                         for loader in self.val_loader.values():
                             size += len(loader)
-                        pbar = tqdm(total=size, ncols=500)
+                        pbar = tqdm(total=size, ncols=200)
                     for task, loader in self.val_loader.items():
                         if task == "viquae" and self.verbose:
+                            size_all_probs = None
                             all_probs = []
                             all_labels = []
                         for batch in loader:
                             if self.args.fp16 and _use_native_amp:
                                 with autocast():
-                                    
                                     if self.args.distributed:
                                         if task == "viquae" and self.verbose:
                                             loss, outputs = self.compute_loss(batch,return_outputs=True)
@@ -179,8 +180,11 @@ class Trainer_Multitask(Trainer):
                                 pbar.set_description(desc_str)
                                 pbar.update(1)
                                 if task == "viquae":
-                                    all_probs.append(outputs['log_probs'])
-                                    all_labels.append(outputs['label_ids'])
+                                    if size_all_probs is None:
+                                        size_all_probs = outputs['log_probs'].shape
+                                    if size_all_probs == outputs['log_probs'].shape:
+                                        all_probs.append(outputs['log_probs'])
+                                        all_labels.append(outputs['label_ids'])
                     if self.verbose:
                         pbar.close()
                         for task_name, l in tasks_loss.items():
@@ -258,11 +262,13 @@ def main_worker(config_training, datasets_config, args):
                         task=task,
                         mode="eval",
                         seed=config_training.seed,
-                        workers=config_training.num_workers,
+                        workers=config_training.val_workers,
                         verbose=verbose,
                         batch_size=batch_size,
                         split="validation",
                         distributed=config_training.distributed,
+                        rank = config_training.rank,
+                        world_size=config_training.world_size,
                         **args_dataset
                     )
                 )
@@ -277,6 +283,8 @@ def main_worker(config_training, datasets_config, args):
                         workers=config_training.num_workers,
                         verbose=verbose,
                         distributed=config_training.distributed,
+                        rank = config_training.rank,
+                        world_size=config_training.world_size,
                         **args_dataset
                     )
                 )
