@@ -23,7 +23,7 @@
     "key_relevant": "provenance_indices",
     "key_text_question": "input",
     "key_text_passage": "passage",
-    "key_vision_features": "vlt5_features",
-    "key_vision_boxes": "vlt5_normalized_boxes",
+    "key_vision_features": "clip_features",
+    "key_vision_boxes":null,
     "key_irrelevant": "BM25_irrelevant_indices"
 }

@@ -2,6 +2,37 @@
 
 CVLP = Constrastive Visual Language Pre-Training
 
+## Table of contents
+
+- [CVLP](#cvlp)
+  - [Table of contents](#table-of-contents)
+  - [Installation](#installation)
+    - [Download tokenizer and model](#download-tokenizer-and-model)
+    - [Download visual model](#download-visual-model)
+    - [Download pretrained encoder](#download-pretrained-encoder)
+    - [Download and preprocess data](#download-and-preprocess-data)
+      - [Download dataset and knowledge base](#download-dataset-and-knowledge-base)
+      - [Preprocess data](#preprocess-data)
+    - [Search relevant and irrelevant passages with BM25](#search-relevant-and-irrelevant-passages-with-bm25)
+  - [Train VLT5](#train-vlt5)
+    - [Finetuning on the pretrained VLT5](#finetuning-on-the-pretrained-vlt5)
+      - [Prompt tuning](#prompt-tuning)
+      - [Adapter](#adapter)
+    - [Visual Encoder : CLIP](#visual-encoder--clip)
+    - [Multitask Pretraining](#multitask-pretraining)
+      - [Kilt trivia](#kilt-trivia)
+      - [Wikimage](#wikimage)
+      - [Multimedia](#multimedia)
+      - [Pretraining](#pretraining)
+    - [Finetuning](#finetuning)
+  - [Note config files for research, multitask and finetuning](#note-config-files-for-research-multitask-and-finetuning)
+    - [Research](#research)
+    - [Multitask](#multitask)
+    - [Fine-tuning](#fine-tuning)
+  - [Aknowledgments](#aknowledgments)
+  - [Miscellaneous](#miscellaneous)
+  - [Methodology](#methodology)
+
 ## Installation
 
 I suggest to create a virtual environnement and pip install the `requirements.txt`.
@@ -152,33 +183,53 @@ python -m processing.irrelevant \
     --dataset_path=path/to/dataset
 ```
 
-### Search relevant and irrelevant passages with DPR
+## Train VLT5
 
-TODO: MAYBE do the same things than before with DPR zero shot
-
-### Train VLT5
-
-#### Visual Encoder Faster CNN
+### Finetuning on the pretrained VLT5
 
 We train our model from the pretrain VLT5 model
 
-##### Prompt tuning
+#### Prompt tuning
 
-TODO: add step
-freeze or not visual encoder
+```bash
+encoder_question_path=experiments/config_vladapter/bergamote/prompt/encoder_prompting.json
+encoder_passage_path=experiments/config_vladapter/bergamote/prompt/encoder_prompting.json
+model_path=experiments/config_vladapter/bergamote/prompt/config_model.json
+training_path=experiments/config_vladapter/bergamote/prompt/training_prompt.json
 
-##### Adapter
+echo "Prompt tuning"
+srun --kill-on-bad-exit=1 python -m cvlep.trainer_base_vladapter \
+    --encoder_question_path=${encoder_question_path} \
+    --encoder_passage_path=${encoder_passage_path} \
+    --model_path=${model_path} \
+    --training_path=${training_path}
+```
 
-TODO: add step
-freeze or not visual encoder
+#### Adapter
 
-#### Visual Encoder : CLIP
+```bash
+encoder_question_path=experiments/config_vladapter/bergamote/adapter_projection/encoder_simple_adapter.json
+encoder_passage_path=experiments/config_vladapter/bergamote/adapter_projection/encoder_simple_adapter.json
+model_path=experiments/config_vladapter/bergamote/adapter_projection/config_model.json
+training_path=experiments/config_vladapter/bergamote/adapter_projection/training_simple_adapter.json
+
+echo "Projection et adapter"
+srun --kill-on-bad-exit=1 python -m cvlep.trainer_base_vladapter \
+    --encoder_question_path=${encoder_question_path} \
+    --encoder_passage_path=${encoder_passage_path} \
+    --model_path=${model_path} \
+    --training_path=${training_path}
+
+echo "The End"
+```
+
+### Visual Encoder : CLIP
 
 We must pretrained the model on pretrained task(s). We use adapter for the pretraining.
 
-##### Pretraining
+### Multitask Pretraining
 
-###### Kilt trivia
+#### Kilt trivia
 
 We need to download the kilt dataset filtered on viquae question.
 
@@ -226,44 +277,217 @@ python -m processing.irrelevant \
     --dataset_path=path/to/triviaqa_for_viquae
 ```
 
-###### Wikimage
+#### Wikimage
 
 To develop entities representation of our model, we create a dataset from the knwoledge base of viquae. We take `wikidata_id` and get from wikidata image's entity for entities who have more than one image.
 
 TODO :We release the dataset and the image.
 
-Speak about overlapp
-on a enlevé entité commune avec le viquae
+We removed entities present in Viquae (train, validation and test)
 
-###### Multimedia
+#### Multimedia
 
 We developed a multimedia training which consist to match differents passages of a same article with different illustrative images. We take the above dataset to create this one.
 
 TODO: We release the dataset and the image
 and the passage
 
-pas d'overlapp avec viquae
+We removed entities present in Viquae (train, validation and test)
 
-###### Image caption
+#### Pretraining
 
-TODO
+FasterRCNN
 
-###### Prompt tunning
+```py
+pass
+```
 
-TODO: add step
-freeze or not visual encoder
+CLIP
 
-###### Adapters
+```py
+pass
+```
 
-TODO: add step
-freeze or not visual encoder
+### Finetuning
+
+FasterRCNN
+
+```py
+pass
+```
+
+CLIP
+
+```py
+pass
+```
+
+## Note config files for research, multitask and finetuning
+
+### Research
+
+```json
+{
+    "kb_kwargs": {
+        "path/to/kb  where you search": {
+            "device": "indicate cpu or gpu",
+            "index_kwargs": {
+                "name_of_your_index_1": {
+                    "key_kb": "column to index to do the search",
+                    "index_load": "true or false if you want to load index from index path",
+                    "index_path": "path where you want to load or save your index",
+                    "string_factory": "https://github.com/facebookresearch/faiss/wiki/The-index-factory"
+                },
+                "name_of_your_index_2": {
+                    "key_kb": "column to index to do the search",
+                    "index_load": "true or false if you want to load index from index path",
+                    "index_path": "path where you want to load or save your index",
+                    "string_factory": "https://github.com/facebookresearch/faiss/wiki/The-index-factory"
+                }
+            }
+        }
+    }
+}
+```
+
+### Multitask
+
+Config for training_path argument.
+
+```bash
+python -m cvlep.trainer_multitask \
+    --encoder_question_path=... \
+    --encoder_passage_path=... \
+    --model_path=... \
+    --training_path=#THIS FILE
+```
+
+Please precise in `dataset` each dataset you want to use.
+In `split` add `train` and/or `validation`.
+File example :
+
+```json
+{
+    "adam_eps": 1e-06,
+    "clip_grad_norm": 5,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "epochs": 40,
+    "fp16": true,
+    "gradient_accumulation_steps": 1,
+    "lr": 0.0003,
+    "num_workers": 2,
+    "val_workers":0,
+    "optim": "adamw",
+    "output": "path to save encoders",
+    "seed": 0,
+    "train": true,
+    "log_tensorboard_path": "path to log",
+    # config of each dataset
+    "datasets": {
+        "triviaqa": {
+            "batch_size": 20,
+            "tokenizer_path": "TokenizerConfig.json",
+            "passages_path": "/passages",
+            "dataset_path": "triviaqa_for_viquae",
+            "key_relevant": "provenance_indices",
+            "key_irrelevant": "BM25_irrelevant_indices",
+            "key_text_question": "input",
+            "key_text_passage": "passage",
+            "topk": -1,
+            "split":"train"
+        },
+        "match_image": {
+            "batch_size": 20,
+            "dataset_path": "/wikimage",
+            "topk":-1,
+            "key_image":"list_images",
+            "key_vision_features":"clip_features",
+            "key_vision_boxes":null,
+            "split":"train"
+        },
+        "match_article": {
+            "batch_size": 20,
+            "kb_path": "multimedia",
+            "passages_path": "passages",
+            "tokenizer_path": "TokenizerConfig.json",
+            "key_passage_index": "passage_index",
+            "key_text_passage": "passage",
+            "key_list_images": "list_images",
+            "key_vision_features": "clip_features",
+            "key_vision_boxes": null,
+            "topk": -1,
+            "split":"train"
+        },
+        "viquae":{
+            "batch_size":16,
+            "tokenizer_path": "TokenizerConfig.json",
+            "dataset_path": "miniviquae",
+            "kb_path": "kb",
+            "passages_path": "passages",
+            "key_relevant": "provenance_indices",
+            "key_text_question": "input",
+            "key_text_passage": "passage",
+            "key_vision_features": "clip_features",
+            "key_vision_boxes": null,
+            "key_irrelevant": "BM25_irrelevant_indices",
+            "split":"validation"
+        }
+    }
+}
+```
+
+### Fine-tuning
+
+```bash
+python -m cvlep.trainer_base_vladapter \
+    --encoder_question_path=... \
+    --encoder_passage_path=... \
+    --model_path=... \
+    --training_path=#THIS FILE
+```
+
+Here we pass only one dataset :
+
+```json
+{
+    "adam_eps": 1e-06,
+    "batch_size": 4,
+    "clip_grad_norm": 5,
+    "warmup_ratio": 0.2,
+    "weight_decay": 0.01,
+    "epochs": 200,
+    "fp16": true,
+    "gradient_accumulation_steps": 1,
+    "lr": 0.0001,
+    "num_workers": 3,
+    "optim": "adamw",
+    "output": "path to save encoders",
+    "seed": 0,
+    "valid_batch_size": 4,
+    "train":true,
+    "log_tensorboard_path":"log of the training",
+    "tokenizer_path": "TokenizerConfig.json",
+    "dataset_path": "miniviquae",
+    "kb_path": "kb",
+    "passages_path": "passages",
+    "key_relevant": "provenance_indices",
+    "key_text_question": "input",
+    "key_text_passage": "passage",
+    "key_vision_features": "fastrcnn_features",
+    "key_vision_boxes": "fastrcnn_boxes",
+    "key_irrelevant": "BM25_irrelevant_indices"
+}
+```
 
 ## Aknowledgments
 
 Many thanks to following codes that help us a lot in building this codebase:
 
 - Our model is based on this model [VL-T5](https://github.com/j-min/VL-T5)
+
 - [VL adapter](https://github.com/ylsung/VL_adapter)
+
 - [ViQuAE](https://github.com/PaulLerner/ViQuAE/)
 
 ## Miscellaneous
