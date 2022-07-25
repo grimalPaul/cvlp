@@ -126,6 +126,8 @@ class Trainer_Multitask(Trainer):
                     desc_str += f' | Loss Total {loss_meter.val:4f}'
                     pbar.set_description(desc_str)
                     pbar.update(1)
+            
+            
 
             if self.args.distributed:
                 dist.barrier()

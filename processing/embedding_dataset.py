@@ -22,11 +22,14 @@ disable_caching()
 
 
 def map_embed_question(item, key_boxes: str, key_vision_features: str, key_text: str, key_embedding: str, method, tokenizer, pool_strategy=None):
-    
     vision_features = torch.Tensor(item[key_vision_features])
-    boxes = torch.Tensor(item[key_boxes])
     vision_features = torch.squeeze(vision_features, dim=1)
-    boxes = torch.squeeze(boxes, dim=1)
+    if key_boxes is None:
+        boxes = torch.zeros(
+                vision_features.shape[0],vision_features.shape[1], 4) 
+    else:
+        boxes = torch.Tensor(item[key_boxes])
+        boxes = torch.squeeze(boxes, dim=1)
     input = tokenizer(
         item[key_text], return_tensors='pt', padding=True, truncation=True)
     batch = {
@@ -45,9 +48,13 @@ def map_embed_passage(item, key_boxes: str, key_vision_features: str, key_text: 
     # get vision embedding from the kb
     vision_features = torch.Tensor(
         kb[kb_index][key_vision_features])
-    boxes = torch.Tensor(kb[kb_index][key_boxes])
     vision_features = torch.squeeze(vision_features, dim=1)
-    boxes = torch.squeeze(boxes, dim=1)
+    if key_boxes is None:
+        boxes = torch.zeros(
+               vision_features.shape[0],vision_features.shape[1], 4) 
+    else:
+        boxes = torch.Tensor(kb[kb_index][key_boxes])
+        boxes = torch.squeeze(boxes, dim=1)
     input = tokenizer(
         item[key_text], return_tensors='pt', padding=True, truncation=True)
     batch = {
@@ -107,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('--config_passage_path', type=str, required=True)
     parser.add_argument('--config_model_path', type=str, required=True)
     parser.add_argument('--key_vision_features', type=str, required=True)
-    parser.add_argument('--key_boxes', type=str, required=True)
+    parser.add_argument('--key_boxes', type=str, required=False, default=None)
     parser.add_argument('--key_embedding', type=str, required=True)
     parser.add_argument('--key_text', type=str, required=True)
     parser.add_argument('--kb_path', type=str, required=False)
