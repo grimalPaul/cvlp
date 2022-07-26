@@ -1,5 +1,7 @@
 {
     "backbone": "/home/users/pgrimal/data/model/cvlp/t5_pretrained",
+    "init_model_path":"/home/users/pgrimal/data/model/cvlp/t5_pretrained",
+
     "tokenizer": "/home/users/pgrimal/data/model/cvlp/t5_tokenizer",
     "feat_dim": 2048,
     "pos_dim": 4,

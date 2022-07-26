@@ -7,8 +7,8 @@
     "fp16": true,
     "gradient_accumulation_steps": 1,
     "lr": 0.0003,
-    "num_workers": 2,
-    "val_workers":0,
+    "num_workers": 3,
+    "val_workers":1,
     "optim": "adamw",
     "output": "snap/multitask_adapter_clip/",
     "seed": 0,
@@ -16,7 +16,7 @@
     "log_tensorboard_path": "tensorboard/multitask_adapter_clip/",
     "datasets": {
         "triviaqa": {
-            "batch_size": 20,
+            "batch_size": 8,
             "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
             "passages_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/passages",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/triviaqa_for_viquae",
@@ -25,19 +25,19 @@
             "key_text_question": "input",
             "key_text_passage": "passage",
             "topk": -1,
-            "split":"train"
+            "split":"train,validation"
         },
         "match_image": {
-            "batch_size": 20,
+            "batch_size": 8,
             "dataset_path": "/home/data/meerqat/pretrained_task/wikimage_train_val_filter",
             "topk":-1,
             "key_image":"list_images",
             "key_vision_features":"clip_features",
             "key_vision_boxes":null,
-            "split":"train"
+            "split":"train,validation"
         },
         "match_article": {
-            "batch_size": 20,
+            "batch_size": 8,
             "kb_path": "/home/data/meerqat/pretrained_task/multimedia_train_val_filter",
             "passages_path": "/home/data/meerqat/pretrained_task/passages",
             "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
@@ -47,10 +47,10 @@
             "key_vision_features": "clip_features",
             "key_vision_boxes": null,
             "topk": -1,
-            "split":"train"
+            "split":"train,validation"
         },
         "viquae":{
-            "batch_size":16,
+            "batch_size":8,
             "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/miniviquae",
             "kb_path": "/home/users/pgrimal/data/datasets/cvlp/kb",

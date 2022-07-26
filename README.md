@@ -12,6 +12,7 @@ CVLP = Constrastive Visual Language Pre-Training
     - [Download pretrained encoder](#download-pretrained-encoder)
     - [Download and preprocess data](#download-and-preprocess-data)
       - [Download dataset and knowledge base](#download-dataset-and-knowledge-base)
+      - [Organization](#organization)
       - [Preprocess data](#preprocess-data)
     - [Search relevant and irrelevant passages with BM25](#search-relevant-and-irrelevant-passages-with-bm25)
   - [Train VLT5](#train-vlt5)
@@ -122,6 +123,17 @@ humans_without_faces = humans_without_faces.map(lambda x: {"type":"humans_withou
 # Concatenate and save
 new_kb = concatenate_datasets([humans_with_faces,non_humans, humans_without_faces])
 new_kb.save_to_disk(PATH_TO_SAVE_KB)
+```
+
+#### Organization
+
+You should have this organization :
+
+```bash
+/data/
+    /t5_pretrained
+    /tokenizer
+        /t5_base
 ```
 
 #### Preprocess data

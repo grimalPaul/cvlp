@@ -7,7 +7,7 @@ if __name__ == '__main__':
     model = T5ForConditionalGeneration.from_pretrained('t5-base')
     model.save_pretrained('data/t5_pretrained')
     tokenizer = T5Tokenizer.from_pretrained('t5-base')
-    tokenizer.save_pretrained('data/t5_pretrained')
+    tokenizer.save_pretrained('data/tokenizer/t5-base')
 
     #download and save Bart
     tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")

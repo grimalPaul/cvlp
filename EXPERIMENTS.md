@@ -50,3 +50,8 @@ voir pour learning rate peut être
     Model                           MRR@1    MRR@5    MRR@10    MRR@20    MRR@100    P@1    P@5    P@10    P@20    P@100    Hit_Rate@1    Hit_Rate@5    Hit_Rate@10    Hit_Rate@20    Hit_Rate@100
 ---  ----------------------------  -------  -------  --------  --------  ---------  -----  -----  ------  ------  -------  ------------  ------------  -------------  -------------  --------------
 a    adapter_projection_embedding    0.001    0.001     0.001     0.001      0.001  0.001      0       0       0        0         0.001         0.001          0.002          0.002           0.011
+
+## config batch size
+
+sur les 16 go je passe un batch size de :
+sur les 32 go je passe un batch size de 20

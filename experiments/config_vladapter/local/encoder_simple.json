@@ -1,6 +1,8 @@
 {
     "backbone": "data_model/t5_pretrained",
     "tokenizer": "data_model/tokenizer/t5-base",
+    "init_model_path": "data_model/sentenceT5",
+
     "feat_dim": 2048,
     "pos_dim": 4,
 

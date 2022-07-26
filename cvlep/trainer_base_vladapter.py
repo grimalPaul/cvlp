@@ -15,7 +15,6 @@ from cvlep.VLT5.param import Config
 from cvlep.CLIPT5 import modeling_t5
 from cvlep.modeling_cvlp import CVLEP
 from cvlep.utils import set_global_logging_level
-import random
 import numpy as np
 from cvlep.CLIPT5.adapters import (
     AdapterLayer,
@@ -76,7 +75,6 @@ class Trainer(object):
         ModelPassageConfig = self.create_config(config_encoder_passage)
 
         # create tokenizer
-        # TODO: we will use the same tokenier for question and answer
         self.tokenizer_question = self.create_tokenizer(
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
@@ -421,6 +419,7 @@ class Trainer(object):
         args = config_model
 
         config_encoder._name_or_path = args.backbone
+        config_encoder.init_model_path = args.init_model_path
         config_encoder.feat_dim = args.feat_dim
         config_encoder.pos_dim = args.pos_dim
         config_encoder.n_images = 2
@@ -610,7 +609,8 @@ class Trainer(object):
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
-                    print(f"{n} is trainable...")
+                    if self.verbose:
+                        print(f"{n} is trainable...")
                 # else:
                 #     p.requires_grad = False
 
@@ -619,11 +619,13 @@ class Trainer(object):
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
-                    print(f"{n} is trainable...")
+                    if self.verbose:
+                        print(f"{n} is trainable...")
             for name, sub_module in model.named_modules():
 
                 if isinstance(sub_module, (modeling_t5.T5Stack, modeling_t5.JointEncoder)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
@@ -634,73 +636,84 @@ class Trainer(object):
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
-                    print(f"{n} is trainable...")
+                    if self.verbose:
+                        print(f"{n} is trainable...")
 
         if model.config.use_lora:
             targets = ["lora", "bias"]
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
-                    print(f"{n} is trainable...")
+                    if self.verbose:
+                        print(f"{n} is trainable...")
 
         for name, sub_module in model.named_modules():
             if model.config.decoder_prompt_len > 0 or model.config.encoder_prompt_len > 0:
                 if isinstance(sub_module, (PromptController)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.unfreeze_vis_encoder:
                 if isinstance(sub_module, (CLIPResNetEncoder)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.unfreeze_vis_last_layer:
                 if "visual.layer4" in name and "visual.layer4." not in name:
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.use_vis_adapter:
                 if isinstance(sub_module, (VisualAdapter)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:    
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.unfreeze_layer_norms:
                 if isinstance(sub_module, (T5LayerNorm, nn.LayerNorm)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.unfreeze_batch_norms:
                 if isinstance(sub_module, (nn.BatchNorm2d)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     # if len(name.split(".")) < 7: # this will not consider layer norms inside adapters then.
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.use_adapter or model.config.use_compacter or model.config.use_lradapter:
                 if isinstance(sub_module, (AdapterController)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.use_lm_head_adapter:
                 if isinstance(sub_module, (OutputParallelAdapterLayer)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
             if model.config.use_hyperformer:
                 if isinstance(sub_module, (TaskEmbeddingController, AdapterLayersHyperNetController, AdapterLayersOneHyperNetController)):
-                    print(f"{name} is trainable...")
+                    if self.verbose:
+                        print(f"{name} is trainable...")
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
@@ -775,16 +788,28 @@ class Trainer(object):
         else:
             raise NotImplementedError(
                 "Thys type of encoder is not implemented")
-        ckpt = torch.load(Path(config_model._name_or_path)/"pytorch_model.bin")
+        ckpt = torch.load(Path(config_model.init_model_path)/"pytorch_model.bin")
         original_keys = list(ckpt.keys())
-        for key in original_keys:
-            if key.startswith("encoder."):
-                new_key = key[len("encoder."):]
-                ckpt[new_key] = ckpt.pop(key)
-            elif key.startswith("decoder."):
-                ckpt.pop(key)
+        if "sentenceT5" in config_model.init_model_path:
+            # init with sentenceT5
+            for key in original_keys:
+                if key.startswith("0.auto_model.encoder."):
+                    new_key = key[len("0.auto_model.encoder."):]
+                    ckpt[new_key] = ckpt.pop(key)
+                elif key.startswith("2.linear.weight"):
+                    new_key="projection.projection.weight"
+                    ckpt[new_key] = ckpt.pop(key)
+        else :
+            # init with T5 
+            for key in original_keys:
+                if key.startswith("encoder."):
+                    new_key = key[len("encoder."):]
+                    ckpt[new_key] = ckpt.pop(key)
+                elif key.startswith("decoder."):
+                    ckpt.pop(key)
         results = model.load_state_dict(ckpt, strict=False)
-        print(results)
+        if self.verbose:
+            print(results)
         return model
 
     def init_weights(self, encoder):
