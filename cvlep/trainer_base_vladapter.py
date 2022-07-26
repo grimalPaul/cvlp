@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 import re
 from torch import nn
 import torch
@@ -80,8 +81,11 @@ class Trainer(object):
             config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
 
-        self.encoder_question = self.create_encoder(ModelQuestionConfig)
-        self.encoder_passage = self.create_encoder(ModelPassageConfig)
+
+        self.encoder_question = self.load_encoder(ModelQuestionConfig)
+        self.encoder_passage = self.load_encoder(ModelPassageConfig)
+        # self.encoder_question = self.create_encoder(ModelQuestionConfig)
+        # self.encoder_passage = self.create_encoder(ModelPassageConfig)
 
         if 't5' in config_encoder_question.tokenizer:
             self.encoder_question.resize_token_embeddings(
@@ -558,22 +562,22 @@ class Trainer(object):
                       self.encoder_passage)
         return model
 
-    def create_encoder(self, config_model):
+    # def create_encoder(self, config_model):
 
-        if 't5' in config_model._name_or_path:
-            model_class = encoderVLT5
+    #     if 't5' in config_model._name_or_path:
+    #         model_class = encoderVLT5
 
-        else:
-            raise NotImplementedError(
-                "Thys type of encoder is not implemented")
+    #     else:
+    #         raise NotImplementedError(
+    #             "Thys type of encoder is not implemented")
 
-        model_name = config_model._name_or_path
+    #     model_name = config_model._name_or_path
 
-        model = model_class.from_pretrained(
-            model_name,
-            config=config_model,
-        )
-        return model
+    #     model = model_class.from_pretrained(
+    #         model_name,
+    #         config=config_model,
+    #     )
+    #     return model
 
     def create_tokenizer(self, config_model, **kwargs):
 
@@ -582,10 +586,8 @@ class Trainer(object):
 
         if 't5' in config_model.tokenizer:
             if config_model.use_vision:
-                # tokenizer_class = VLT5Tokenizer
                 tokenizer_class = VLT5TokenizerFast
             else:
-                # tokenizer_class = T5Tokenizer
                 tokenizer_class = T5TokenizerFast
         else:
             raise ValueError('This type of tokenizer is not implemented')
@@ -765,6 +767,25 @@ class Trainer(object):
         if self.verbose:
             print('Model loaded from ', ckpt_path)
             pprint(results)
+
+
+    def load_encoder(self, config_model):
+        if 't5' in config_model._name_or_path:
+            model= encoderVLT5(config_model)
+        else:
+            raise NotImplementedError(
+                "Thys type of encoder is not implemented")
+        ckpt = torch.load(Path(config_model._name_or_path)/"pytorch_model.bin")
+        original_keys = list(ckpt.keys())
+        for key in original_keys:
+            if key.startswith("encoder."):
+                new_key = key[len("encoder."):]
+                ckpt[new_key] = ckpt.pop(key)
+            elif key.startswith("decoder."):
+                ckpt.pop(key)
+        results = model.load_state_dict(ckpt, strict=False)
+        print(results)
+        return model
 
     def init_weights(self, encoder):
         def init_bert_weights(module):

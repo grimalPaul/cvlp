@@ -36,7 +36,7 @@
     "do_lower_case": false,
     "dropout": 0.1,
     "load_path":null,
-    "from_scratch": true,
+    "from_scratch": false,
     
     "unfreeze_visual_embedding": true,
     "unfreeze_language_model": false,

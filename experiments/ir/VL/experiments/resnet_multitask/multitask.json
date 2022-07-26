@@ -1,6 +1,6 @@
 {
     "kb_kwargs": {
-        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages": {
+        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages": {
             "device": "cpu",
             "index_kwargs": {
                 "multitask_resnet_embedding": {

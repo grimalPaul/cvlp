@@ -4,7 +4,7 @@
 #SBATCH -J embed_question
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
-#SBATCH -w node6
+#SBATCH -w node4
 #SBATCH --mem=10G
 #SBATCH --time=0-10:00:00
 

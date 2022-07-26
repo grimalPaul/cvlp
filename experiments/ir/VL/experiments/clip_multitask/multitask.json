@@ -1,12 +1,12 @@
 {
     "kb_kwargs": {
-        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_passages": {
+        "/home/users/pgrimal/data/datasets/cvlp/passages": {
             "device": "cpu",
             "index_kwargs": {
                 "multitask_clip_embedding": {
                     "key_kb": "multitask_clip_embedding",
                     "index_load": false,
-                    "index_path": "home/users/pgrimal/data/datasets/cvlp/indexes",
+                    "index_path": "/home/users/pgrimal/data/datasets/cvlp/indexes",
                     "string_factory": "L2norm,Flat"
                 }
             }
