@@ -22,14 +22,14 @@ train set up
     "train":true,
     "log_tensorboard_path":"tensorboard/prompt_optimisation/",
     "tokenizer_path": "experiments/config_vladapter/bergamote/prompt/TokenizerConfig.json",
-    "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/vlt5_dataset",
-    "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
-    "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+    "dataset_path": "viquae",
+    "kb_path": "kb",
+    "passages_path": "passages",
     "key_relevant": "provenance_indices",
     "key_text_question": "input",
     "key_text_passage": "passage",
-    "key_vision_features": "vlt5_features",
-    "key_vision_boxes": "vlt5_normalized_boxes",
+    "key_vision_features": "fastrcnn_features",
+    "key_vision_boxes": "fastercnn_boxes",
     "key_irrelevant": "BM25_irrelevant_indices"
 }
 ```

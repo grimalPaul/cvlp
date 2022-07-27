@@ -40,8 +40,9 @@ class Trainer_Multitask(Trainer):
             "match_article":0,
             "viquae":0
         }
-        
-        for epoch in tqdm(range(self.args.epochs)):
+        if self.verbose:
+            epoch_bar = tqdm(total=self.args.epochs, ncols=100)
+        for epoch in range(self.args.epochs):
             self.model.train()
             if self.args.distributed:
                 self.train_loader.set_epoch(epoch)
@@ -118,9 +119,9 @@ class Trainer_Multitask(Trainer):
                 if self.verbose:
                     tasks_loss[task].update(loss.item())
                     loss_meter.update(loss.item())
-                    desc_str = f'Epoch {epoch}|LR {lr:.6f} '
+                    desc_str = f'E {epoch}|LR {lr:.6f}'
                     for task_name, nb in task_counter.items():
-                        desc_str += f'|{task_name}:{nb}'
+                        desc_str += f'|{task_name[-2:]}:{nb} '
                         if len(tasks_loss[task_name]) != 0 and tasks_loss[task_name].val > 0:
                             desc_str += f'{tasks_loss[task_name].val:4f}'
                     desc_str += f' |sum:{loss_meter.val:4f}'
@@ -228,7 +229,8 @@ class Trainer_Multitask(Trainer):
 
             if self.args.distributed:
                 dist.barrier()
-
+            if self.verbose:
+                epoch_bar.update(1)
         if self.verbose:
             self.writer.close()
 

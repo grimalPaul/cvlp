@@ -360,12 +360,65 @@ pass
 
 TODO write command to do the embeddding and compute the score
 
+```bash
+echo "embedding passage"
+python -m processing.embedding_dataset \
+    --dataset_path=${passages} \
+    --type=passage \
+    --config_question_path=${config_question_path} \
+    --config_passage_path=${config_passage_path} \
+    --config_model_path=${config_model_path} \
+    --key_boxes=vision_boxes \
+    --key_vision_features=vision_features \
+    --key_text=passage \
+    --key_embedding=${key_in_passage} \
+    --kb_path=${kb} \
+    --batch_size=${batch_size}
+
+echo "embedding dataset"
+
+python -m processing.embedding_dataset \
+    --dataset_path=${dataset} \
+    --type=question \
+    --config_question_path=${config_question_path} \
+    --config_passage_path=${config_passage_path} \
+    --config_model_path=${config_model_path} \
+    --key_boxes=vision_boxes \
+    --key_vision_features=vision_features \
+    --key_text=input \
+    --key_embedding=${key_in_dataset} \
+    --batch_size=${batch_size}
+```
+
+And then compute thge different metrics :
+
+```bash
+python -m search \
+    --dataset_path=viquae/test \
+    --config=experiments/ir/VL/experiments/clip_multitask/multitask.json \
+    --metrics_path=experiments/ir/VL/clip_multitask/ \
+    --k=100 \
+    --batch_size=64
+```
 
 ## Analyse
 
 You can use the following command to generate 2 json to see manually where the model is wrong or correct :
 
 ```bash
+python -m processing.compare_relevant \
+    --indice=${indice} \
+    --dataset_path=${dataset}
+
+
+echo "create json"
+python -m processing.analyse_result \
+    --key=${indice} \
+    --dataset_path=${dataset} \
+    --kb_path=${kb} \
+    --passages_path=${passages} \
+    --k=${k} \ # numeber
+    --save_path=${save_path} # where you save the json file
 
 ```
 
