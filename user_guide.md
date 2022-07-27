@@ -8,7 +8,7 @@ Create a configuration like in `experiments/config_vladapter/factoryIA/sentenceT
 
 and run the slurm script.
 
-- factoryIA : my script for factoryIA are here : `slurm_scripts/training/factoryia`
+- factoryIA : my script for factoryIA are here : `slurm_scripts/training/factoryia` and config are `experiments/config_vladapter/factoryIA/T5` and `experiments/config_vladapter/factoryIA/sentenceT5`.
 
 ```bash
 #!/usr/bin/env sh
@@ -42,7 +42,7 @@ srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \
 echo "The End"
 ```
 
-- bagermote : my script are here : `slurm_scripts/training/bergamote/multitask`
+- bagermote : my script are here : `slurm_scripts/training/bergamote/multitask` and config are `experiments/config_vladapter/bergamote/T5/resnet_simple_adapter` and `experiments/config_vladapter/bergamote/sentenceT5`
 
 ```bash
 #!/bin/bash
@@ -84,8 +84,65 @@ You have to duplicate the encoder config in two configuration because after pret
 The config for the training is different than in pretrained step. We do not have multiple datasets.
 
 - factoryIA : my script for factoryIA are here : `slurm_scripts/training/factoryia`
-- bagermote : my script are here : `slurm_scripts/training/bergamote/multitask`
+- bagermote : my script are here : `slurm_scripts/training/bergamote/multitask/finetuning`
 
 ## Embedding
+
+Embed dataset and knowledge base
+instead of vision_features and vision_boxes with faster RCNN write
+
+```bash
+--key_boxes=fastrcnn_boxes \
+--key_vision_features=fastrcnn_features \
+```
+
+And for clip write :
+
+```bash
+--key_vision_features=clip_features \
+# You must not write --key_boxes=... because we dont use boxes with clip
+
+```
+
+```bash
+echo "embedding passage"
+python -m processing.embedding_dataset \
+    --dataset_path=${passages} \
+    --type=passage \
+    --config_question_path=${config_question_path} \
+    --config_passage_path=${config_passage_path} \
+    --config_model_path=${config_model_path} \
+    --key_boxes=vision_boxes \
+    --key_vision_features=vision_features \
+    --key_text=passage \
+    --key_embedding=${key_in_passage} \
+    --kb_path=${kb} \
+    --batch_size=${batch_size}
+
+echo "embedding dataset"
+
+python -m processing.embedding_dataset \
+    --dataset_path=${dataset} \
+    --type=question \
+    --config_question_path=${config_question_path} \
+    --config_passage_path=${config_passage_path} \
+    --config_model_path=${config_model_path} \
+    --key_boxes=vision_boxes \
+    --key_vision_features=vision_features \
+    --key_text=input \
+    --key_embedding=${key_in_dataset} \
+    --batch_size=${batch_size}
+```
+
+And then compute the different metrics :
+
+```bash
+python -m search \
+    --dataset_path=viquae/test \
+    --config=experiments/ir/VL/experiments/clip_multitask/multitask.json \
+    --metrics_path=experiments/ir/VL/clip_multitask/ \
+    --k=100 \
+    --batch_size=64
+```
 
 ## Research

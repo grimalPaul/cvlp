@@ -390,7 +390,7 @@ python -m processing.embedding_dataset \
     --batch_size=${batch_size}
 ```
 
-And then compute thge different metrics :
+And then compute the different metrics :
 
 ```bash
 python -m search \
