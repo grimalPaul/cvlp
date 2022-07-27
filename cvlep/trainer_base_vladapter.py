@@ -134,8 +134,7 @@ class Trainer(object):
                 if self.args.fp16 and _use_native_amp:
                     self.scaler = torch.cuda.amp.GradScaler()
 
-            # on instantie plusieurs modèle que l'on va placer sur tel ou tel rank
-            # cela veut dire sur tel ou tel gpu
+            # config multigpu
             if self.args.multiGPU:
                 if self.args.distributed:
                     self.model = DDP(self.model, device_ids=[
@@ -336,6 +335,7 @@ class Trainer(object):
         # N question in the batch * dim model = N * d
         local_question_representations = output_question
         # (1 relevant + 1 irrelevant) * N * dim model = 2N * d
+        # or N * d if no irrelevant
         local_context_representations = output_context
 
         if self.args.world_size > 1:
@@ -401,10 +401,17 @@ class Trainer(object):
             global_labels = local_labels  # N
 
         # compute similarity
-        # (N, 2N)
+        # (N, 2N) or (N, N)
         similarities = global_question_representations @ global_context_representations.T
         log_probs = self.log_softmax(similarities)
         loss = self.loss_fct(log_probs, global_labels)
+        if torch.isnan(loss):
+            print('NAN')
+            print(global_context_representations)
+            print(global_question_representations)
+            print("--")
+            print(similarities)
+            print(log_probs)
         return (loss, dict(log_probs=log_probs, label_ids=global_labels)) if return_outputs else loss
 
     def create_config(self, config_model):

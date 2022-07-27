@@ -20,7 +20,7 @@ encoder_passage_path=experiments/config_vladapter/bergamote/T5/resnet_simple_ada
 model_path=experiments/config_vladapter/bergamote/T5/resnet_simple_adapter/config_model.json
 training_path=experiments/config_vladapter/bergamote/T5/resnet_simple_adapter/training_multitask.json
 
-echo "+ projection et adapter"
+echo "faster r cnn T5"
 srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \
     --encoder_question_path=${encoder_question_path} \
     --encoder_passage_path=${encoder_passage_path} \

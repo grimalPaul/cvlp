@@ -1,4 +1,5 @@
 import argparse
+import math
 from cvlep.multitask_data import get_multitask_loader, get_val_loader
 from cvlep.pretrain_data import get_loader
 from cvlep.trainer_base_vladapter import Trainer
@@ -59,11 +60,12 @@ class Trainer_Multitask(Trainer):
                 task_counter[task] += 1
 
                 if self.args.fp16 and _use_native_amp:
-                    with autocast():
-                        if self.args.distributed:
-                            loss = self.compute_loss(batch)
+                    #with autocast():
+                    if self.args.distributed:
+                        loss = self.compute_loss(batch)
                 else:
                     loss = self.compute_loss(batch)
+
 
                 # loss.backward
                 if self.args.fp16 and _use_native_amp:
@@ -72,6 +74,7 @@ class Trainer_Multitask(Trainer):
                     loss.backward()
 
                 loss = loss.detach()
+                
                 # Update Parameters
                 if self.args.clip_grad_norm > 0:
                     if self.args.fp16 and _use_native_amp:
@@ -174,6 +177,18 @@ class Trainer_Multitask(Trainer):
                                 else:
                                     loss = self.compute_loss(batch)
                             if self.verbose:
+                                print(loss)
+                                print(torch.exp(loss))
+                                if torch.isnan(loss):
+                                    print("loss is nan torch")
+                                    print(loss)
+                                    print(batch)
+                                if math.isnan(loss.item()):
+                                    print("loss is nan math")
+                                    print(loss)
+                                    print(loss.item())
+                                    print(batch)
+                                    print(torch.exp(loss).item())
                                 tasks_loss[task].update(loss.item())
                                 loss_meter.update(loss.item())
                                 desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'
