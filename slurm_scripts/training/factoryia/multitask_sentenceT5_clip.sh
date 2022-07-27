@@ -2,9 +2,9 @@
 #SBATCH --time=7-00:00:00
 #SBATCH --nodes=1
 #SBATCH -J train_clipT5
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:4
 #SBATCH --partition=classicgpu,gpup100,gpuv100
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=7
 #SBATCH --mem=40G
 

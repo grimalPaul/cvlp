@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --time=7-00:00:00
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH -J resnet_train
 #SBATCH --gres=gpu:4
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=40G
 ##SBATCH --nodelist=node7,node4,node6
-#SBATCH --nodelist=node4
+#SBATCH --nodelist=node4,node6
 
 source /home/pgrimal/.bashrc
 source activate cvlp

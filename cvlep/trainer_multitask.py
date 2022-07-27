@@ -165,12 +165,14 @@ class Trainer_Multitask(Trainer):
                             all_labels = []
                         for batch in loader:
                             if self.args.fp16 and _use_native_amp:
-                                with autocast():
-                                    if self.args.distributed:
-                                        if task == "viquae" and self.verbose:
-                                            loss, outputs = self.compute_loss(batch,return_outputs=True)
-                                        else:
-                                            loss = self.compute_loss(batch)
+                                # TODO: pbm with autocast with T5
+                                # https://github.com/huggingface/transformers/issues/4586
+                                # with autocast():
+                                if self.args.distributed:
+                                    if task == "viquae" and self.verbose:
+                                        loss, outputs = self.compute_loss(batch,return_outputs=True)
+                                    else:
+                                        loss = self.compute_loss(batch)
                             else:
                                 if task == "viquae" and self.verbose:
                                             loss, outputs = self.compute_loss(batch,return_outputs=True)
