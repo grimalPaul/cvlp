@@ -1,23 +1,23 @@
 #!/usr/bin/env sh
-#SBATCH --time=0-06:00:00
+#SBATCH --time=0-02:00:00
 #SBATCH --nodes=1
 #SBATCH -J train_clipT5
 #SBATCH --gres=gpu:2
-#SBATCH --partition=gpuv100,gpu,gpu-test
+#SBATCH --partition=gpu-test
 #SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=2
-##SBATCH --mem=30G
+#SBATCH --cpus-per-task=7
+#SBATCH --mem=40G
 
 source /home/users/pgrimal/.bashrc
-source activate cvlp
+source activate cvlp2
 
 export MASTER_ADDR="$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n1)"
-export MASTER_PORT=29700
+export MASTER_PORT=29701
 
-encoder_question_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/encoder_simple_adapter.json
-encoder_passage_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/encoder_simple_adapter.json
-model_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/config_model.json
-training_path=experiments/config_vladapter/factoryIA/clip_simple_adapter/training_multitask_temp.json
+encoder_question_path=experiments/config_vladapter/factoryIA/T5/clip_simple_adapter/encoder_simple_adapter.json
+encoder_passage_path=experiments/config_vladapter/factoryIA/T5/clip_simple_adapter/encoder_simple_adapter.json
+model_path=experiments/config_vladapter/factoryIA/T5/clip_simple_adapter/config_model.json
+training_path=experiments/config_vladapter/factoryIA/T5/clip_simple_adapter/training_multitask.json
 
 echo "Training model with clip embedding"
 srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \

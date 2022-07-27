@@ -1,3 +1,6 @@
+"""
+Use this command when you want to add a prefix in front of your data
+"""
 import argparse
 from datasets import load_from_disk, disable_caching
 

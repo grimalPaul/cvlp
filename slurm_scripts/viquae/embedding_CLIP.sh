@@ -11,6 +11,7 @@
 source /home/pgrimal/.bashrc
 source activate cvlp
 
+echo "embedding viquae"
 python -m processing.embedding_image \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae \
     --type=CLIP \
@@ -21,7 +22,7 @@ python -m processing.embedding_image \
     --batch_size=4 \
     --log_path=/home/pgrimal/CVLEP/error_embedding_clip_viquae.json
 
-echo "KB"
+echo "embedding the KB"
 python -m processing.embedding_image \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb \
     --type=CLIP \

@@ -1,3 +1,8 @@
+"""
+Generate {key}_irrelevant_indices that can be used as hard negatives examples
+In our experiments, we use irrelevant passages retrives by BM25 as irrelevant 
+"""
+
 from datasets import load_from_disk, disable_caching
 from meerqat.ir.metrics import find_relevant
 import argparse

@@ -20,7 +20,7 @@ image=/scratch_global/stage_pgrimal/data/miniViQuAE/data/dataset/miniCommons/
 save_path=/home/pgrimal/CVLEP/results/best_zs_vlbart
 
 echo "processing relevant"
-python -m processing.relevant \
+python -m processing.compare_relevant \
     --indice=${indice} \
     --dataset_path=${dataset}
 

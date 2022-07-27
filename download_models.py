@@ -1,5 +1,7 @@
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from transformers import BartForConditionalGeneration, BartTokenizer
+from sentence_transformers import SentenceTransformer
+import torch
 
 if __name__ == '__main__':
     
@@ -9,6 +11,10 @@ if __name__ == '__main__':
     tokenizer = T5Tokenizer.from_pretrained('t5-base')
     tokenizer.save_pretrained('data/tokenizer/t5-base')
 
+    #download and save SentenceT5
+    model = SentenceTransformer("sentence-transformers/sentence-t5-base")
+    torch.save(model.state_dict(), "data/sentenceT5")
+    
     #download and save Bart
     tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
     model = BartForConditionalGeneration.from_pretrained("facebook/bart-base")

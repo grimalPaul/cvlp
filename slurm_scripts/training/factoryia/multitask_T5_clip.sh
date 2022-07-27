@@ -6,7 +6,7 @@
 #SBATCH --partition=classicgpu
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=7
-#SBATCH --mem=30G
+#SBATCH --mem=40G
 
 source /home/users/pgrimal/.bashrc
 source activate cvlp2

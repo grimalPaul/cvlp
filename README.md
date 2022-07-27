@@ -8,7 +8,6 @@ CVLP = Constrastive Visual Language Pre-Training
   - [Table of contents](#table-of-contents)
   - [Installation](#installation)
     - [Download tokenizer and model](#download-tokenizer-and-model)
-    - [Download visual model](#download-visual-model)
     - [Download pretrained encoder](#download-pretrained-encoder)
     - [Download and preprocess data](#download-and-preprocess-data)
       - [Download dataset and knowledge base](#download-dataset-and-knowledge-base)
@@ -19,13 +18,15 @@ CVLP = Constrastive Visual Language Pre-Training
     - [Finetuning on the pretrained VLT5](#finetuning-on-the-pretrained-vlt5)
       - [Prompt tuning](#prompt-tuning)
       - [Adapter](#adapter)
-    - [Visual Encoder : CLIP](#visual-encoder--clip)
+    - [Pretraining](#pretraining)
     - [Multitask Pretraining](#multitask-pretraining)
       - [Kilt trivia](#kilt-trivia)
       - [Wikimage](#wikimage)
       - [Multimedia](#multimedia)
-      - [Pretraining](#pretraining)
-    - [Finetuning](#finetuning)
+      - [Pretraining with different configuration](#pretraining-with-different-configuration)
+    - [Finetuning with different configuration](#finetuning-with-different-configuration)
+  - [Embedding and research](#embedding-and-research)
+  - [Analyse](#analyse)
   - [Note config files for research, multitask and finetuning](#note-config-files-for-research-multitask-and-finetuning)
     - [Research](#research)
     - [Multitask](#multitask)
@@ -63,7 +64,7 @@ conda install -c pytorch faiss-gpu cudatoolkit=10.2 # for CUDA 10.2
 
 ### Download tokenizer and model
 
-use `python download_models` to download and save models T5, Bart in `data/`
+use `python download_models` to download and save models T5, Bart and SentenceT5 in `data/`
 
 To download fastercnn, click to the links below :
 
@@ -72,15 +73,11 @@ To download fastercnn, click to the links below :
 
 Place the downloaded files in `data/frcnn_model/`.
 
-To download visuale encoder, click [here](https://openaipublic.azureedge.net/clip/models/8fa8567bab74a42d41c5915025a8e4538c3bdbe8804a470a72f30b0d94fab599/RN101.pt) and place the downloaded file in `data/clip/`
-
-### Download visual model
-
-`TODO`
+To download the visual encoder of CLIP, click [here](https://openaipublic.azureedge.net/clip/models/8fa8567bab74a42d41c5915025a8e4538c3bdbe8804a470a72f30b0d94fab599/RN101.pt) and place the downloaded file in `data/clip/`
 
 ### Download pretrained encoder
 
-`TODO`
+To download pretrained VLT5, click [here](https://drive.google.com/drive/folders/1_SBj4sZ0gUqfBon1gFBiNRAmfHv5w_ph?usp=sharing) and place the downloaded model in `data/VLT5`.
 
 ### Download and preprocess data
 
@@ -129,11 +126,37 @@ new_kb.save_to_disk(PATH_TO_SAVE_KB)
 
 You should have this organization :
 
-```bash
-/data/
-    /t5_pretrained
-    /tokenizer
-        /t5_base
+```tree
+.
+├── clip_features.ipynb
+├── cvlep
+│   ├── CLIPT5
+│   └── VLT5
+├── data
+│   ├── clip
+│   │   └── RN101.pt
+│   ├── frcnn_model
+│   │   ├── config.yaml
+│   │   └── pytorch_model.bin
+│   ├── sentenceT5
+│   │   └── pytorch_model.bin
+│   ├── t5_pretrained
+│   ├── tokenizer
+│   │   └── t5-base
+│   └── VLT5
+│       └── VLT5Epoch30.pth
+├── DATASETS.md
+├── download_models.py
+├── experiments
+│   ├── ir
+│   │   ├── triviaqa_for_viquae
+│   │   ├── viquae
+│   │   └── VL
+│   └── passages
+├── snap
+├── tensorboard
+├── README.md
+└── requirements.txt
 ```
 
 #### Preprocess data
@@ -235,7 +258,7 @@ srun --kill-on-bad-exit=1 python -m cvlep.trainer_base_vladapter \
 echo "The End"
 ```
 
-### Visual Encoder : CLIP
+### Pretraining
 
 We must pretrained the model on pretrained task(s). We use adapter for the pretraining.
 
@@ -291,7 +314,7 @@ python -m processing.irrelevant \
 
 #### Wikimage
 
-To develop entities representation of our model, we create a dataset from the knwoledge base of viquae. We take `wikidata_id` and get from wikidata image's entity for entities who have more than one image.
+To develop entities representation of our model, we create a dataset from the knowledge base of viquae. We take `wikidata_id` and get from wikidata image's entity for entities who have more than one image.
 
 TODO :We release the dataset and the image.
 
@@ -301,12 +324,11 @@ We removed entities present in Viquae (train, validation and test)
 
 We developed a multimedia training which consist to match differents passages of a same article with different illustrative images. We take the above dataset to create this one.
 
-TODO: We release the dataset and the image
-and the passage
+TODO: We release the dataset, images and the passage
 
 We removed entities present in Viquae (train, validation and test)
 
-#### Pretraining
+#### Pretraining with different configuration
 
 FasterRCNN
 
@@ -320,7 +342,7 @@ CLIP
 pass
 ```
 
-### Finetuning
+### Finetuning with different configuration
 
 FasterRCNN
 
@@ -332,6 +354,19 @@ CLIP
 
 ```py
 pass
+```
+
+## Embedding and research
+
+TODO write command to do the embeddding and compute the score
+
+
+## Analyse
+
+You can use the following command to generate 2 json to see manually where the model is wrong or correct :
+
+```bash
+
 ```
 
 ## Note config files for research, multitask and finetuning

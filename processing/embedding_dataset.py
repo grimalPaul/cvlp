@@ -1,6 +1,6 @@
 """embed dataset
 
-Usage:
+Usage: Embed dataset   
 
 python -m embedding_dataset --dataset_path=<path> --type=question --config_question_path=<> \
     --config_passage_path=<> --config_training_path=<> --key_boxes=<key_boxes> --key_vision_features \

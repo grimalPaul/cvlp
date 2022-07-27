@@ -1,3 +1,6 @@
+"""
+Create 2 json files with correct and wrong passages retrieved
+"""
 from pathlib import Path
 from datasets import load_from_disk, disable_caching
 import argparse
