@@ -14,7 +14,6 @@ source activate cvlp
 
 echo "finetuning"
 
-
 export MASTER_ADDR="$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n1)"
 export MASTER_PORT=29700
 
