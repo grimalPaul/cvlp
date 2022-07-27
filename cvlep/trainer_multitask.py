@@ -51,7 +51,7 @@ class Trainer_Multitask(Trainer):
                 for task in task_counter.keys():
                     tasks_loss[task] = LossMeter()
                 loss_meter = LossMeter()
-                pbar = tqdm(total=len(self.train_loader), ncols=100)
+                pbar = tqdm(total=len(self.train_loader), ncols=150)
             
 
             for step_i, batch in enumerate(self.train_loader):
@@ -154,7 +154,7 @@ class Trainer_Multitask(Trainer):
                         size = 0
                         for loader in self.val_loader.values():
                             size += len(loader)
-                        pbar = tqdm(total=size, ncols=100)
+                        pbar = tqdm(total=size, ncols=150)
                     for task, loader in self.val_loader.items():
                         if task == "viquae" and self.verbose:
                             size_all_probs = None
