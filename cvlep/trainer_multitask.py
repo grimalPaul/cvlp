@@ -179,18 +179,6 @@ class Trainer_Multitask(Trainer):
                                 else:
                                     loss = self.compute_loss(batch)
                             if self.verbose:
-                                print(loss)
-                                print(torch.exp(loss))
-                                if torch.isnan(loss):
-                                    print("loss is nan torch")
-                                    print(loss)
-                                    print(batch)
-                                if math.isnan(loss.item()):
-                                    print("loss is nan math")
-                                    print(loss)
-                                    print(loss.item())
-                                    print(batch)
-                                    print(torch.exp(loss).item())
                                 tasks_loss[task].update(loss.item())
                                 loss_meter.update(loss.item())
                                 desc_str = f'Validation {epoch} | Loss {loss_meter.val:4f}'

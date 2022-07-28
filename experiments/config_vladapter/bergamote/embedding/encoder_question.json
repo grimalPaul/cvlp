@@ -1,6 +1,7 @@
 {
     "backbone": "/scratch_global/stage_pgrimal/data/CVLP/data/t5_pretrained",
     "tokenizer": "/scratch_global/stage_pgrimal/data/CVLP/data/tokenizer/t5-base",
+    "init_model_path": "/scratch_global/stage_pgrimal/data/CVLP/data/t5_pretrained",
     "feat_dim": 2048,
     "pos_dim": 4,
     "add_projectionHead":true,
@@ -35,7 +36,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/pgrimal/CVLEP/snap/multitask_adapter_resnet/best_27_question",
+    "load_path":"/home/pgrimal/CVLEP/snap/T5_multitask_adapter_resnet/best_3_question",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,
