@@ -1,8 +1,6 @@
 # User Guide
 
-## Training
-
-### FactoryIA
+## PreTraining
 
 Create a configuration like in `experiments/config_vladapter/factoryIA/sentenceT5` or in `experiments/config_vladapter/factoryIA/T5`
 
@@ -79,7 +77,7 @@ echo "The End"
 
 ## Finetuning
 
-You have to duplicate the encoder config in two configuration because after pretraining encoder question and encoder passage are different. Add the path where is save the model next to `load_path`.
+You have to duplicate the encoder config in two configuration because after pretraining encoder question and encoder passage are different. Add the path where the model is save next to `load_path`.
 
 The config for the training is different than in pretrained step. We do not have multiple datasets.
 
@@ -145,4 +143,80 @@ python -m search \
     --batch_size=64
 ```
 
-## Research
+## Config
+
+```json
+{
+    "backbone": "path to the backbone",
+    "init_model_path":"t5_pretrained or sentence T5",
+    "tokenizer": "path to tokenizer",
+    "feat_dim": 2048,
+    "pos_dim": 4,
+    
+    "add_projectionHead":false,#add or not projection head at the output of the encoder
+    "dim_projectionHead":768,
+    
+    # dont change
+    "use_vision": true,
+    "use_vis_order_embedding": true,
+    "additional_visual_embedding_layers": 0,
+    "use_vis_layer_norm": true,
+    "individual_vis_layer_norm": true,
+    "share_vis_lang_layer_norm": false,
+    "use_lm_head_adapter": false,
+    "n_boxes": 36,
+    "max_n_boxes": 36,
+    "expand_vis_embedding": false,
+    "n_image_tokens": null,
+    "vis_use_transformer": false,
+    "vis_pooling_output": false,
+    "sparse_sample": false,
+    "oneddownsample": false,
+    
+    "downsample": false, # true with clip, false with faster rcnn
+    "use_adapter": true, # true if you want use adapter
+    "use_hyperformer": false,
+    "use_compacter": false,
+    "use_lradapter": false,
+    "add_adapter_cross_attn": false,
+    "tasks": "IR",
+    "use_single_prompt": false,
+    "encoder_prompt_len": 0,
+    "mid_dim": 0,
+    "decoder_prompt_len": 0,
+    "reduction_factor": 8, # reduction factor of the adapter
+    "use_lora": false,
+    "do_lower_case": false,
+    "dropout": 0.1,
+    "load_path":"path to load model from other training",
+    "from_scratch": false,
+    
+    # unfreeze or not some part of the model
+    "unfreeze_visual_embedding": true,
+    "unfreeze_language_model": false,
+    "unfreeze_lm_head": false,
+    "unfreeze_vis_encoder": false,
+    "unfreeze_vis_last_layer": false,
+    "use_vis_adapter": false,
+    "unfreeze_layer_norms": true,
+    "unfreeze_batch_norms": false,
+    
+    # dont touch
+    "unique_hyper_net": false,
+    "efficient_unique_hyper_net": false,
+    "use_single_adapter": false,
+    "hypercomplex_division": false,
+    "phm_rank": false,
+    "shared_phm_rule": false,
+    "factorized_phm": false,
+    "low_rank_rank": false,
+    "phm_init_range": false,
+    "share_down_sampler": false,
+    "share_up_sampler": false,
+    "shared_phm_rule_over_tasks": false,
+    "add_layer_norm_before_adapter": false,
+    "add_layer_norm_after_adapter": false,
+    "track_z": false,
+    "projected_task_embedding_dim": -1
+}
+```

@@ -358,7 +358,7 @@ pass
 
 ## Embedding and research
 
-TODO write command to do the embeddding and compute the score
+Embed dataset and KB
 
 ```bash
 echo "embedding passage"
