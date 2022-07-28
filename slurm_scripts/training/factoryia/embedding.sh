@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH -J embed_question
+#SBATCH -J embed
 #SBATCH --gres=gpu:1
 #SBATCH --partition=classicgpu,gpup5000short,gpup6000
-#SBATCH --mem=10G
+#SBATCH --mem=20G
 #SBATCH --time=0-10:00:00
 
 source /home/users/pgrimal/.bashrc
@@ -18,7 +18,7 @@ passages=/home/users/pgrimal/data/datasets/cvlp/passages
 config_passage_path=experiments/config_vladapter/factoryIA/embedding/encoder_passage.json
 config_question_path=experiments/config_vladapter/factoryIA/embedding/encoder_question.json
 config_model_path=experiments/config_vladapter/factoryIA/embedding/config_model.json
-batch_size=64
+batch_size=128
 key_embedding=multitask_clip_embedding
 
 echo "Dataset"

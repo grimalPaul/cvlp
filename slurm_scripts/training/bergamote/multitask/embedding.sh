@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -J embed_passage
+#SBATCH -J embed
 #SBATCH --gres=gpu:1
 #SBATCH -p gpu
 #SBATCH -w node6
 #SBATCH --mem=40G
 #SBATCH --time=0-12:00:00
+#SBATCH --dependency=116991
 
 source /home/pgrimal/.bashrc
 source activate cvlp
@@ -22,7 +23,7 @@ config_model_path=experiments/config_vladapter/bergamote/embedding/config_model.
 batch_size=128
 key_embedding=multitask_resnet_embedding
 
-
+<<com
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -35,6 +36,20 @@ python -m processing.embedding_dataset \
     --key_text=passage \
     --key_embedding=${key_embedding} \
     --kb_path=${kb} \
+    --batch_size=${batch_size}
+com
+
+
+python -m processing.embedding_dataset \
+    --dataset_path=${dataset} \
+    --type=question \
+    --config_question_path=${config_question_path} \
+    --config_passage_path=${config_passage_path} \
+    --config_model_path=${config_model_path} \
+    --key_boxes=vlt5_normalized_boxes \
+    --key_vision_features=vlt5_features \
+    --key_text=input \
+    --key_embedding=${key_embedding} \
     --batch_size=${batch_size}
 
 echo "Done"

@@ -1,5 +1,7 @@
 {
     "backbone": "/home/users/pgrimal/data/model/cvlp/t5_pretrained",
+    "init_model_path":"/home/users/pgrimal/data/model/cvlp/sentenceT5",
+
     "tokenizer": "/home/users/pgrimal/data/model/cvlp/t5_tokenizer",
     "feat_dim": 2048,
     "pos_dim": 4,
@@ -35,7 +37,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/users/pgrimal/CVLP/snap/multitask_adapter_clip/best_24_question",
+    "load_path":"/home/users/pgrimal/CVLP/snap/sentenceT5_multitask_adapter_clip/best_0_question.pth",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,

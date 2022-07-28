@@ -8,12 +8,12 @@
     "gradient_accumulation_steps": 1,
     "lr": 0.0003,
     "num_workers": 2,
-    "val_workers":0,
+    "val_workers":1,
     "optim": "adamw",
-    "output": "snap/sentenceT5_multitask_adapter_clip/",
+    "output": "snap/sentenceT5_multitask_adapter_clip_2/",
     "seed": 0,
     "train": true,
-    "log_tensorboard_path": "tensorboard/sentenceT5_multitask_adapter_clip/",
+    "log_tensorboard_path": "tensorboard/sentenceT5_multitask_adapter_clip_2/",
     "datasets": {
         "triviaqa": {
             "batch_size": 8,
@@ -25,7 +25,7 @@
             "key_text_question": "input",
             "key_text_passage": "passage",
             "topk": -1,
-            "split":"train,validation"
+            "split":"train"
         },
         "match_image": {
             "batch_size": 8,
@@ -34,7 +34,7 @@
             "key_image":"list_images",
             "key_vision_features":"clip_features",
             "key_vision_boxes":null,
-            "split":"train,validation"
+            "split":"train"
         },
         "match_article": {
             "batch_size": 8,
@@ -47,7 +47,7 @@
             "key_vision_features": "clip_features",
             "key_vision_boxes": null,
             "topk": -1,
-            "split":"train,validation"
+            "split":"train"
         },
         "viquae":{
             "batch_size":8,

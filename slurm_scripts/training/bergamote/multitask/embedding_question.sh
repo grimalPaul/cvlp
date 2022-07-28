@@ -37,5 +37,3 @@ python -m processing.embedding_dataset \
     --batch_size=${batch_size}
 
 echo "Done"
-
-echo "Done"
