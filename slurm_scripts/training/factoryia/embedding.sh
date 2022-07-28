@@ -34,7 +34,7 @@ python -m processing.embedding_dataset \
     --key_embedding=${key_embedding} \
     --batch_size=${batch_size}
 
-
+<<com
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -47,6 +47,6 @@ python -m processing.embedding_dataset \
     --key_embedding=${key_embedding} \
     --kb_path=${kb} \
     --batch_size=${batch_size}
-
+com
 
 echo "Done"

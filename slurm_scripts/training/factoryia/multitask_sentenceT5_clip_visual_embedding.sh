@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+#SBATCH --time=7-00:00:00
+#SBATCH --nodes=1
+#SBATCH -J train_clipT5
+#SBATCH --gres=gpu:4
+#SBATCH --partition=classicgpu,gpup100,gpuv100
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=7
+#SBATCH --mem=40G
+
+source /home/users/pgrimal/.bashrc
+source activate cvlp2
+
+export MASTER_ADDR="$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n1)"
+export MASTER_PORT=29700
+
+encoder_question_path=experiments/config_vladapter/factoryIA/sentenceT5/clip_learn_visual_embed/encoder_simple_adapter.json
+encoder_passage_path=experiments/config_vladapter/factoryIA/sentenceT5/clip_learn_visual_embed/encoder_simple_adapter.json
+model_path=experiments/config_vladapter/factoryIA/sentenceT5/clip_learn_visual_embed/config_model.json
+training_path=experiments/config_vladapter/factoryIA/sentenceT5/clip_learn_visual_embed/training_multitask.json
+
+echo "Training model with clip embedding"
+srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \
+    --encoder_question_path=${encoder_question_path} \
+    --encoder_passage_path=${encoder_passage_path} \
+    --model_path=${model_path} \
+    --training_path=${training_path}
+
+echo "The End"

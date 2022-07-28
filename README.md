@@ -537,6 +537,8 @@ File example :
 }
 ```
 
+Text embedding is always freeze currently
+
 ### Fine-tuning
 
 ```bash

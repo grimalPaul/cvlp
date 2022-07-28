@@ -7,8 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=20G
-#SBATCH --dependency=53985
-
+#SBATCH --dependency=55072
 source /home/users/pgrimal/.bashrc
 source activate cvlp
 

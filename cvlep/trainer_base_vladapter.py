@@ -610,6 +610,8 @@ class Trainer(object):
             p.requires_grad = False
 
     def unfreeze_parameters(self, model):
+        # text embedding is always freeze
+
         targets = ["visual_embedding"]
         # unfreeze the parameters in targets anyway
         if model.config.unfreeze_visual_embedding:
@@ -771,12 +773,14 @@ class Trainer(object):
         state_dict = load_state_dict(ckpt_path, 'cpu')
         original_keys = list(state_dict.keys())
         for key in original_keys:
-            if key.startswith("vis_encoder."):
-                new_key = 'encoder.' + key[len("vis_encoder."):]
+            # when we load with VLT5 pretrained
+            if key.startswith("encoder."):
+                new_key = key[len("encoder."):]
                 state_dict[new_key] = state_dict.pop(key)
-
-            if key.startswith("model.vis_encoder."):
-                new_key = 'model.encoder.' + key[len("model.vis_encoder."):]
+            if key.startswith("decoder."):
+                state_dict.pop(key)
+            if key.startswith("vis_encoder."):
+                new_key = key[len("vis_encoder."):]
                 state_dict[new_key] = state_dict.pop(key)
         if encoder == "question":
             results = self.encoder_question.load_state_dict(
