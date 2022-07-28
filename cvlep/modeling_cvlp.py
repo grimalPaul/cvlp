@@ -104,7 +104,7 @@ class CVLEP(nn.Module):
     def embed_image_question(self, batch):
         device = next(self.parameters()).device
 
-        return self.image_passage_encoder(
+        return self.image_question_encoder(
             input_ids=batch["input_ids"].to(device),
             attention_mask=batch["attention_mask"].to(device),
             vis_inputs=(batch['vision_features'].to(

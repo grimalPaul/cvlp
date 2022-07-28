@@ -1,12 +1,12 @@
 {
     "kb_kwargs": {
-        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages": {
+        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/zero_and_finetuning_test/passages": {
             "device": "cpu",
             "index_kwargs": {
                 "multitask_resnet_embedding": {
-                    "key_kb": "multitaskmultitask_resnet_embedding",
+                    "key_kb": "multitask_resnet_embedding",
                     "index_load": false,
-                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes/",
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/zero_and_finetuning_test/indexes",
                     "string_factory": "L2norm,Flat"
                 }
             }

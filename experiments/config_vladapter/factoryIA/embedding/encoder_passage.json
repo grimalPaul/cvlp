@@ -37,7 +37,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/users/pgrimal/CVLP/snap/sentenceT5_multitask_adapter_clip/best_0_passage.pth",
+    "load_path":"/home/users/pgrimal/CVLP/snap/sentenceT5_multitask_adapter_clip/best_0_passage",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,
