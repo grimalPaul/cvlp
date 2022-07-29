@@ -15,10 +15,10 @@ source activate cvlp2
 export MASTER_ADDR="$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n1)"
 export MASTER_PORT=29704
 
-encoder_question_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embedencoder_question.json
-encoder_passage_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embedencoder_passage.json
-model_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embedconfig_model.json
-training_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embedtraining_multitask.json
+encoder_question_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embed/encoder_question.json
+encoder_passage_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embed/encoder_passage.json
+model_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embed/config_model.json
+training_path=experiments/config_vladapter/factoryIA/T5/clip_visu_embed/training_multitask.json
 
 echo "clip_sentenceT5_vepretrained"
 srun --kill-on-bad-exit=1 python -m cvlep.trainer_multitask \

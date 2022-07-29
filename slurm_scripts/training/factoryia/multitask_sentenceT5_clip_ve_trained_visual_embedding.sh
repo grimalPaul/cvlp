@@ -9,7 +9,6 @@
 #SBATCH -w node27
 #SBATCH --mem=45G
 
-
 source /home/users/pgrimal/.bashrc
 source activate cvlp2
 

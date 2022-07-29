@@ -560,7 +560,7 @@ class Trainer(object):
         config_encoder.use_vis_adapter = args.use_vis_adapter
         config_encoder.unfreeze_layer_norms = args.unfreeze_layer_norms
         config_encoder.unfreeze_batch_norms = args.unfreeze_batch_norms
-
+        config_encoder.unfreeze_projectionHead = args.unfreeze_projectionHead
         return config_encoder
 
     def create_model(self, config_model=None):
