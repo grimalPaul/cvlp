@@ -1,6 +1,6 @@
 {
     "tokenizer": "/home/users/pgrimal/data/model/cvlp/t5_tokenizer",
-    "use_vision": true,
+    "use_vision": false,
     "do_lower_case": false,
     "padding":true
 }

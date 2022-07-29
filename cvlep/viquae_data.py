@@ -90,7 +90,7 @@ class Viquae(Dataset):
             if self.TokenizerConfig.use_vision:
                 tokenizer_class = VLT5TokenizerFast
             else:
-                tokenizer_class = T5TokenizerFast
+                tokenizer_class = T5Tokenizer
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
@@ -292,7 +292,7 @@ class SimpleContrastiveDataset(Dataset):
             if self.TokenizerConfig.use_vision:
                 tokenizer_class = VLT5TokenizerFast
             else:
-                tokenizer_class = T5TokenizerFast
+                tokenizer_class = T5Tokenizer
         else:
             raise ValueError('This type of tokenizer is not implemented')
 

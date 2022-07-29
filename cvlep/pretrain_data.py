@@ -1,7 +1,7 @@
 import numpy as np
 from cvlep.VLT5.param import Config
 from cvlep.CLIPT5.tokenization import VLT5TokenizerFast
-from transformers import T5TokenizerFast
+from transformers import T5TokenizerFast, T5Tokenizer
 import warnings
 from datasets import disable_caching, load_from_disk
 import random
@@ -84,7 +84,7 @@ class KiltDataset(Dataset):
             if self.TokenizerConfig.use_vision:
                 tokenizer_class = VLT5TokenizerFast
             else:
-                tokenizer_class = T5TokenizerFast
+                tokenizer_class = T5Tokenizer
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
@@ -323,7 +323,7 @@ class MultimediaDataset(Dataset):
             if self.TokenizerConfig.use_vision:
                 tokenizer_class = VLT5TokenizerFast
             else:
-                tokenizer_class = T5TokenizerFast
+                tokenizer_class = T5Tokenizer
         else:
             raise ValueError('This type of tokenizer is not implemented')
 
