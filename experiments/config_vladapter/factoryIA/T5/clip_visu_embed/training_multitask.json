@@ -10,13 +10,13 @@
     "num_workers": 3,
     "val_workers":1,
     "optim": "adamw",
-    "output": "snap/T5_multitask_adapter_clip_v100_after_ve/",
+    "output": "snap/clip_sentenceT5_vepretrained/",
     "seed": 0,
     "train": true,
-    "log_tensorboard_path": "tensorboard/T5_multitask_adapter_clip_v100_after_ve/",
+    "log_tensorboard_path": "tensorboard/clip_sentenceT5_vepretrained/",
     "datasets": {
         "triviaqa": {
-            "batch_size": 20,
+            "batch_size": 8,
             "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
             "passages_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/passages",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/triviaqa_for_viquae",
@@ -28,7 +28,7 @@
             "split":"train,validation"
         },
         "match_image": {
-            "batch_size": 20,
+            "batch_size": 8,
             "dataset_path": "/home/data/meerqat/pretrained_task/wikimage_train_val_filter",
             "topk":-1,
             "key_image":"list_images",
@@ -37,7 +37,7 @@
             "split":"train,validation"
         },
         "match_article": {
-            "batch_size": 20,
+            "batch_size": 8,
             "kb_path": "/home/data/meerqat/pretrained_task/multimedia_train_val_filter",
             "passages_path": "/home/data/meerqat/pretrained_task/passages",
             "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
@@ -50,7 +50,7 @@
             "split":"train,validation"
         },
         "viquae":{
-            "batch_size":16,
+            "batch_size":8,
             "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/miniviquae",
             "kb_path": "/home/users/pgrimal/data/datasets/cvlp/kb",

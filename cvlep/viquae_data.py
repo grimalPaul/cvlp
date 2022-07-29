@@ -88,7 +88,7 @@ class Viquae(Dataset):
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                tokenizer_class = VLT5TokenizerFast
+                tokenizer_class = VLT5Tokenizer
             else:
                 tokenizer_class = T5Tokenizer
         else:
@@ -290,7 +290,7 @@ class SimpleContrastiveDataset(Dataset):
         self.TokenizerConfig = Config.load_json(tokenizer_path)
         if 't5' in self.TokenizerConfig.tokenizer:
             if self.TokenizerConfig.use_vision:
-                tokenizer_class = VLT5TokenizerFast
+                tokenizer_class = VLT5Tokenizer
             else:
                 tokenizer_class = T5Tokenizer
         else:

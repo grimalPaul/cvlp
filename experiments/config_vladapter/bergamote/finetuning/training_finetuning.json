@@ -14,7 +14,7 @@
     "seed": 0,
     "valid_batch_size": 4,
     "train":true,
-    "log_tensorboard_path":"tensorboard/res_multitask_finetunin/",
+    "log_tensorboard_path":"tensorboard/res_multitask_finetuning/",
     "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
     "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae",
     "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
