@@ -17,7 +17,7 @@
     "datasets": {
         "triviaqa": {
             "batch_size": 20,
-            "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
             "passages_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/passages",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/triviaqa_for_viquae",
             "key_relevant": "provenance_indices",
@@ -40,7 +40,7 @@
             "batch_size": 20,
             "kb_path": "/home/data/meerqat/pretrained_task/multimedia_train_val_filter",
             "passages_path": "/home/data/meerqat/pretrained_task/passages",
-            "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
             "key_passage_index": "passage_index",
             "key_text_passage": "passage",
             "key_list_images": "list_images",
@@ -51,7 +51,7 @@
         },
         "viquae":{
             "batch_size":16,
-            "tokenizer_path": "experiments/config_vladapter/factoryIA/clip_simple_adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
             "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/miniviquae",
             "kb_path": "/home/users/pgrimal/data/datasets/cvlp/kb",
             "passages_path": "/home/users/pgrimal/data/datasets/cvlp/passages",

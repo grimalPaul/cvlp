@@ -15,9 +15,9 @@
     "test": false,
     "test_only": false,
     "valid_batch_size": 4,
-    "train":true,
-    "log_tensorboard_path":"tensorboard/clip_multitask_finetuning/",
-    "tokenizer_path": "experiments/config_vladapter/factoryIA/prompt/TokenizerConfig.json",
+    "train": true,
+    "log_tensorboard_path": "tensorboard/clip_multitask_finetuning/",
+    "tokenizer_path": "experiments/config_vladapter/factoryIA/TokenizerConfig.json",
     "dataset_path": "/home/users/pgrimal/data/datasets/miniviquae",
     "kb_path": "/home/users/pgrimal/data/datasets/kb",
     "passages_path": "/home/users/pgrimal/data/datasets/passages",
@@ -25,6 +25,6 @@
     "key_text_question": "input",
     "key_text_passage": "passage",
     "key_vision_features": "clip_features",
-    "key_vision_boxes":null,
+    "key_vision_boxes": null,
     "key_irrelevant": "BM25_irrelevant_indices"
 }

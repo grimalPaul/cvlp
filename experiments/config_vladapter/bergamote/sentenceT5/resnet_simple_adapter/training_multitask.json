@@ -18,7 +18,7 @@
     "datasets": {
         "triviaqa": {
             "batch_size": 4,
-            "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/bergamote/TokenizerConfig.json",
             "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/passages",
             "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kilt/triviaqa_for_viquae",
             "key_relevant": "provenance_indices",
@@ -41,7 +41,7 @@
             "batch_size": 4,
             "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/multimedia_train_val_filter",
             "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/multimedia/filtered/passages",
-            "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/bergamote/TokenizerConfig.json",
             "key_passage_index": "passage_index",
             "key_text_passage": "passage",
             "key_list_images": "list_images",
@@ -52,7 +52,7 @@
         },
         "viquae":{
             "batch_size":4,
-            "tokenizer_path": "experiments/config_vladapter/bergamote/adapter/TokenizerConfig.json",
+            "tokenizer_path":"experiments/config_vladapter/bergamote/TokenizerConfig.json",
             "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae",
             "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
             "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
