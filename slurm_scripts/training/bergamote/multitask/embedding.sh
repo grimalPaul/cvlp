@@ -23,7 +23,7 @@ config_model_path=experiments/config_vladapter/bergamote/embedding/config_model.
 batch_size=128
 key_embedding=multitask_resnet_embedding
 
-<<com
+
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -37,7 +37,7 @@ python -m processing.embedding_dataset \
     --key_embedding=${key_embedding} \
     --kb_path=${kb} \
     --batch_size=${batch_size}
-com
+
 
 
 python -m processing.embedding_dataset \

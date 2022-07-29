@@ -620,8 +620,6 @@ class Trainer(object):
                     p.requires_grad = True
                     if self.verbose:
                         print(f"{n} is trainable...")
-                # else:
-                #     p.requires_grad = False
 
         if model.config.unfreeze_language_model:
             targets = ["lm_head", "shared"]
@@ -650,6 +648,15 @@ class Trainer(object):
 
         if model.config.use_lora:
             targets = ["lora", "bias"]
+            for n, p in model.named_parameters():
+                if any(t in n for t in targets):
+                    p.requires_grad = True
+                    if self.verbose:
+                        print(f"{n} is trainable...")
+        
+        # unfreeze projection head
+        if model.config.add_projectionHead and model.config.unfreeze_projectionHead:
+            targets = ["projection"]
             for n, p in model.named_parameters():
                 if any(t in n for t in targets):
                     p.requires_grad = True
@@ -726,6 +733,8 @@ class Trainer(object):
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
+           
+
     def create_optimizer_and_scheduler(self):
         if self.verbose:
             print('Building Optimizer')
@@ -772,6 +781,8 @@ class Trainer(object):
     def load_checkpoint(self, ckpt_path, encoder):
         state_dict = load_state_dict(ckpt_path, 'cpu')
         original_keys = list(state_dict.keys())
+        if self.verbose:
+            print("original_keys", original_keys)
         for key in original_keys:
             # when we load with VLT5 pretrained
             if key.startswith("encoder."):

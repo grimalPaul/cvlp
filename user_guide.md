@@ -200,7 +200,8 @@ python -m search \
     "use_vis_adapter": false,
     "unfreeze_layer_norms": true,
     "unfreeze_batch_norms": false,
-    
+    "unfreeze_projectionHead":false,
+
     # dont touch
     "unique_hyper_net": false,
     "efficient_unique_hyper_net": false,

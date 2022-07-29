@@ -1,4 +1,4 @@
 {
-    "share_vis_embedding":true,
+    "share_vis_embedding":false,
     "share_embedding":false
 }
