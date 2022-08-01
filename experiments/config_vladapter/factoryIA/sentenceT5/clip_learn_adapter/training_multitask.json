@@ -1,0 +1,67 @@
+{
+    "adam_eps": 1e-06,
+    "clip_grad_norm": 5,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "epochs": 40,
+    "fp16": true,
+    "gradient_accumulation_steps": 1,
+    "lr": 0.0003,
+    "num_workers": 2,
+    "val_workers":0,
+    "optim": "adamw",
+    "output": "snap/sentenceT5_multitask_only_adapter/",
+    "seed": 0,
+    "train": true,
+    "log_tensorboard_path": "tensorboard/sentenceT5_multitask_only_adapter/",
+    "datasets": {
+        "triviaqa": {
+            "batch_size": 8,
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
+            "passages_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/passages",
+            "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/kilt/triviaqa_for_viquae",
+            "key_relevant": "provenance_indices",
+            "key_irrelevant": "BM25_irrelevant_indices",
+            "key_text_question": "input",
+            "key_text_passage": "passage",
+            "topk": -1,
+            "split":"validation,train"
+        },
+        "match_image": {
+            "batch_size": 8,
+            "dataset_path": "/home/data/meerqat/pretrained_task/wikimage_train_val_filter",
+            "topk":-1,
+            "key_image":"list_images",
+            "key_vision_features":"clip_features",
+            "key_vision_boxes":null,
+            "split":"validation,train"
+        },
+        "match_article": {
+            "batch_size": 8,
+            "kb_path": "/home/data/meerqat/pretrained_task/multimedia_train_val_filter",
+            "passages_path": "/home/data/meerqat/pretrained_task/passages",
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
+            "key_passage_index": "passage_index",
+            "key_text_passage": "passage",
+            "key_list_images": "list_images",
+            "key_vision_features": "clip_features",
+            "key_vision_boxes": null,
+            "topk": -1,
+            "split":"validation,train"
+        },
+        "viquae":{
+            "batch_size":8,
+            "tokenizer_path":"experiments/config_vladapter/factoryIA/TokenizerConfig.json",
+            "dataset_path": "/home/users/pgrimal/data/datasets/cvlp/miniviquae",
+            "kb_path": "/home/users/pgrimal/data/datasets/cvlp/kb",
+            "passages_path": "/home/users/pgrimal/data/datasets/cvlp/passages",
+            "key_relevant": "provenance_indices",
+            "key_text_question": "input",
+            "key_text_passage": "passage",
+            "key_vision_features": "clip_features",
+            "key_vision_boxes": null,
+            "key_irrelevant": "BM25_irrelevant_indices",
+            "split":"validation"
+        }
+    }
+}
