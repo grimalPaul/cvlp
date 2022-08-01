@@ -7,7 +7,6 @@
 #SBATCH -w node6
 #SBATCH --mem=40G
 #SBATCH --time=0-12:00:00
-#SBATCH --dependency=116991
 
 source /home/pgrimal/.bashrc
 source activate cvlp
@@ -39,7 +38,7 @@ python -m processing.embedding_dataset \
     --batch_size=${batch_size}
 
 
-
+echo "dataset"
 python -m processing.embedding_dataset \
     --dataset_path=${dataset} \
     --type=question \

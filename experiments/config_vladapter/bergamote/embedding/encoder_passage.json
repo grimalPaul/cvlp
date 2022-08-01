@@ -6,7 +6,7 @@
     "pos_dim": 4,
     "add_projectionHead":false,
     "dim_projectionHead":768,
-    "use_vision": false,
+    "use_vision": true,
     "use_vis_order_embedding": true,
     "additional_visual_embedding_layers": 0,
     "use_vis_layer_norm": true,
@@ -36,7 +36,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/pgrimal/CVLEP/snap/VLT5_multitask/best_3_passage",
+    "load_path":"/home/pgrimal/CVLEP/snap/VLT5_multitask/e_20_passage",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": false,

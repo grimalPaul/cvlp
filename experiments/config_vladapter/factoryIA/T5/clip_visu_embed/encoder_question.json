@@ -40,7 +40,7 @@
     "load_path":"/home/users/pgrimal/CVLP/snap/clip_sentenceT5_visual_embedding_only_image/best_1_question",
     "from_scratch": false,
     
-    "unfreeze_visual_embedding": true,
+    "unfreeze_visual_embedding": false,
     "unfreeze_language_model": false,
     "unfreeze_lm_head": false,
     "unfreeze_vis_encoder": false,
