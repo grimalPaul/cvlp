@@ -260,3 +260,13 @@ This model doesnt work.
 - Mean Reciprocal Rank : The reciprocal rank of a query response is the multiplicative inverse of the rank of the first correct answer. The MRR is the average.
 - Hits@K (here hit_rate@K) : proportion of questions for which IR retrieves at least one relevant passages in top-K
 - Precision@K = Precision is the proportion of the retrieved documents that are relevant, $\frac{\text{\# of recommended items @K that are relevant}}{\text{\# of recommended items @K}}$
+
+
+### pretrained tasks VLT5
+
+avec best epoch 23. On obtient cela, on avait un batch size de 
+4 * 8gpu soit 32 pendant l'entrainement.
+
+    Model                         MRR@1    MRR@5    MRR@10    MRR@20    MRR@100    P@1    P@5    P@10    P@20    P@100    Hit_Rate@1    Hit_Rate@5    Hit_Rate@10    Hit_Rate@20    Hit_Rate@100
+---  --------------------------  -------  -------  --------  --------  ---------  -----  -----  ------  ------  -------  ------------  ------------  -------------  -------------  --------------
+a    multitask_resnet_embedding    0.003    0.007      0.01     0.011      0.014  0.003  0.004   0.005   0.004    0.006         0.003         0.016          0.036          0.057            0.16

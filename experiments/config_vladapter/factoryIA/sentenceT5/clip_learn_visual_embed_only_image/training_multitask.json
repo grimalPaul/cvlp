@@ -10,10 +10,10 @@
     "num_workers": 2,
     "val_workers":0,
     "optim": "adamw",
-    "output": "snap/clip_sentenceT5_visual_embedding_only_image/",
+    "output": "snap/clip_sentenceT5_ve_only_bx2/",
     "seed": 0,
     "train": true,
-    "log_tensorboard_path": "tensorboard/sentenceT5_clip_visual_embedding_only_image/",
+    "log_tensorboard_path": "tensorboard/sentenceT5_clip_ve_only_bx2/",
     "datasets": {
         "match_image": {
             "batch_size": 8,

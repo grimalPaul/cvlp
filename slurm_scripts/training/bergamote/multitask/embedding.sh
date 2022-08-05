@@ -3,8 +3,7 @@
 #SBATCH -n 1
 #SBATCH -J embed
 #SBATCH --gres=gpu:1
-#SBATCH -p gpu
-#SBATCH -w node6
+#SBATCH -w node4
 #SBATCH --mem=40G
 #SBATCH --time=0-12:00:00
 
@@ -20,7 +19,7 @@ config_passage_path=experiments/config_vladapter/bergamote/embedding/encoder_pas
 config_question_path=experiments/config_vladapter/bergamote/embedding/encoder_question.json
 config_model_path=experiments/config_vladapter/bergamote/embedding/config_model.json
 batch_size=128
-key_embedding=multitask_resnet_embedding
+key_embedding=multitask_fasterrcnn_embedding
 
 
 echo "Passage"

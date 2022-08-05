@@ -36,10 +36,10 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/pgrimal/CVLEP/snap/VLT5_multitask/e_20_question",
+    "load_path":"/home/pgrimal/CVLEP/snap/faster_RCNN_finetuning_bs64_200_epoch/best_174_question",
     "from_scratch": false,
     
-    "unfreeze_visual_embedding": false,
+    "unfreeze_visual_embedding": true,
     "unfreeze_language_model": false,
     "unfreeze_lm_head": false,
     "unfreeze_vis_encoder": false,

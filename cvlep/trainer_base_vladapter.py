@@ -75,10 +75,8 @@ class Trainer(object):
         ModelPassageConfig = self.create_config(config_encoder_passage)
 
         # create tokenizer
-        self.tokenizer_question = self.create_tokenizer(
-            config_encoder_question)
+        self.tokenizer_question = self.create_tokenizer(config_encoder_question)
         self.tokenizer_passage = self.create_tokenizer(config_encoder_passage)
-
 
         self.encoder_question = self.load_encoder(ModelQuestionConfig)
         self.encoder_passage = self.load_encoder(ModelPassageConfig)
@@ -98,6 +96,7 @@ class Trainer(object):
         if config_encoder_question.load_path is not None:
             ckpt_path = config_encoder_question.load_path + '.pth'
             self.load_checkpoint(ckpt_path, "question")
+            #self.encoder_question= self.load_checkpoint(ckpt_path, "question")
 
         if config_encoder_question.from_scratch:
             self.init_weights("question")
@@ -105,6 +104,7 @@ class Trainer(object):
         # Load Checkpoint encoder passage
         if config_encoder_passage.load_path is not None:
             ckpt_path = config_encoder_passage.load_path + '.pth'
+            #self.encoder_passage = self.load_checkpoint(ckpt_path, "passage")
             self.load_checkpoint(ckpt_path, "passage")
 
         if config_encoder_passage.from_scratch:
@@ -119,12 +119,12 @@ class Trainer(object):
             print(f'Model Launching at GPU {self.args.local_rank}')
 
             # freeze whole parameters first
-            self.freeze_whole_model(self.model.image_passage_encoder)
-            self.freeze_whole_model(self.model.image_question_encoder)
+            self.model.image_passage_encoder =self.freeze_whole_model(self.model.image_passage_encoder)
+            self.model.image_question_encoder = self.freeze_whole_model(self.model.image_question_encoder)
 
             # unfreeze selected parameters
-            self.unfreeze_parameters(self.model.image_passage_encoder)
-            self.unfreeze_parameters(self.model.image_question_encoder)
+            self.model.image_passage_encoder = self.unfreeze_parameters(self.model.image_passage_encoder)
+            self.model.image_question_encoder = self.unfreeze_parameters(self.model.image_question_encoder)
 
             self.log_softmax = nn.LogSoftmax(1)
             self.loss_fct = nn.NLLLoss(reduction='mean')
@@ -608,6 +608,7 @@ class Trainer(object):
     def freeze_whole_model(self, model):
         for _, p in model.named_parameters():
             p.requires_grad = False
+        return model
 
     def unfreeze_parameters(self, model):
         # text embedding is always freeze
@@ -733,6 +734,7 @@ class Trainer(object):
                     for param_name, param in sub_module.named_parameters():
                         param.requires_grad = True
 
+        return model
            
 
     def create_optimizer_and_scheduler(self):
@@ -781,8 +783,8 @@ class Trainer(object):
     def load_checkpoint(self, ckpt_path, encoder):
         state_dict = load_state_dict(ckpt_path, 'cpu')
         original_keys = list(state_dict.keys())
-        if self.verbose:
-            print("original_keys", original_keys)
+        # if self.verbose:
+        #     print("original_keys", original_keys)
         for key in original_keys:
             # when we load with VLT5 pretrained
             if key.startswith("encoder."):
@@ -796,12 +798,18 @@ class Trainer(object):
         if encoder == "question":
             results = self.encoder_question.load_state_dict(
                 state_dict, strict=False)
+            if self.verbose:
+                print('Model loaded from ', ckpt_path)
+                pprint(results)
+            #return self.encoder_question
         elif encoder == "passage":
             results = self.encoder_passage.load_state_dict(
                 state_dict, strict=False)
-        if self.verbose:
-            print('Model loaded from ', ckpt_path)
-            pprint(results)
+            if self.verbose:
+                print('Model loaded from ', ckpt_path)
+                pprint(results)
+            #return self.encoder_passage
+       
 
 
     def load_encoder(self, config_model):

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #SBATCH --time=7-00:00:00
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH -J image_o
 #SBATCH --gres=gpu:4
 #SBATCH --partition=classicgpu,gpup100,gpuv100

@@ -222,7 +222,7 @@ class Trainer_Multitask(Trainer):
                                 self.save(f"best_{epoch}")
                         else:
                             self.save(f"best_{epoch}")
-                    elif epoch % 10 == 0:
+                    elif epoch % 5 == 0:
                         if self.args.distributed:
                             if self.args.rank == 0:
                                 self.save(f"e_{epoch}")

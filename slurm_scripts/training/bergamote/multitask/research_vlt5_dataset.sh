@@ -6,7 +6,7 @@
 #SBATCH -p gpu
 #SBATCH --mem=20G
 #SBATCH --time=0-06:00:00
-
+#SBATCH --dependency=117296
 source /home/pgrimal/.bashrc
 source activate cvlp
 
@@ -14,8 +14,8 @@ echo "fastrcnn"
 
 python -m search \
     --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/zero_and_finetuning_test/vlt5_dataset/test \
-    --config=experiments/ir/VL/experiments/resnet_multitask/multitask.json \
-    --metrics_path=experiments/ir/VL/experiments/resnet_multitask/ \
+    --config=experiments/ir/VL/experiments/faster_rcnn_multitask/multitask.json \
+    --metrics_path=experiments/ir/VL/experiments/VLT5_pretrained \
     --k=100 \
     --batch_size=64
 
