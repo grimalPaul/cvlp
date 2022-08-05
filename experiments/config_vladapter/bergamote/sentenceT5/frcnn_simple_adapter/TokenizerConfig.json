@@ -1,0 +1,6 @@
+{
+    "tokenizer": "/scratch_global/stage_pgrimal/data/CVLP/data/tokenizer/t5-base",
+    "use_vision": false,
+    "do_lower_case": false,
+    "padding":true
+}
