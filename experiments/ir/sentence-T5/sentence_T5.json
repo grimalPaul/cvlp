@@ -1,0 +1,15 @@
+{
+    "kb_kwargs": {
+        "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages": {
+            "device": "cpu",
+            "index_kwargs": {
+                "sentence_T5": {
+                    "key_kb": "sentence_T5",
+                    "index_load": false,
+                    "index_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/indexes",
+                    "string_factory": "L2norm,Flat"
+                }
+            }
+        }
+    }
+}
