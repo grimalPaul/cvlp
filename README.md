@@ -23,6 +23,7 @@ CVLP = Constrastive Visual Language Pre-Training
       - [Kilt trivia](#kilt-trivia)
       - [Wikimage](#wikimage)
       - [Multimedia](#multimedia)
+      - [Sentence T5](#sentence-t5)
       - [Pretraining with different configuration](#pretraining-with-different-configuration)
     - [Finetuning with different configuration](#finetuning-with-different-configuration)
   - [Embedding and research](#embedding-and-research)
@@ -327,6 +328,60 @@ We developed a multimedia training which consist to match differents passages of
 TODO: We release the dataset, images and the passage
 
 We removed entities present in Viquae (train, validation and test)
+
+#### Sentence T5
+
+As we are going to use the T5 sentence to initialize the model, we have to download it and calculate a score with :
+
+We create a new Conda environment just to embed the dataset due to a dependency conflict
+
+```bash
+conda create -n sentenceT5 python
+
+pip install sentence_transformers datasets
+```
+
+```py
+from sentence_transformers import SentenceTransformer
+import torch
+
+model = SentenceTransformer("sentence-transformers/sentence-t5-base")
+model.save("path/to/sentence_T5") # save the model for the embedding
+torch.save(model.state_dict(), "path/to/save/state_dict") # save the weight of the model to use it when initializing the model
+```
+
+Embedding and research
+```bash
+source activate sentenceT5
+
+echo "Passage"
+python -m processing.embedding_sentence_T5_only \
+    --batch_size=${batch_size} \
+    --model_path=${model_path} \
+    --key_text=passage \
+    --key_embedding=${key_embedding} \
+    --dataset_path=${passages}
+
+echo "dataset"
+python -m processing.embedding_sentence_T5_only \
+    --batch_size=${batch_size} \
+    --model_path=${model_path} \
+    --key_text=input \
+    --key_embedding=${key_embedding} \
+    --dataset_path=${dataset}
+    
+source activate cvlp
+
+echo "research"
+
+python -m search \
+    --dataset_path=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae/test \
+    --config=experiments/ir/sentence-T5/sentence_T5.json \
+    --metrics_path=experiments/ir/sentence-T5 \
+    --k=100 \
+    --batch_size=128
+
+```
 
 #### Pretraining with different configuration
 

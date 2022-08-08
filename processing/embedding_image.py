@@ -1,7 +1,7 @@
-"""embed image
+"""embed image with Faster RCNN or CLIP
 
 Usage:
-python -m ir.embedding_image \
+python -m processing.embedding_image \
     --type=CLIP/FasterRCNN \
     --batch_size=4
     # FasterRCNN

@@ -163,3 +163,50 @@ multitask\_resnet\_embedding &
 \label{tab:results}
 \end{table*}
 ~                 
+
+#### vlt5 pretraining + fine tuning bs 48
+
+{
+    "adam_eps": 1e-06,
+    "batch_size": 5,
+    "clip_grad_norm": 5,
+    "warmup_ratio": 0.2,
+    "weight_decay": 0.01,
+    "epochs": 200,
+    "fp16": true,
+    "gradient_accumulation_steps": 1,
+    "lr": 0.0004,
+    "num_workers": 3,
+    "optim": "adamw",
+    "output": "snap/faster_RCNN_finetuning_bs64_lr_0004/",
+    "seed": 0,
+    "valid_batch_size": 48,
+    "train":true,
+    "log_tensorboard_path":"tensorboard/ffaster_RCNN_finetuning_bs64_lr_0004/",
+    "tokenizer_path": "experiments/config_vladapter/bergamote/TokenizerConfig.json",
+    "dataset_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/miniviquae",
+    "kb_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/kb",
+    "passages_path": "/scratch_global/stage_pgrimal/data/CVLP/data/datasets/passages",
+    "key_relevant": "provenance_indices",
+    "key_text_question": "input",
+    "key_text_passage": "passage",
+    "key_vision_features": "fastrcnn_features",
+    "key_vision_boxes": "fastrcnn_boxes",
+    "key_irrelevant": "BM25_irrelevant_indices"
+}
+#    Model                      MRR@1    MRR@5    MRR@10    MRR@20    MRR@100    P@1    P@5    P@10    P@20    P@100    Hit_Rate@1    Hit_Rate@5    Hit_Rate@10    Hit_Rate@20    Hit_Rate@100
+---  -----------------------  -------  -------  --------  --------  ---------  -----  -----  ------  ------  -------  ------------  ------------  -------------  -------------  --------------
+a    multitask_fasterrcnn_48    0.011    0.021     0.025     0.029      0.035  0.011   0.01   0.012   0.012    0.016         0.011         0.043           0.08          0.137           0.408
+
+#### vlt5 fine tuning bs 64
+
+Learning rate surement trop haut
+Pre-training \& fine-tuning bs=64 & 3.1 &1.1 &0.8 & 0.8& 3.5& 11.1 & 33.7 \\
+
+on relance avec le meme learning rate
+
+### sentence T5 only
+
+    Model          MRR@1    MRR@5    MRR@10    MRR@20    MRR@100    P@1    P@5    P@10    P@20    P@100    Hit_Rate@1    Hit_Rate@5    Hit_Rate@10    Hit_Rate@20    Hit_Rate@100
+---  -----------  -------  -------  --------  --------  ---------  -----  -----  ------  ------  -------  ------------  ------------  -------------  -------------  --------------
+a    sentence_T5    0.018    0.031     0.038     0.043      0.052  0.018  0.014   0.016   0.016    0.028         0.018         0.059          0.113          0.197           0.658

@@ -2,8 +2,8 @@
 #SBATCH --time=7-00:00:00
 #SBATCH --nodes=2
 #SBATCH -J fine_tuning_bs48
-#SBATCH --gres=gpu:6
-#SBATCH --ntasks-per-node=6
+#SBATCH --gres=gpu:8
+#SBATCH --ntasks-per-node=8
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=46G
 #SBATCH --nodelist=node7,node6

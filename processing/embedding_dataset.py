@@ -1,12 +1,12 @@
-"""embed dataset
+"""embed dataset ViQuAE with Visual language model
 
 Usage: Embed dataset   
 
-python -m embedding_dataset --dataset_path=<path> --type=question --config_question_path=<> \
+python -m processing.embedding_dataset --dataset_path=<path> --type=question --config_question_path=<> \
     --config_passage_path=<> --config_training_path=<> --key_boxes=<key_boxes> --key_vision_features \
         --key_token=<key_token> --key_embedding=<key_embedding>
 
-python -m embedding_dataset --dataset_path=<path> --type=passage -config_question_path=<> \
+python -m processing.embedding_dataset --dataset_path=<path> --type=passage -config_question_path=<> \
     --config_passage_path=<>  --config_training_path=<> --key_boxes=<key_boxes> \
         --key_vision_features --key_token=<key_token> --key_embedding=<key_embedding> --kb_path=<kb_path>
 """

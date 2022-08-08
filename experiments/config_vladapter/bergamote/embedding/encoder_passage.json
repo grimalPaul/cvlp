@@ -36,7 +36,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/pgrimal/CVLEP/snap/faster_RCNN_finetuning_bs64_200_epoch/best_174_passage",
+    "load_path":"/home/pgrimal/CVLEP/snap/faster_RCNN_finetuning_bs48/best_102_passage",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,

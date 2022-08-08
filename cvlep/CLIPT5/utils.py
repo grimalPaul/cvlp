@@ -11,6 +11,13 @@ def get_pool(strategy, hidden_states):
         return hidden_states[:, 0, :]
     elif strategy =="avg":
         return torch.mean(hidden_states, dim=1)
+
+
+def mean_pooling(token_embeddings, attention_mask):
+    # Mean Pooling - Take attention mask into account for correct averaging
+    # from https://www.sbert.net/examples/applications/computing-embeddings/README.html?highlight=path
+    # We should take into account mask whe we do the mean pooling
+    raise NotImplementedError()
         
 def get_area(pos):
     """
