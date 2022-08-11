@@ -12,6 +12,7 @@ test.py
 /process_data
 /results
 /tensorboard
+/sync
 
 # Distribution / packaging
 .Python
@@ -32,6 +33,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+sync.sh
+facto.sh
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
