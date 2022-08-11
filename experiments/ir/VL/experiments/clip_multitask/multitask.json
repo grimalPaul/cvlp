@@ -3,8 +3,8 @@
         "/home/users/pgrimal/data/datasets/cvlp/passages": {
             "device": "cpu",
             "index_kwargs": {
-                "multitask_clip_embedding": {
-                    "key_kb": "multitask_clip_embedding",
+                "finetuning_clip_embedding": {
+                    "key_kb": "finetuning_clip_embedding",
                     "index_load": false,
                     "index_path": "/home/users/pgrimal/data/datasets/cvlp/indexes",
                     "string_factory": "L2norm,Flat"

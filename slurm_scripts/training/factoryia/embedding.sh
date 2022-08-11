@@ -3,9 +3,10 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH -J embed
 #SBATCH --gres=gpu:1
-#SBATCH --partition=classicgpu,gpup5000short,gpup6000
+#SBATCH --partition=gpuv100
 #SBATCH --mem=20G
 #SBATCH --time=0-10:00:00
+#SBATCH -w node27
 
 source /home/users/pgrimal/.bashrc
 source activate cvlp
@@ -18,8 +19,8 @@ passages=/home/users/pgrimal/data/datasets/cvlp/passages
 config_passage_path=experiments/config_vladapter/factoryIA/embedding/encoder_passage.json
 config_question_path=experiments/config_vladapter/factoryIA/embedding/encoder_question.json
 config_model_path=experiments/config_vladapter/factoryIA/embedding/config_model.json
-batch_size=128
-key_embedding=multitask_clip_embedding
+batch_size=256
+key_embedding=finetuning_clip_embedding
 
 echo "Dataset"
 
@@ -34,7 +35,7 @@ python -m processing.embedding_dataset \
     --key_embedding=${key_embedding} \
     --batch_size=${batch_size}
 
-<<com
+
 echo "Passage"
 python -m processing.embedding_dataset \
     --dataset_path=${passages} \
@@ -47,6 +48,5 @@ python -m processing.embedding_dataset \
     --key_embedding=${key_embedding} \
     --kb_path=${kb} \
     --batch_size=${batch_size}
-com
 
 echo "Done"

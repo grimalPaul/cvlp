@@ -157,9 +157,11 @@ class Trainer(object):
                 self.train_loader.sampler.set_epoch(epoch)
             for step_i, batch in enumerate(self.train_loader):
                 if self.args.fp16 and _use_native_amp:
-                    with autocast():
-                        if self.args.distributed:
-                            loss = self.compute_loss(batch)
+                    #with autocast():
+                    if self.args.distributed:
+                        loss = self.compute_loss(batch)
+                    else :
+                        loss = self.compute_loss(batch)
                 else:
                     loss = self.compute_loss(batch)
 
@@ -241,10 +243,13 @@ class Trainer(object):
                         all_labels = []
                     for step_i, batch in enumerate(self.val_loader):
                         if self.args.fp16 and _use_native_amp:
-                            with autocast():
-                                if self.args.distributed:
-                                    loss, outputs = self.compute_loss(
-                                        batch, return_outputs=True)
+                            #with autocast():
+                            if self.args.distributed:
+                                loss, outputs = self.compute_loss(
+                                    batch, return_outputs=True)
+                            else :
+                                loss, outputs = self.compute_loss(
+                                    batch, return_outputs=True)
                         else:
                             loss, outputs = self.compute_loss(
                                 batch, return_outputs=True)
@@ -308,9 +313,9 @@ class Trainer(object):
                 pbar = tqdm(total=len(self.test_loader), ncols=100)
             for step_i, batch in enumerate(self.test_loader):
                 if self.args.fp16 and _use_native_amp:
-                    with autocast():
-                        if self.args.distributed:
-                            loss = self.compute_loss(batch)
+                    #with autocast():
+                    if self.args.distributed:
+                        loss = self.compute_loss(batch)
                 else:
                     loss = self.compute_loss(batch)
                 if self.verbose:

@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=20G
-#SBATCH --dependency=55072
+#SBATCH --dependency=58212
 source /home/users/pgrimal/.bashrc
 source activate cvlp
 
@@ -18,6 +18,6 @@ python -m search \
     --config=experiments/ir/VL/experiments/clip_multitask/multitask.json \
     --metrics_path=experiments/ir/VL/clip_multitask/ \
     --k=100 \
-    --batch_size=64
+    --batch_size=128
 
 echo "DONE"

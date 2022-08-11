@@ -8,7 +8,7 @@
 #SBATCH --time=0-12:00:00
 
 source /home/pgrimal/.bashrc
-source activate sentenceT5
+source activate cvlp
 
 # variables
 dataset=/scratch_global/stage_pgrimal/data/CVLP/data/datasets/zero_and_finetuning_test/vlt5_dataset
@@ -19,7 +19,7 @@ config_passage_path=experiments/config_vladapter/bergamote/embedding/encoder_pas
 config_question_path=experiments/config_vladapter/bergamote/embedding/encoder_question.json
 config_model_path=experiments/config_vladapter/bergamote/embedding/config_model.json
 batch_size=128
-key_embedding=multitask_fasterrcnn_48
+key_embedding=fine_tuning_64
 
 echo "Passage"
 python -m processing.embedding_dataset \

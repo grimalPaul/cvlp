@@ -6,7 +6,7 @@
 #SBATCH -p gpu
 #SBATCH --mem=20G
 #SBATCH --time=0-06:00:00
-#SBATCH --dependency=117296
+#SBATCH --dependency=117328
 source /home/pgrimal/.bashrc
 source activate cvlp
 

@@ -36,7 +36,7 @@
     "use_lora": false,
     "do_lower_case": false,
     "dropout": 0.1,
-    "load_path":"/home/pgrimal/CVLEP/snap/faster_RCNN_finetuning_bs48/best_102_question",
+    "load_path":"/home/pgrimal/CVLEP/snap/faster_RCNN_finetuning_bs64_lr_0004/best_198_question",
     "from_scratch": false,
     
     "unfreeze_visual_embedding": true,
