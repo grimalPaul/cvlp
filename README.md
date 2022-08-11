@@ -33,8 +33,6 @@ CVLP = Constrastive Visual Language Pre-Training
     - [Multitask](#multitask)
     - [Fine-tuning](#fine-tuning)
   - [Aknowledgments](#aknowledgments)
-  - [Miscellaneous](#miscellaneous)
-  - [Methodology](#methodology)
 
 ## Installation
 
@@ -647,31 +645,3 @@ Many thanks to following codes that help us a lot in building this codebase:
 - [VL adapter](https://github.com/ylsung/VL_adapter)
 
 - [ViQuAE](https://github.com/PaulLerner/ViQuAE/)
-
-## Miscellaneous
-
-```py
-column = 'input'
-# Bart
-# Replace sep
-dataset = dataset.map(lambda x: {x[column]:x[column].replace('[SEP]','</s>')})
-# add classification token
-dataset = dataset.map(lambda x: {x[column]:'<s>'+x[column]})
-
-# T5
-# replace sep
-dataset = dataset.map(lambda x: {x[column]:x[column].replace('[SEP]','.')})
-# add classification token
-dataset = dataset.map(lambda x: {x[column]:'<pad>+'x[column]})
-```
-
-cls_token bart : `<s>`
-
-sep token bart : `</s>`
-
-cls token T5, T5 use `<pad>` for classifier
-sep token T5 : dont have, use `.`, `,`, or `;` instead ?. Explore that in further works.
-
-## Methodology
-
-Quand je referai mes expés sur gros dataset, réfléchir à bien avoir juste les passages contenant les réponses dans passages.
