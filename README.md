@@ -351,6 +351,7 @@ torch.save(model.state_dict(), "path/to/save/state_dict") # save the weight of t
 ```
 
 Embedding and research
+
 ```bash
 source activate sentenceT5
 
